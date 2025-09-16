@@ -49,6 +49,21 @@ java -jar target/attendance-0.0.1-SNAPSHOT.jar
 
 The application will start on `http://localhost:8080` by default.
 
+### Accessing the Application
+
+When you run the application locally, you'll be redirected to a login page due to Spring Security being enabled.
+
+**Login Credentials:**
+- **Username:** `user`
+- **Password:** A new password is generated every time you run the project - check your terminal/console output
+
+The generated password will appear in the logs like this:
+```
+Using generated security password: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+Copy this password from your terminal to log into the application.
+
 ## 🔗 Application Monitoring
 
 The application includes Spring Boot Actuator for basic monitoring:

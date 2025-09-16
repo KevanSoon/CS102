@@ -10,7 +10,7 @@ Create a `.env` file in the project root or set the following environment variab
 
 ```env
 # Database Configuration
-SPRING_DATASOURCE_URL=jdbc:postgresql://aws-1-us-east-2.pooler.supabase.com:6543/postgres
+SPRING_DATASOURCE_URL=your_url
 SPRING_DATASOURCE_USERNAME=your_username
 SPRING_DATASOURCE_PASSWORD=your_password
 
@@ -55,7 +55,7 @@ When you run the application locally, you'll be redirected to a login page due t
 
 **Login Credentials:**
 - **Username:** `user`
-- **Password:** A new password is generated every time you run the project - check your terminal/console output
+- **Password:** A new password is generated every time you run the project (check your terminal/console output)
 
 The generated password will appear in the logs like this:
 ```

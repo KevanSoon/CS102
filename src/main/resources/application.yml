@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# Expose metrics for demo proof
+management.endpoints.web.exposure.include: health,info,metrics,prometheus
+
+# Externalised CV thresholds
+recognition:
+  confidence: 0.6
+  cooldownMs: 10000
+face-service:
+  url: http://localhost:5001   # backend face service url

@@ -1,7 +1,7 @@
 package com.cs102.attendance.controller;
 
-import com.cs102.attendance.entity.TestConnection;
-import com.cs102.attendance.repository.TestConnectionRepository;
+import com.cs102.attendance.entity.Student;
+import com.cs102.attendance.repository.StudentRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -9,6 +9,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -21,48 +22,55 @@ public class TestControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private TestConnectionRepository testConnectionRepository;
+    private StudentRepository studentRepository;
 
     @Test
-    public void testInsertTestDataWithDefaultMessage() throws Exception {
+    public void testInsertTestDataWithValidData() throws Exception {
         // Given
-        TestConnection mockSavedEntity = new TestConnection("Test message");
-        mockSavedEntity.setId(1L);
-        when(testConnectionRepository.save(any(TestConnection.class))).thenReturn(mockSavedEntity);
+        Student mockSavedStudent = new Student("TEST001", "Test Student");
+        mockSavedStudent.setId(UUID.randomUUID());
+        when(studentRepository.save(any(Student.class))).thenReturn(mockSavedStudent);
 
         // When & Then
         mockMvc.perform(post("/api/test/insert-test-data")
+                .param("code", "TEST001")
+                .param("name", "Test Student")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.message").value("Test message"));
+                .andExpect(jsonPath("$.code").value("TEST001"))
+                .andExpect(jsonPath("$.name").value("Test Student"));
     }
 
     @Test
-    public void testInsertTestDataWithCustomMessage() throws Exception {
+    public void testInsertTestDataWithEmail() throws Exception {
         // Given
-        String customMessage = "Custom test message";
-        TestConnection mockSavedEntity = new TestConnection(customMessage);
-        mockSavedEntity.setId(2L);
-        when(testConnectionRepository.save(any(TestConnection.class))).thenReturn(mockSavedEntity);
+        Student mockSavedStudent = new Student("TEST002", "Test Student 2");
+        mockSavedStudent.setEmail("test@example.com");
+        mockSavedStudent.setId(UUID.randomUUID());
+        when(studentRepository.save(any(Student.class))).thenReturn(mockSavedStudent);
 
         // When & Then
         mockMvc.perform(post("/api/test/insert-test-data")
-                .param("message", customMessage)
+                .param("code", "TEST002")
+                .param("name", "Test Student 2")
+                .param("email", "test@example.com")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(2L))
-                .andExpect(jsonPath("$.message").value(customMessage));
+                .andExpect(jsonPath("$.code").value("TEST002"))
+                .andExpect(jsonPath("$.name").value("Test Student 2"))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
     }
 
     @Test
     public void testInsertTestDataWithException() throws Exception {
         // Given
-        when(testConnectionRepository.save(any(TestConnection.class)))
+        when(studentRepository.save(any(Student.class)))
                 .thenThrow(new RuntimeException("Database error"));
 
         // When & Then
         mockMvc.perform(post("/api/test/insert-test-data")
+                .param("code", "TEST003")
+                .param("name", "Test Student 3")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
     }

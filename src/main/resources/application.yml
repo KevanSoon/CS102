@@ -10,7 +10,7 @@ spring:
       idle-timeout: 600000
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     open-in-view: false
     properties:
       hibernate:
@@ -21,7 +21,7 @@ management.endpoints.web.exposure.include: health,info,metrics,prometheus
 
 # Externalised CV thresholds
 recognition:
-  confidence: 0.6
+  confidence: 0.70
   cooldownMs: 10000
 face-service:
   url: http://localhost:5001   # backend face service url

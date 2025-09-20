@@ -1,6 +1,6 @@
 package com.cs102.attendance;
 
-import com.cs102.attendance.repository.TestConnectionRepository;
+import com.cs102.attendance.repository.StudentRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,7 +18,7 @@ class Cs102AttendanceProjectApplicationTests {
 	private DataSource dataSource;
 
 	@Autowired
-	private TestConnectionRepository testConnectionRepository;
+	private StudentRepository studentRepository;
 
 	@Test
 	void contextLoads() {
@@ -42,8 +42,8 @@ class Cs102AttendanceProjectApplicationTests {
 	void testRepositoryConnection() {
 		// Test that the repository can execute queries
 		assertDoesNotThrow(() -> {
-			Integer result = testConnectionRepository.testQuery();
-			assertEquals(1, result, "Test query should return 1");
+			long count = studentRepository.count();
+			assertTrue(count >= 0, "Student count should be non-negative");
 		}, "Repository test query should not throw an exception");
 	}
 

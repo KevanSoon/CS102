@@ -1,7 +1,7 @@
 package com.cs102.attendance.controller;
 
-import com.cs102.attendance.entity.TestConnection;
-import com.cs102.attendance.repository.TestConnectionRepository;
+import com.cs102.attendance.entity.Student;
+import com.cs102.attendance.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,29 +15,26 @@ import java.util.Map;
 public class TestController {
 
     @Autowired
-    private TestConnectionRepository testConnectionRepository;
+    private StudentRepository studentRepository;
 
     @GetMapping("/database-operations")
     public ResponseEntity<Map<String, Object>> testDatabaseOperations() {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            // Test 1: Simple query
-            Integer queryResult = testConnectionRepository.testQuery();
-            response.put("simpleQuery", queryResult == 1 ? "PASS" : "FAIL");
-            
-            // Test 2: Insert operation
-            TestConnection testEntity = new TestConnection("Connection test from Spring Boot");
-            TestConnection saved = testConnectionRepository.save(testEntity);
+            // Test 1: Insert operation
+            Student testStudent = new Student("TEST001", "Test Student");
+            testStudent.setEmail("test@example.com");
+            Student saved = studentRepository.save(testStudent);
             response.put("insertOperation", saved.getId() != null ? "PASS" : "FAIL");
             
-            // Test 3: Read operation
-            List<TestConnection> allRecords = testConnectionRepository.findAll();
+            // Test 2: Read operation
+            List<Student> allRecords = studentRepository.findAll();
             response.put("readOperation", !allRecords.isEmpty() ? "PASS" : "FAIL");
             response.put("recordCount", allRecords.size());
             
-            // Test 4: Delete operation
-            testConnectionRepository.deleteById(saved.getId());
+            // Test 3: Delete operation
+            studentRepository.deleteById(saved.getId());
             response.put("deleteOperation", "PASS");
             
             response.put("overallStatus", "SUCCESS");
@@ -53,10 +50,16 @@ public class TestController {
     }
     
     @PostMapping("/insert-test-data")
-    public ResponseEntity<TestConnection> insertTestData(@RequestParam(defaultValue = "Test message") String message) {
+    public ResponseEntity<Student> insertTestData(
+            @RequestParam String code,
+            @RequestParam String name,
+            @RequestParam(required = false) String email) {
         try {
-            TestConnection testEntity = new TestConnection(message);
-            TestConnection saved = testConnectionRepository.save(testEntity);
+            Student testStudent = new Student(code, name);
+            if (email != null) {
+                testStudent.setEmail(email);
+            }
+            Student saved = studentRepository.save(testStudent);
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             return ResponseEntity.status(500).build();
@@ -64,9 +67,9 @@ public class TestController {
     }
     
     @GetMapping("/all-test-data")
-    public ResponseEntity<List<TestConnection>> getAllTestData() {
+    public ResponseEntity<List<Student>> getAllTestData() {
         try {
-            List<TestConnection> allRecords = testConnectionRepository.findAll();
+            List<Student> allRecords = studentRepository.findAll();
             return ResponseEntity.ok(allRecords);
         } catch (Exception e) {
             return ResponseEntity.status(500).build();

@@ -15,10 +15,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  # security:
-  #   user:
-  #     name: ${SPRING_SECURITY_USER_NAME}
-  #     password: ${SPRING_SECURITY_USER_PASSWORD}
 
 # Expose metrics for demo proof
 management.endpoints.web.exposure.include: health,info,metrics,prometheus

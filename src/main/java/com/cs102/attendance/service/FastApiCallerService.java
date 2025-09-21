@@ -1,3 +1,4 @@
+// FastApiCallerService.java
 package com.cs102.attendance.service;
 
 import java.net.URI;
@@ -5,9 +6,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+@Service
 public class FastApiCallerService {
 
     private static final String FASTAPI_URL = "https://kevansoon-java-facerecognition-endpoint.hf.space/face-recognition";

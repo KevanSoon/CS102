@@ -42,7 +42,7 @@ thresholdSlider.addEventListener("input", () => {
 });
 thresholdSlider.disabled = false;
 
-let size = 128;
+let size = 96;
 processor.feature_extractor.size = { shortest_edge: size };
 sizeSlider.addEventListener("input", () => {
   size = Number(sizeSlider.value);
@@ -106,7 +106,7 @@ async function sendCanvasImageToAPI(canvas) {
         const formData = new FormData();
         formData.append("image", file);
 
-        const response = await fetch("http://localhost:8080/call-face-recognition", {
+        const response = await fetch("https://kevansoon-java-endpoint.hf.space/call-face-recognition", {
           method: "POST",
           body: formData,
         });

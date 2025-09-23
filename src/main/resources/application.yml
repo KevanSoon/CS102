@@ -4,20 +4,76 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    lifecycle:
+      timeout-per-shutdown-phase: 30000
     hikari:
-      maximum-pool-size: 10
-      connection-timeout: 30000
-      idle-timeout: 600000
+      # Connection pool sizing - conservative for Supabase limits
+      maximum-pool-size: 5  # Reduced from 7 to be more conservative
+      minimum-idle: 1       # Reduced from 2 to minimize idle connections
+      
+      # Connection lifecycle management
+      idle-timeout: 300000      # 5 minutes - close idle connections faster
+      max-lifetime: 1800000     # 30 minutes - rotate connections more frequently
+      connection-timeout: 20000 # 20 seconds - fail fast on connection issues
+      
+      # Leak detection and validation
+      leak-detection-threshold: 15000  # 15 seconds - detect leaks faster
+      validation-timeout: 5000         # 5 seconds for connection validation
+      
+      # Connection testing
+      connection-test-query: SELECT 1
+      
+      # Pool name for monitoring
+      pool-name: AttendanceHikariCP
+      
+      # Additional connection properties for PostgreSQL/Supabase
+      data-source-properties:
+        # Prevent connection leaks by setting timeouts
+        socketTimeout: 30
+        loginTimeout: 10
+        # Enable TCP keepalive
+        tcpKeepAlive: true
+        # Application name for connection tracking
+        ApplicationName: cs102-attendance-app
+
   jpa:
     hibernate:
       ddl-auto: create-drop
-    open-in-view: false
+    open-in-view: false  # Critical: prevents lazy loading connection leaks
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Connection handling
+        connection.handling_mode: delayed_acquisition_and_release_after_transaction
+        # Query timeout to prevent long-running queries holding connections
+        query.timeout: 30000  # 30 seconds
 
-# Expose metrics for demo proof
-management.endpoints.web.exposure.include: health,info,metrics,prometheus
+  server:
+    shutdown: graceful
+  
+  # Enhanced logging for connection monitoring
+  logging:
+    level:
+      org.hibernate.SQL: DEBUG
+      org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+      com.zaxxer.hikari: DEBUG
+      com.zaxxer.hikari.HikariConfig: DEBUG
+      com.zaxxer.hikari.HikariDataSource: DEBUG
+      com.zaxxer.hikari.pool: DEBUG  # Pool-specific logging
+
+# Expose metrics for connection pool monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,hikaricp
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 # Externalised CV thresholds
 recognition:

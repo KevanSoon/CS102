@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professor Dashboard - Attendance System</title>
+    <link rel="stylesheet" href="styles2.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <div class="logo-icon">👨‍🏫</div>
+                <h1 class="header-title">Professor Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <span class="welcome-text">Welcome, Dr. Smith</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="welcome-section">
+            <h2 class="welcome-title">Welcome back!</h2>
+            <p class="welcome-subtitle">Manage your classes and track student attendance</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue">📊</div>
+                <div class="stat-content">
+                    <h3>Average Attendance</h3>
+                    <div class="stat-number">78%</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">👥</div>
+                <div class="stat-content">
+                    <h3>Total Students</h3>
+                    <div class="stat-number">125</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon yellow">📅</div>
+                <div class="stat-content">
+                    <h3>Active Classes</h3>
+                    <div class="stat-number">3</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">Class Management</h3>
+                <p class="section-subtitle">Create and manage your class sessions</p>
+            </div>
+            <div class="section-content">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <button class="btn btn-primary" onclick="openCreateClass()">Create Class/Session</button>
+                    <button class="btn btn-secondary" onclick="openManualAttendance()">Manual Attendance</button>
+                    <button class="btn btn-secondary" onclick="openGenerateReport()">Generate Report</button>
+                    <button class="btn btn-secondary" onclick="openStudentManagement()">Manage Students</button>
+                    <button class="btn btn-secondary" onclick="openAttendanceCheck()">Check Total Attendance</button>
+                    <button class="btn btn-danger" onclick="closeActiveSession()">Close Active Session</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">Active Sessions</h3>
+            </div>
+            <div class="section-content" id="activeSessions">
+                <p class="welcome-subtitle">No active sessions at the moment</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Professor Modals -->
+    <!-- Create Class Modal -->
+    <div id="createClassModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Create Class/Session</h3>
+                <button class="close-btn" onclick="closeCreateClass()">&times;</button>
+            </div>
+            <form id="createClassForm">
+                <div class="form-group">
+                    <label class="form-label">Class Name</label>
+                    <input type="text" class="form-input" placeholder="e.g., CS101 - Introduction to Programming" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Session Date</label>
+                    <input type="date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Start Time</label>
+                    <input type="time" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Duration (minutes)</label>
+                    <input type="number" class="form-input" placeholder="90" required>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Create Session</button>
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeCreateClass()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manual Attendance Modal -->
+    <div id="manualAttendanceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Manual Attendance Marking</h3>
+                <button class="close-btn" onclick="closeManualAttendance()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Select Class</label>
+                <select class="form-select">
+                    <option>CS101 - Introduction to Programming</option>
+                    <option>MATH201 - Calculus II</option>
+                    <option>PHY301 - Quantum Physics</option>
+                </select>
+            </div>
+            <div class="student-list">
+                <div class="student-item">
+                    <span>John Doe (john@example.com)</span>
+                    <div class="attendance-controls">
+                        <button class="btn btn-success btn-sm">Present</button>
+                        <button class="btn btn-danger btn-sm">Absent</button>
+                    </div>
+                </div>
+                <div class="student-item">
+                    <span>Jane Smith (jane@example.com)</span>
+                    <div class="attendance-controls">
+                        <button class="btn btn-success btn-sm">Present</button>
+                        <button class="btn btn-danger btn-sm">Absent</button>
+                    </div>
+                </div>
+                <div class="student-item">
+                    <span>Mike Johnson (mike@example.com)</span>
+                    <div class="attendance-controls">
+                        <button class="btn btn-success btn-sm">Present</button>
+                        <button class="btn btn-danger btn-sm">Absent</button>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button class="btn btn-primary" style="flex: 1;">Save Attendance</button>
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeManualAttendance()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate Report Modal -->
+    <div id="generateReportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Generate Attendance Report</h3>
+                <button class="close-btn" onclick="closeGenerateReport()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Select Class</label>
+                <select class="form-select">
+                    <option>CS101 - Introduction to Programming</option>
+                    <option>MATH201 - Calculus II</option>
+                    <option>PHY301 - Quantum Physics</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <div style="display: flex; gap: 1rem;">
+                    <input type="date" class="form-input" style="flex: 1;">
+                    <input type="date" class="form-input" style="flex: 1;">
+                </div>
+            </div>
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Total Classes</th>
+                        <th>Present</th>
+                        <th>Attendance Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>John Doe</td>
+                        <td>20</td>
+                        <td>18</td>
+                        <td><span class="status-badge status-present">90%</span></td>
+                    </tr>
+                    <tr>
+                        <td>Jane Smith</td>
+                        <td>20</td>
+                        <td>15</td>
+                        <td><span class="status-badge status-absent">75%</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="export-buttons">
+                <button class="btn btn-success" onclick="exportCSV()">Export as CSV</button>
+                <button class="btn btn-danger" onclick="exportPDF()">Export as PDF</button>
+                <button class="btn btn-secondary" onclick="closeGenerateReport()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Management Modal -->
+    <div id="studentManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Student Management</h3>
+                <button class="close-btn" onclick="closeStudentManagement()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Add Student to Class</label>
+                <div style="display: flex; gap: 1rem;">
+                    <input type="email" class="form-input" placeholder="Student email" style="flex: 1;">
+                    <select class="form-select" style="flex: 1;">
+                        <option>Select Class</option>
+                        <option>CS101</option>
+                        <option>MATH201</option>
+                        <option>PHY301</option>
+                    </select>
+                    <button class="btn btn-primary">Add</button>
+                </div>
+            </div>
+            <div class="student-list">
+                <div class="student-item">
+                    <span>John Doe - CS101</span>
+                    <button class="btn btn-danger btn-sm">Remove</button>
+                </div>
+                <div class="student-item">
+                    <span>Jane Smith - CS101</span>
+                    <button class="btn btn-danger btn-sm">Remove</button>
+                </div>
+                <div class="student-item">
+                    <span>Mike Johnson - MATH201</span>
+                    <button class="btn btn-danger btn-sm">Remove</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Check Modal -->
+    <div id="attendanceCheckModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Check Total Attendance</h3>
+                <button class="close-btn" onclick="closeAttendanceCheck()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Select Class</label>
+                <select class="form-select">
+                    <option>CS101 - Introduction to Programming</option>
+                    <option>MATH201 - Calculus II</option>
+                    <option>PHY301 - Quantum Physics</option>
+                </select>
+            </div>
+            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
+                <h4 style="margin-bottom: 1rem; color: #1e293b;">Class Statistics</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #0ea5e9;">25</div>
+                        <div style="font-size: 0.875rem; color: #64748b;">Total Students</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">78%</div>
+                        <div style="font-size: 0.875rem; color: #64748b;">Average Attendance</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #f59e0b;">15</div>
+                        <div style="font-size: 0.875rem; color: #64748b;">Total Sessions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/script.js"></script>
+</body>
+</html>

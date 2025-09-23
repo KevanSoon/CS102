@@ -46,7 +46,7 @@ public class DatabaseTestRunner implements CommandLineRunner {
             System.out.println("Found " + sessions.size() + " session(s) for today");
             
             System.out.println("\nALL DATABASE TESTS PASSED!");
-            System.out.println("Your database is working correctly!\n");
+            System.out.println("Database is working correctly.\n");
             
         } catch (Exception e) {
             System.err.println("DATABASE TEST FAILED: " + e.getMessage());

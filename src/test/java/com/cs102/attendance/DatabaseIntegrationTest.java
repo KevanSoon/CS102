@@ -79,7 +79,7 @@ public class DatabaseIntegrationTest {
         assertEquals(1, savedStudent.getAttendanceRecords().size());
         System.out.println("Entity relationships working");
         
-        System.out.println("All database tests passed!");
+        System.out.println("All database tests passed.");
     }
     
     @Test

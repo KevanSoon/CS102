@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Attendance System</title>
+    <link rel="stylesheet" href="styles2.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header design matching the image -->
+        <div class="header">
+            <div class="header-left">
+                <div class="logo-icon">👤</div>
+                <h1 class="header-title">Student Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <span class="welcome-text">Welcome, a@a</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Welcome section -->
+        <div class="welcome-section">
+            <h2 class="welcome-title">Welcome back!</h2>
+            <p class="welcome-subtitle">Manage your class attendance and view your records</p>
+        </div>
+
+        <!-- Stats cards matching the image -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue">✓</div>
+                <div class="stat-content">
+                    <h3>Attendance Rate</h3>
+                    <div class="stat-number">85%</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">📚</div>
+                <div class="stat-content">
+                    <h3>Total Classes</h3>
+                    <div class="stat-number">24</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon yellow">🕐</div>
+                <div class="stat-content">
+                    <h3>Classes Today</h3>
+                    <div class="stat-number">3</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Class selection section -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">Select Class/Session</h3>
+                <p class="section-subtitle">Available Classes</p>
+            </div>
+            <div class="section-content">
+                <select class="form-select" id="classSelect" onchange="enableFaceScanning()">
+                    <option value="">Select a class</option>
+                    <option value="cs101">CS101 - Introduction to Programming</option>
+                    <option value="math201">MATH201 - Calculus II</option>
+                    <option value="phy301">PHY301 - Quantum Physics</option>
+                </select>
+                <button id="scanFaceBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem; display: none;" onclick="openFaceScanning()">
+                    Scan Face for Attendance
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Attendance section -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">Recent Attendance</h3>
+            </div>
+            <div class="section-content">
+                <p class="welcome-subtitle">Your recent attendance records will appear here</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Face Scanning Modal -->
+    <div id="faceScanModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Scan Face for Attendance</h3>
+                <button class="close-btn" onclick="closeFaceScanning()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="text-align: center; color: #64748b; margin-bottom: 1rem;">
+                    Position your face within the frame for attendance verification
+                </p>
+                <div class="camera-container" style="position: relative; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 1rem;">
+                    <video id="attendanceVideo" style="width: 100%; height: 300px; object-fit: cover;" autoplay muted></video>
+                    <canvas id="attendanceCanvas" style="display: none;"></canvas>
+                    <div class="scan-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 200px; border: 2px solid #22d3ee; border-radius: 50%; opacity: 0.8;"></div>
+                </div>
+                <div id="scanResult" style="text-align: center; margin-bottom: 1rem; display: none;">
+                    <div style="color: #22c55e; font-weight: 500;">✓ Face verified successfully!</div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button id="scanBtn" class="btn btn-primary" style="flex: 1;" onclick="scanFace()">Scan Face</button>
+                    <button id="markPresentBtn" class="btn btn-success" style="flex: 1; display: none;" onclick="markAttendance()">Mark Present</button>
+                    <button class="btn btn-secondary" style="flex: 1;" onclick="closeFaceScanning()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/script.js"></script>
+
+</body>
+</html>

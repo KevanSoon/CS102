@@ -61,6 +61,37 @@ const COLOURS = [
 ];
 
 // Function to send canvas image to Gradio API
+// async function sendCanvasImageToAPI(canvas) {
+//   return new Promise((resolve, reject) => {
+//     canvas.toBlob(async (blob) => {
+//       if (!blob) {
+//         reject("Failed to get Blob from canvas");
+//         return;
+//       }
+
+//       const file1 = new File([blob], "detected.png", { type: "image/png" });
+
+//       try {
+//         // Fetch image from URL and convert to Blob
+//         const response = await fetch("https://qvnhhditkzzeudppuezf.supabase.co/storage/v1/object/public/post-images/post-images/1752289670997-kevan.jpg");
+//         const frame2Blob = await response.blob();
+//         const file2 = new File([frame2Blob], "frame2.jpg", { type: frame2Blob.type });
+
+//         const client = await Client.connect("MiniAiLive/FaceRecognition-LivenessDetection-Demo");
+
+//         // Send canvas image as frame1, URL image as frame2
+//         const result = await client.predict("/face_compare", {
+//           frame1: file1,
+//           frame2: file2,
+//         });
+//         resolve(result);
+//       } catch (err) {
+//         reject(err);
+//       }
+//     }, "image/png");
+//   });
+// }
+
 async function sendCanvasImageToAPI(canvas) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(async (blob) => {
@@ -69,21 +100,23 @@ async function sendCanvasImageToAPI(canvas) {
         return;
       }
 
-      const file1 = new File([blob], "detected.png", { type: "image/png" });
+      const file = new File([blob], "detected.png", { type: "image/png" });
 
       try {
-        // Fetch image from URL and convert to Blob
-        const response = await fetch("https://qvnhhditkzzeudppuezf.supabase.co/storage/v1/object/public/post-images/post-images/1752289670997-kevan.jpg");
-        const frame2Blob = await response.blob();
-        const file2 = new File([frame2Blob], "frame2.jpg", { type: frame2Blob.type });
+        const formData = new FormData();
+        formData.append("image", file);
 
-        const client = await Client.connect("MiniAiLive/FaceRecognition-LivenessDetection-Demo");
-
-        // Send canvas image as frame1, URL image as frame2
-        const result = await client.predict("/face_compare", {
-          frame1: file1,
-          frame2: file2,
+        const response = await fetch("http://localhost:8080/call-face-recognition", {
+          method: "POST",
+          body: formData,
         });
+
+        if (!response.ok) {
+          reject("Failed to send image: " + response.statusText);
+          return;
+        }
+
+        const result = await response.text(); // or JSON if backend returns JSON
         resolve(result);
       } catch (err) {
         reject(err);
@@ -91,6 +124,7 @@ async function sendCanvasImageToAPI(canvas) {
     }, "image/png");
   });
 }
+
 
 // Variables to store current bounding box and label elements
 let currentBoxElement = null;
@@ -135,15 +169,19 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
   if (!hasSent) {
     hasSent = true;
     sendCanvasImageToAPI(canvas)
-      .then((result) => {
-        console.log("API result:", result);
+      .then((response) => {
+        
+        const responseObj = JSON.parse(response); 
+        const confidenceStr = responseObj.result; // "0.982708"
 
-        const str = result.data[0]; // Access first element in array
-        const startIndex = str.indexOf("Similarity");
-        const slicedStr = startIndex !== -1 ? str.slice(startIndex) : "";
-        const decimalMatch = slicedStr.match(/<td>(0?\.\d+)<\/td>/);
-        const decimalNumber = decimalMatch ? parseFloat(decimalMatch[1]) : null;
-        console.log("Similarity decimal:", decimalNumber);
+        // Extract decimal part only:
+        // const decimalPart = confidenceStr.slice(confidenceStr.indexOf('.') + 1);
+        // console.log(decimalPart);  // e.g., "982708"
+
+        // Convert to float for comparison
+        const decimalNumber = parseFloat(confidenceStr);
+        console.log(decimalNumber);
+        
 
         if (decimalNumber !== null && decimalNumber > 0.80) {
           // --- MODIFICATION START ---

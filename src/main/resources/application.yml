@@ -38,7 +38,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update  # Changed from create-drop to preserve data between sessions
     open-in-view: false  # Critical: prevents lazy loading connection leaks
     properties:
       hibernate:

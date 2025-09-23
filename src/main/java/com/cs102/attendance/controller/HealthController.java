@@ -61,19 +61,10 @@ public class HealthController {
             if (dataSource instanceof HikariDataSource) {
                 HikariDataSource hikariDataSource = (HikariDataSource) dataSource;
                 
-                // Get HikariCP MBean for detailed metrics
-                MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-                ObjectName poolName = new ObjectName("com.zaxxer.hikari:type=Pool (AttendanceHikariCP)");
-                HikariPoolMXBean poolProxy = JMX.newMXBeanProxy(server, poolName, HikariPoolMXBean.class);
-                
                 response.put("status", "UP");
                 response.put("poolName", "AttendanceHikariCP");
-                response.put("activeConnections", poolProxy.getActiveConnections());
-                response.put("idleConnections", poolProxy.getIdleConnections());
-                response.put("totalConnections", poolProxy.getTotalConnections());
-                response.put("threadsAwaitingConnection", poolProxy.getThreadsAwaitingConnection());
                 
-                // Configuration details
+                // Basic configuration details (always available)
                 response.put("maximumPoolSize", hikariDataSource.getMaximumPoolSize());
                 response.put("minimumIdle", hikariDataSource.getMinimumIdle());
                 response.put("connectionTimeout", hikariDataSource.getConnectionTimeout());
@@ -81,22 +72,43 @@ public class HealthController {
                 response.put("maxLifetime", hikariDataSource.getMaxLifetime());
                 response.put("leakDetectionThreshold", hikariDataSource.getLeakDetectionThreshold());
                 
-                // Health indicators
-                int activeConnections = poolProxy.getActiveConnections();
-                int totalConnections = poolProxy.getTotalConnections();
-                int maxPoolSize = hikariDataSource.getMaximumPoolSize();
-                
-                response.put("poolUtilization", String.format("%.2f%%", 
-                    (double) totalConnections / maxPoolSize * 100));
-                response.put("activeUtilization", String.format("%.2f%%", 
-                    (double) activeConnections / maxPoolSize * 100));
-                
-                // Warning thresholds
-                if (totalConnections >= maxPoolSize * 0.9) {
-                    response.put("warning", "Connection pool is near maximum capacity");
-                }
-                if (poolProxy.getThreadsAwaitingConnection() > 0) {
-                    response.put("warning", "Threads are waiting for connections - possible bottleneck");
+                // Try to get HikariCP MBean for detailed metrics
+                try {
+                    MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+                    ObjectName poolName = new ObjectName("com.zaxxer.hikari:type=Pool (AttendanceHikariCP)");
+                    
+                    if (server.isRegistered(poolName)) {
+                        HikariPoolMXBean poolProxy = JMX.newMXBeanProxy(server, poolName, HikariPoolMXBean.class);
+                        
+                        response.put("activeConnections", poolProxy.getActiveConnections());
+                        response.put("idleConnections", poolProxy.getIdleConnections());
+                        response.put("totalConnections", poolProxy.getTotalConnections());
+                        response.put("threadsAwaitingConnection", poolProxy.getThreadsAwaitingConnection());
+                        
+                        // Health indicators
+                        int activeConnections = poolProxy.getActiveConnections();
+                        int totalConnections = poolProxy.getTotalConnections();
+                        int maxPoolSize = hikariDataSource.getMaximumPoolSize();
+                        
+                        response.put("poolUtilization", String.format("%.2f%%", 
+                            (double) totalConnections / maxPoolSize * 100));
+                        response.put("activeUtilization", String.format("%.2f%%", 
+                            (double) activeConnections / maxPoolSize * 100));
+                        
+                        // Warning thresholds
+                        if (totalConnections >= maxPoolSize * 0.9) {
+                            response.put("warning", "Connection pool is near maximum capacity");
+                        }
+                        if (poolProxy.getThreadsAwaitingConnection() > 0) {
+                            response.put("warning", "Threads are waiting for connections - possible bottleneck");
+                        }
+                    } else {
+                        response.put("mbeanStatus", "MBean not registered - pool metrics unavailable");
+                        response.put("note", "Pool configuration is available, but runtime metrics require MBean access");
+                    }
+                } catch (Exception mbeanException) {
+                    response.put("mbeanError", "Cannot access pool MBean: " + mbeanException.getMessage());
+                    response.put("note", "Pool configuration is available, but runtime metrics are not accessible");
                 }
                 
                 return ResponseEntity.ok(response);
@@ -107,7 +119,7 @@ public class HealthController {
             }
         } catch (Exception e) {
             response.put("status", "ERROR");
-            response.put("error", "Failed to get connection pool metrics: " + e.getMessage());
+            response.put("error", "Failed to get connection pool info: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
     }
@@ -133,6 +145,40 @@ public class HealthController {
             response.put("status", "DOWN");
             response.put("error", "Connection leak test failed: " + e.getMessage());
             return ResponseEntity.status(503).body(response);
+        }
+    }
+    
+    @GetMapping("/pool-simple")
+    public ResponseEntity<Map<String, Object>> getSimplePoolInfo() {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (dataSource instanceof HikariDataSource) {
+                HikariDataSource hikariDataSource = (HikariDataSource) dataSource;
+                
+                response.put("status", "UP");
+                response.put("dataSourceType", "HikariCP");
+                response.put("poolName", hikariDataSource.getPoolName());
+                response.put("jdbcUrl", hikariDataSource.getJdbcUrl());
+                response.put("maximumPoolSize", hikariDataSource.getMaximumPoolSize());
+                response.put("minimumIdle", hikariDataSource.getMinimumIdle());
+                response.put("connectionTimeout", hikariDataSource.getConnectionTimeout() + "ms");
+                response.put("idleTimeout", hikariDataSource.getIdleTimeout() + "ms");
+                response.put("maxLifetime", hikariDataSource.getMaxLifetime() + "ms");
+                response.put("leakDetectionThreshold", hikariDataSource.getLeakDetectionThreshold() + "ms");
+                response.put("isRunning", !hikariDataSource.isClosed());
+                
+                return ResponseEntity.ok(response);
+            } else {
+                response.put("status", "UNKNOWN");
+                response.put("dataSourceType", dataSource.getClass().getSimpleName());
+                response.put("message", "Not using HikariCP");
+                return ResponseEntity.ok(response);
+            }
+        } catch (Exception e) {
+            response.put("status", "ERROR");
+            response.put("error", "Failed to get pool info: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
         }
     }
 } 

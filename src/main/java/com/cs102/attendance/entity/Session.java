@@ -1,5 +1,6 @@
 package com.cs102.attendance.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -23,6 +24,7 @@ public class Session extends Entity {
     private LocalTime endTime;
     
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<AttendanceRecord> attendanceRecords = new ArrayList<>();
     
     // Constructors

@@ -40,8 +40,31 @@ public class StudentController {
     // Get all students
     @GetMapping
     public ResponseEntity<List<Student>> getAllStudents() {
-        List<Student> students = studentService.getAllStudents();
-        return ResponseEntity.ok(students);
+        try {
+            List<Student> students = studentService.getAllStudents();
+            return ResponseEntity.ok(students);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    // Simple test endpoint
+    @GetMapping("/health-check")
+    public ResponseEntity<String> testEndpoint() {
+        return ResponseEntity.ok("Students endpoint is working!");
+    }
+
+    // Count endpoint
+    @GetMapping("/count")
+    public ResponseEntity<Long> getStudentCount() {
+        try {
+            List<Student> students = studentService.getAllStudents();
+            return ResponseEntity.ok((long) students.size());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(-1L);
+        }
     }
 
     // Get student by ID

@@ -14,10 +14,12 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable()) // Disable CSRF for API testing
+            .cors(cors -> cors.disable()) // Disable CORS for testing
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/**").permitAll() // Allow all API requests
                 .requestMatchers("/actuator/**").permitAll() // Allow actuator endpoints
-                .anyRequest().authenticated()
+                .requestMatchers("/error").permitAll() // Allow error page
+                .anyRequest().permitAll() // Allow all requests for testing
             );
         
         return http.build();

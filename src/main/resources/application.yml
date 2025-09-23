@@ -7,18 +7,15 @@ spring:
     lifecycle:
       timeout-per-shutdown-phase: 30000
     hikari:
-      # Connection pool sizing - conservative for Supabase limits
-      maximum-pool-size: 5  # Reduced from 7 to be more conservative
-      minimum-idle: 1       # Reduced from 2 to minimize idle connections
-      
-      # Connection lifecycle management
-      idle-timeout: 300000      # 5 minutes - close idle connections faster
-      max-lifetime: 1800000     # 30 minutes - rotate connections more frequently
-      connection-timeout: 20000 # 20 seconds - fail fast on connection issues
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 20000
       
       # Leak detection and validation
-      leak-detection-threshold: 15000  # 15 seconds - detect leaks faster
-      validation-timeout: 5000         # 5 seconds for connection validation
+      leak-detection-threshold: 15000
+      validation-timeout: 5000
       
       # Connection testing
       connection-test-query: SELECT 1
@@ -28,25 +25,20 @@ spring:
       
       # Additional connection properties for PostgreSQL/Supabase
       data-source-properties:
-        # Prevent connection leaks by setting timeouts
         socketTimeout: 30
         loginTimeout: 10
-        # Enable TCP keepalive
         tcpKeepAlive: true
-        # Application name for connection tracking
         ApplicationName: cs102-attendance-app
 
   jpa:
     hibernate:
-      ddl-auto: update  # Changed from create-drop to preserve data between sessions
-    open-in-view: false  # Critical: prevents lazy loading connection leaks
+      ddl-auto: update
+    open-in-view: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        # Connection handling
         connection.handling_mode: delayed_acquisition_and_release_after_transaction
-        # Query timeout to prevent long-running queries holding connections
-        query.timeout: 30000  # 30 seconds
+        query.timeout: 30000
 
   server:
     shutdown: graceful
@@ -59,7 +51,7 @@ spring:
       com.zaxxer.hikari: DEBUG
       com.zaxxer.hikari.HikariConfig: DEBUG
       com.zaxxer.hikari.HikariDataSource: DEBUG
-      com.zaxxer.hikari.pool: DEBUG  # Pool-specific logging
+      com.zaxxer.hikari.pool: DEBUG
 
 # Expose metrics for connection pool monitoring
 management:
@@ -74,10 +66,13 @@ management:
     export:
       prometheus:
         enabled: true
+  jmx:
+    exposure:
+      include: "*"
 
 # Externalised CV thresholds
 recognition:
   confidence: 0.70
   cooldownMs: 10000
 face-service:
-  url: http://localhost:5001   # backend face service url
+  url: http://localhost:5001   # to insert backend face service url

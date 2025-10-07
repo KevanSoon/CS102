@@ -22,7 +22,7 @@ async function showSessions() {
 
 async function init() {
   allSessions = await showSessions();
-  // console.log('Sessions loaded:', allSessions);
+  console.log('Sessions loaded:', allSessions);
   
   // Call other functions that need allSessions
   // displaySessions();
@@ -210,6 +210,7 @@ function logout() {
 document.addEventListener("DOMContentLoaded", () => {
   updateRecentAttendance()
   updateStudentStats()
+  init()
 
   // Handle form submissions
   const createClassForm = document.getElementById("createClassForm")

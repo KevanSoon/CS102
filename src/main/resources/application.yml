@@ -81,5 +81,6 @@ face-service:
 cors:
   allowed-origins: 
     - https://cs-102-vert.vercel.app/
-    - http://localhost:3000
+    - http://localhost:5173
     - http://localhost:8080
+    

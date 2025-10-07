@@ -8,6 +8,33 @@ let attendanceRecords = [
   { date: "2024-01-13", class: "PHY301", status: "Absent", time: "-" },
 ]
 
+let allSessions = [];
+
+async function showSessions() {
+  try {
+    const response = await fetch('http://localhost:8080/api/sessions');
+    return await response.json();
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
+  }
+}
+
+async function init() {
+  allSessions = await showSessions();
+  // console.log('Sessions loaded:', allSessions);
+  
+  // Call other functions that need allSessions
+  // displaySessions();
+}
+
+// function displaySessions() {
+//   // Use allSessions here
+//   console.log(`Found ${allSessions.length} sessions`);
+// }
+
+// Call init when page loads
+init();
 
 function markAttendance() {
   if (!selectedClass || !faceScanned) {
@@ -71,6 +98,7 @@ function updateRecentAttendance() {
             </thead>
             <tbody>
     `
+  // pull all
 
   recentRecords.forEach((record) => {
     const statusColor = record.status === "Present" ? "#10b981" : "#ef4444"

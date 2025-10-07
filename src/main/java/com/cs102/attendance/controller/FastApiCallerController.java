@@ -1,7 +1,8 @@
 package com.cs102.attendance.controller;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,7 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.cs102.attendance.service.FastApiCallerService;
 
 @RestController
-@CrossOrigin(origins = "https://cs-102-vert.vercel.app/") 
+@RequestMapping("/api/face-recognition")
 public class FastApiCallerController {
 
     private final FastApiCallerService fastApiCallerService;
@@ -18,13 +19,13 @@ public class FastApiCallerController {
         this.fastApiCallerService = fastApiCallerService;
     }
 
-    @PostMapping("/call-face-recognition")
-    public String callFaceRecognition(@RequestParam("image") MultipartFile imageFile) {
+    @PostMapping("/call")
+    public ResponseEntity<String> callFaceRecognition(@RequestParam("image") MultipartFile imageFile) {
         try {
-            return fastApiCallerService.callFaceRecognitionWithImage(imageFile);
+            String result = fastApiCallerService.callFaceRecognitionWithImage(imageFile);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            e.printStackTrace();
-            return "Error processing image: " + e.getMessage();
+            return ResponseEntity.status(500).body("Error processing image: " + e.getMessage());
         }
     }
 }

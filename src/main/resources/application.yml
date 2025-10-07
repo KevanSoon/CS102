@@ -75,4 +75,11 @@ recognition:
   confidence: 0.70
   cooldownMs: 10000
 face-service:
-  url: http://localhost:5001   # to insert backend face service url
+  fastapi-url: https://kevansoon-java-facerecognition-endpoint.hf.space/face-recognition
+
+# CORS configuration
+cors:
+  allowed-origins: 
+    - https://cs-102-vert.vercel.app/
+    - http://localhost:3000
+    - http://localhost:8080

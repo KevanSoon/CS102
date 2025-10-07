@@ -13,7 +13,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/students")
-@CrossOrigin(origins = "*") // Allow CORS for testing
 public class StudentController {
 
     @Autowired
@@ -44,8 +43,7 @@ public class StudentController {
             List<Student> students = studentService.getAllStudents();
             return ResponseEntity.ok(students);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).build();
+            return ResponseEntity.status(500).body(null);
         }
     }
 
@@ -62,7 +60,6 @@ public class StudentController {
             List<Student> students = studentService.getAllStudents();
             return ResponseEntity.ok((long) students.size());
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(-1L);
         }
     }

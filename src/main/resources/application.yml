@@ -7,7 +7,7 @@ spring:
     lifecycle:
       timeout-per-shutdown-phase: 30000
     hikari:
-      maximum-pool-size: 5
+      maximum-pool-size: 15
       minimum-idle: 1
       idle-timeout: 300000
       max-lifetime: 1800000

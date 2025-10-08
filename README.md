@@ -13,6 +13,7 @@ Create a `.env` file in the project root or set the following environment variab
 SPRING_DATASOURCE_URL=your_url
 SPRING_DATASOURCE_USERNAME=your_username
 SPRING_DATASOURCE_PASSWORD=your_password
+```
 
 
 ## 🚀 Running the Application

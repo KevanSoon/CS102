@@ -1,5 +1,5 @@
 console.log("professor.js loaded");
-
+//original professor.js below onwards
 
 // Global variables
 let attendanceRecords = [
@@ -65,7 +65,7 @@ function markAttendance() {
 
   attendanceRecords.unshift(newRecord)
 
-  updateRecentAttendance()
+  // updateRecentAttendance()
   updateStudentStats()
 
   alert(`Attendance marked successfully for ${className}!`)
@@ -77,44 +77,44 @@ function markAttendance() {
   selectedClass = ""
 }
 
-function updateRecentAttendance() {
-  const recentSection = document.querySelector(".section-card:last-child .section-content")
+// function updateRecentAttendance() {
+//   const recentSection = document.querySelector(".section-card:last-child .section-content")
 
-  if (attendanceRecords.length === 0) {
-    recentSection.innerHTML = '<p class="welcome-subtitle">No attendance records yet</p>'
-    return
-  }
+//   if (attendanceRecords.length === 0) {
+//     recentSection.innerHTML = '<p class="welcome-subtitle">No attendance records yet</p>'
+//     return
+//   }
 
-  const recentRecords = attendanceRecords.slice(0, 5)
-  let tableHTML = `
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Date</th>
-                    <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Class</th>
-                    <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Status</th>
-                    <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Time</th>
-                </tr>
-            </thead>
-            <tbody>
-    `
-  // pull all
+//   const recentRecords = attendanceRecords.slice(0, 5)
+//   let tableHTML = `
+//         <table style="width: 100%; border-collapse: collapse;">
+//             <thead>
+//                 <tr style="border-bottom: 1px solid #e2e8f0;">
+//                     <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Date</th>
+//                     <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Class</th>
+//                     <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Status</th>
+//                     <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Time</th>
+//                 </tr>
+//             </thead>
+//             <tbody>
+//     `
+//   // pull all
 
-  recentRecords.forEach((record) => {
-    const statusColor = record.status === "Present" ? "#10b981" : "#ef4444"
-    tableHTML += `
-            <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 0.75rem 0.5rem;">${record.date}</td>
-                <td style="padding: 0.75rem 0.5rem;">${record.class}</td>
-                <td style="padding: 0.75rem 0.5rem; color: ${statusColor}; font-weight: 500;">${record.status}</td>
-                <td style="padding: 0.75rem 0.5rem;">${record.time}</td>
-            </tr>
-        `
-  })
+//   recentRecords.forEach((record) => {
+//     const statusColor = record.status === "Present" ? "#10b981" : "#ef4444"
+//     tableHTML += `
+//             <tr style="border-bottom: 1px solid #f1f5f9;">
+//                 <td style="padding: 0.75rem 0.5rem;">${record.date}</td>
+//                 <td style="padding: 0.75rem 0.5rem;">${record.class}</td>
+//                 <td style="padding: 0.75rem 0.5rem; color: ${statusColor}; font-weight: 500;">${record.status}</td>
+//                 <td style="padding: 0.75rem 0.5rem;">${record.time}</td>
+//             </tr>
+//         `
+//   })
 
-  tableHTML += "</tbody></table>"
-  recentSection.innerHTML = tableHTML
-}
+//   tableHTML += "</tbody></table>"
+//   recentSection.innerHTML = tableHTML
+// }
 
 function updateStudentStats() {
   const totalClasses = attendanceRecords.length
@@ -208,7 +208,7 @@ function logout() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  updateRecentAttendance()
+  // updateRecentAttendance()
   updateStudentStats()
   init()
 
@@ -221,9 +221,52 @@ document.addEventListener("DOMContentLoaded", () => {
       const activeSessions = document.getElementById("activeSessions")
       if (activeSessions) {
         activeSessions.innerHTML =
-          '<div class="stat-card"><div class="stat-content"><h4>CS101 - Active Session</h4><p>Started at 10:00 AM</p></div></div>'
+          `<div class="stat-card">
+          <div class="stat-content">
+          <h4>CS101 - Active Session</h4>
+          <p>Started at 10:00 AM</p>
+          </div>
+            <button id="scanFaceBtn" class="btn btn-primary" onclick="openFaceScanning()">
+                    Scan Face for Attendance
+              </button>
+             <button class="btn btn-danger" onclick="closeActiveSession()">Close Active Session</button>
+            
+          </div>
+          
+            <div class="student-list">
+                <div class="student-item">
+                    <span>John Doe (john@example.com)</span>
+                    <div class="attendance-controls">
+                        <button class="btn btn-success btn-sm">Present</button>
+                        <button class="btn btn-danger btn-sm">Absent</button>
+                    </div>
+                </div>
+                <div class="student-item">
+                    <span>Jane Smith (jane@example.com)</span>
+                    <div class="attendance-controls">
+                        <button class="btn btn-success btn-sm">Present</button>
+                        <button class="btn btn-danger btn-sm">Absent</button>
+                    </div>
+                </div>
+                <div class="student-item">
+                    <span>Mike Johnson (mike@example.com)</span>
+                    <div class="attendance-controls">
+                        <button class="btn btn-success btn-sm">Present</button>
+                        <button class="btn btn-danger btn-sm">Absent</button>
+                    </div>
+                </div>
+            </div>
+          `
+
       }
       closeCreateClass()
     })
   }
 })
+
+
+
+
+
+
+

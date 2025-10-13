@@ -4,42 +4,64 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
-    lifecycle:
-      timeout-per-shutdown-phase: 5000  # Faster shutdown
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 1
-      idle-timeout: 60000               # 1 minute idle timeout
-      max-lifetime: 120000              # 2 minute max lifetime
-      connection-timeout: 10000         # 10 second connection timeout
-      allow-pool-suspension: true       # Allow pool suspension during shutdown
+      # Absolute minimum connection settings
+      maximum-pool-size: 1              # Single connection
+      minimum-idle: 0                   # No idle connections
       
-      # Leak detection and validation
-      leak-detection-threshold: 15000
-      validation-timeout: 5000
+      # Aggressive timeouts
+      idle-timeout: 10000              # 10 seconds idle timeout
+      max-lifetime: 30000              # 30 seconds max lifetime
+      connection-timeout: 3000         # 3 seconds connection timeout
+      validation-timeout: 2500         # Fast validation
+      leak-detection-threshold: 10000  # Quick leak detection
       
-      # Connection testing
+      # Connection validation
       connection-test-query: SELECT 1
+      validation-query: SELECT 1
       
-      # Pool name for monitoring
+      # Critical settings for connection cleanup
+      auto-commit: false
+      allow-pool-suspension: true
+      register-mbeans: true            # Enable JMX monitoring
+      
+      # Pool identification
       pool-name: AttendanceHikariCP
       
-      # Additional connection properties for PostgreSQL/Supabase
+      # Connection initialization
+      initialization-fail-timeout: 1    # Fast fail on startup
+      
+      # Connection properties for PostgreSQL/Supabase
       data-source-properties:
-        socketTimeout: 30
-        loginTimeout: 10
+        socketTimeout: 10
+        loginTimeout: 3
+        connectTimeout: 3
         tcpKeepAlive: true
         ApplicationName: cs102-attendance-app
 
   jpa:
     hibernate:
-      ddl-auto: update
-    open-in-view: false
+      ddl-auto: none                   # Disable automatic schema updates
+    open-in-view: false               # Disable OSIV
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        connection.handling_mode: delayed_acquisition_and_release_after_transaction
-        query.timeout: 30000
+        connection:
+          provider_disables_autocommit: true
+          handling_mode: DELAYED_ACQUISITION_AND_RELEASE_AFTER_STATEMENT
+        jdbc:
+          time_zone: UTC
+          batch_size: 15
+          fetch_size: 15
+        query:
+          timeout: 10                  # 10 seconds query timeout
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS: 5000
+        generate_statistics: false     # Disable statistics
+        temp:
+          use_jdbc_metadata_defaults: false
 
   server:
     shutdown: graceful

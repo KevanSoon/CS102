@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cs102.attendance.dto.FaceDataDto;
 import com.cs102.attendance.entity.FaceData;
 import com.cs102.attendance.service.FaceDataService;
 
@@ -35,7 +36,6 @@ public class FaceDataController {
             return ResponseEntity.ok(faceDataList);
         } catch (Exception e) {
             System.err.println("Error retrieving face data: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -46,6 +46,21 @@ public class FaceDataController {
         Optional<FaceData> faceData = faceDataService.getFaceDataById(id);
         return faceData.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Get face data in format for FastAPI
+    @GetMapping("/for-fastapi")
+    public ResponseEntity<List<FaceDataDto>> getFaceDataForFastApi() {
+        try {
+            List<FaceDataDto> faceDataDtos = faceDataService.getAllFaceDataForFastApi();
+            if (faceDataDtos.isEmpty()) {
+                System.out.println("No face data records found for FastAPI");
+            }
+            return ResponseEntity.ok(faceDataDtos);
+        } catch (Exception e) {
+            System.err.println("Error retrieving face data for FastAPI: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Create new face data

@@ -65,10 +65,10 @@
         <div class="login-card">
             <h1 class="login-title">Attendance Management System</h1>
             
-            <div class="login-tabs">
+            <!-- <div class="login-tabs">
                 <button class="tab active" onclick="switchTab('student')">Student</button>
                 <button class="tab" onclick="switchTab('professor')">Professor/TA</button>
-            </div>
+            </div> -->
 
             <!-- Enhanced login form -->
             <form id="loginForm" style="display: block;">
@@ -99,14 +99,7 @@
                     <label class="form-label" for="registerEmail">Email</label>
                     <input type="email" id="registerEmail" class="form-input" required>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="registerRole">Role</label>
-                    <select id="registerRole" class="form-input" required>
-                        <option value="">Select your role</option>
-                        <option value="student">Student</option>
-                        <option value="professor">Professor/TA</option>
-                    </select>
-                </div>
+                
                 <div class="form-group">
                     <label class="form-label" for="registerPassword">Password</label>
                     <input type="password" id="registerPassword" class="form-input" required>

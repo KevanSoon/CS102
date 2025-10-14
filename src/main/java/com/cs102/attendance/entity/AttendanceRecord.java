@@ -1,34 +1,34 @@
 package com.cs102.attendance.entity;
 
-import com.cs102.attendance.enums.Status;
-import com.cs102.attendance.enums.Method;
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@jakarta.persistence.Entity
-@Table(name = "attendance_records")
+import com.cs102.attendance.enums.Method;
+import com.cs102.attendance.enums.Status;
+
+// @jakarta.persistence.Entity
+// @Table(name = "attendance_records")
 public class AttendanceRecord extends Entity {
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "student_id", nullable = false)
     private Student student;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "session_id", nullable = false)
     private Session session;
     
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    // @Enumerated(EnumType.STRING)
+    // @Column(nullable = false)
     private Status status;
     
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    // @Enumerated(EnumType.STRING)
+    // @Column(nullable = false)
     private Method method;
     
-    @Column
+    // @Column
     private Double confidence;
     
-    @Column(name = "marked_at", nullable = false)
+    // @Column(name = "marked_at", nullable = false)
     private LocalDateTime markedAt;
     
     // Constructors

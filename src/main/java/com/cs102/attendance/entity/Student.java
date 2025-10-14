@@ -1,35 +1,35 @@
 package com.cs102.attendance.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
-@jakarta.persistence.Entity
-@Table(name = "students")
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+// @jakarta.persistence.Entity
+// @Table(name = "students")
 public class Student extends Entity {
     
-    @Column(unique = true, nullable = false)
+    // @Column(unique = true, nullable = false)
     private String code;
     
-    @Column(nullable = false)
+    // @Column(nullable = false)
     private String name;
     
-    @Column(name = "class_name")
+    // @Column(name = "class_name")
     private String className;
     
-    @Column(name = "student_group")
+    // @Column(name = "student_group")
     private String studentGroup;
     
     private String email;
     
     private String phone;
     
-    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<FaceData> faceData = new ArrayList<>();
     
-    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<AttendanceRecord> attendanceRecords = new ArrayList<>();
     

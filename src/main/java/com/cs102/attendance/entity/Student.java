@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 // @jakarta.persistence.Entity
 // @Table(name = "students")
@@ -16,9 +17,11 @@ public class Student extends Entity {
     private String name;
     
     // @Column(name = "class_name")
+    @JsonProperty("class_name")
     private String className;
     
     // @Column(name = "student_group")
+    @JsonProperty("student_group")
     private String studentGroup;
     
     private String email;

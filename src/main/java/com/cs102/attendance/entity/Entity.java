@@ -4,11 +4,15 @@ package com.cs102.attendance.entity;
 import java.util.Objects;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 // @MappedSuperclass
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public abstract class Entity {
     
     // @Id
     // @GeneratedValue(strategy = GenerationType.AUTO)
+ 
     private UUID id;
     
     public UUID getId() {

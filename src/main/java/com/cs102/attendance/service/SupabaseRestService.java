@@ -31,6 +31,7 @@ public class SupabaseRestService {
         this.headers.set("Authorization", "Bearer " + supabaseKey);
         this.headers.set("Content-Type", "application/json");
         this.headers.set("Prefer", "return=representation");
+        this.headers.set("Accept", "application/vnd.pgrst.object+json");
     }
 
     public <T> T create(String table, T data, Class<T> responseType) {

@@ -1,165 +1,66 @@
-// package com.cs102.attendance.controller;
+package com.cs102.attendance.controller;
 
-// import com.cs102.attendance.entity.Student;
-// import com.cs102.attendance.entity.FaceData;
-// import com.cs102.attendance.service.StudentService;
-// import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.http.ResponseEntity;
-// import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
-// import java.util.List;
-// import java.util.UUID;
-// import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-// @RestController
-// @RequestMapping("/api/students")
-// public class StudentController {
+import com.cs102.attendance.entity.Student;
+import com.cs102.attendance.repository.StudentRepository;
 
-//     @Autowired
-//     private StudentService studentService;
 
-//     // Create a new student
-//     @PostMapping
-//     public ResponseEntity<Student> createStudent(@RequestBody CreateStudentRequest request) {
-//         try {
-//             Student student = studentService.enrol(
-//                 request.getCode(),
-//                 request.getName(),
-//                 request.getClassName(),
-//                 request.getStudentGroup(),
-//                 request.getEmail(),
-//                 request.getPhone()
-//             );
-//             return ResponseEntity.ok(student);
-//         } catch (Exception e) {
-//             return ResponseEntity.badRequest().build();
-//         }
-//     }
+@RestController 
+@RequestMapping("/api/students")
+public class StudentController {
+    private final StudentRepository studentRepository;
 
-//     // Get all students
-//     @GetMapping
-//     public ResponseEntity<List<Student>> getAllStudents() {
-//         try {
-//             List<Student> students = studentService.getAllStudents();
-//             return ResponseEntity.ok(students);
-//         } catch (Exception e) {
-//             return ResponseEntity.status(500).body(null);
-//         }
-//     }
+    //auto initialize using the constructor
+    @Autowired
+    public StudentController(StudentRepository studentRepository) {
+        this.studentRepository = studentRepository;
+    }
 
-//     // Simple test endpoint
-//     @GetMapping("/health-check")
-//     public ResponseEntity<String> testEndpoint() {
-//         return ResponseEntity.ok("Students endpoint is working!");
-//     }
+    //maps to create() in StudentRepository 
+    @PostMapping
+    public ResponseEntity<Student> createStudent(@RequestBody Student student) {
+        return ResponseEntity.ok(studentRepository.create(student));
+    }
 
-//     // Count endpoint
-//     @GetMapping("/count")
-//     public ResponseEntity<Long> getStudentCount() {
-//         try {
-//             List<Student> students = studentService.getAllStudents();
-//             return ResponseEntity.ok((long) students.size());
-//         } catch (Exception e) {
-//             return ResponseEntity.status(500).body(-1L);
-//         }
-//     }
+    //maps to findAll() in StudentRepository 
+    @GetMapping
+    public ResponseEntity<List<Student>> getAllStudents() {
+        return ResponseEntity.ok(studentRepository.findAll());
+    }
 
-//     // Get student by ID
-//     @GetMapping("/{id}")
-//     public ResponseEntity<Student> getStudentById(@PathVariable UUID id) {
-//         Optional<Student> student = studentService.getStudentById(id);
-//         return student.map(ResponseEntity::ok)
-//                      .orElse(ResponseEntity.notFound().build());
-//     }
+    //maps to findbyName() in StudentRepository 
+     @GetMapping("/search")
+     public ResponseEntity<List<Student>> searchStudents(@RequestParam String name) {
+        return ResponseEntity.ok(studentRepository.findByName(name));
+     }
 
-//     // Update student
-//     @PutMapping("/{id}")
-//     public ResponseEntity<Student> updateStudent(@PathVariable UUID id, @RequestBody UpdateStudentRequest request) {
-//         try {
-//             Student updated = studentService.updateProfile(
-//                 id,
-//                 request.getName(),
-//                 request.getClassName(),
-//                 request.getStudentGroup(),
-//                 request.getEmail(),
-//                 request.getPhone()
-//             );
-//             return ResponseEntity.ok(updated);
-//         } catch (RuntimeException e) {
-//             return ResponseEntity.notFound().build();
-//         }
-//     }
+     //maps to update() in StudentRespository
+     @PutMapping("/{id}")
+     public ResponseEntity<Student> updateStudent(@PathVariable Long id, @RequestBody Student student) {
+        return ResponseEntity.ok(studentRepository.update(id, student));
+     } 
 
-//     // Delete student
-//     @DeleteMapping("/{id}")
-//     public ResponseEntity<Void> deleteStudent(@PathVariable UUID id) {
-//         try {
-//             studentService.deleteStudent(id);
-//             return ResponseEntity.ok().build();
-//         } catch (Exception e) {
-//             return ResponseEntity.notFound().build();
-//         }
-//     }
+     //maps to delete() in StudentRespository
+     @DeleteMapping("/{id}")
+     public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
+        studentRepository.delete(id);
+        return ResponseEntity.ok().build();
+     }
 
-//     // Upload face image (URL)
-//     @PostMapping("/{id}/face-image")
-//     public ResponseEntity<FaceData> uploadFaceImage(@PathVariable UUID id, @RequestBody FaceImageRequest request) {
-//         try {
-//             FaceData faceData = studentService.uploadFaceImage(id, request.getImageUrl());
-//             return ResponseEntity.ok(faceData);
-//         } catch (RuntimeException e) {
-//             return ResponseEntity.notFound().build();
-//         }
-//     }
 
-//     // DTOs for request bodies
-//     public static class CreateStudentRequest {
-//         private String code;
-//         private String name;
-//         private String className;
-//         private String studentGroup;
-//         private String email;
-//         private String phone;
+} 
 
-//         // Getters and setters
-//         public String getCode() { return code; }
-//         public void setCode(String code) { this.code = code; }
-//         public String getName() { return name; }
-//         public void setName(String name) { this.name = name; }
-//         public String getClassName() { return className; }
-//         public void setClassName(String className) { this.className = className; }
-//         public String getStudentGroup() { return studentGroup; }
-//         public void setStudentGroup(String studentGroup) { this.studentGroup = studentGroup; }
-//         public String getEmail() { return email; }
-//         public void setEmail(String email) { this.email = email; }
-//         public String getPhone() { return phone; }
-//         public void setPhone(String phone) { this.phone = phone; }
-//     }
 
-//     public static class UpdateStudentRequest {
-//         private String name;
-//         private String className;
-//         private String studentGroup;
-//         private String email;
-//         private String phone;
-
-//         // Getters and setters
-//         public String getName() { return name; }
-//         public void setName(String name) { this.name = name; }
-//         public String getClassName() { return className; }
-//         public void setClassName(String className) { this.className = className; }
-//         public String getStudentGroup() { return studentGroup; }
-//         public void setStudentGroup(String studentGroup) { this.studentGroup = studentGroup; }
-//         public String getEmail() { return email; }
-//         public void setEmail(String email) { this.email = email; }
-//         public String getPhone() { return phone; }
-//         public void setPhone(String phone) { this.phone = phone; }
-//     }
-
-//     public static class FaceImageRequest {
-//         private String imageUrl;
-
-//         public String getImageUrl() { return imageUrl; }
-//         public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-//     }
-// } 

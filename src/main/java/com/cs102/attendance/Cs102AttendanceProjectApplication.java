@@ -3,14 +3,19 @@ package com.cs102.attendance;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.web.client.RestTemplate;
 
 @SpringBootApplication
 @EnableScheduling
+@EnableAsync
 public class Cs102AttendanceProjectApplication {
 
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(Cs102AttendanceProjectApplication.class, args);
+
         
         // Add shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -19,4 +24,9 @@ public class Cs102AttendanceProjectApplication {
             System.out.println("Application shutdown complete.");
         }));
     }
+
+      @Bean
+        public RestTemplate restTemplate() {
+            return new RestTemplate();
+        }
 }

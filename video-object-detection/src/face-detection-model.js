@@ -77,7 +77,8 @@ async function sendCanvasImageToAPI(canvas) {
         const formData = new FormData();
         formData.append("image", file);
 
-        const response = await fetch("http://localhost:8080/api/face-recognition/call", {
+        // ✅ Updated endpoint
+        const response = await fetch("http://localhost:8080/api/face-batch/face-compare-all", {
           method: "POST",
           body: formData,
         });
@@ -87,8 +88,21 @@ async function sendCanvasImageToAPI(canvas) {
           return;
         }
 
-        const result = await response.text(); // or JSON if backend returns JSON
+        // ✅ Parse JSON response
+        const result = await response.json();
+
+        // ✅ Log properly
+        if (result.bestMatchStudentId) {
+          console.log("✅ Best Match Found!");
+          console.log("Student ID:", result.bestMatchStudentId);
+          console.log("Student Name:", result.bestMatchName);
+          console.log("Similarity:", result.highestSimilarity);
+        } else {
+          console.log("❌ No match above threshold:", result.message || "No match found");
+        }
+
         resolve(result);
+
       } catch (err) {
         reject(err);
       }
@@ -139,58 +153,53 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
   // Send image to the API on first detection
   if (!hasSent) {
     hasSent = true;
-    sendCanvasImageToAPI(canvas)
-      .then((response) => {
-        
-        const responseObj = JSON.parse(response); 
-        const confidenceStr = responseObj.result; // "0.982708"
+   sendCanvasImageToAPI(canvas)
+  .then((response) => {
+    // response is already parsed as JSON in the updated sendCanvasImageToAPI
+    const resultObj = response;
 
-        // Extract decimal part only:
-        // const decimalPart = confidenceStr.slice(confidenceStr.indexOf('.') + 1);
-        // console.log(decimalPart);  // e.g., "982708"
+    const similarity = resultObj.highestSimilarity; // float
+    const studentName = resultObj.bestMatchName || "Unknown";
 
-        // Convert to float for comparison
-        const decimalNumber = parseFloat(confidenceStr);
-        console.log(decimalNumber);
-        
+    if (similarity && similarity > 0.80) {
+      // Verified successfully
+      color = "green";
+      text = `Verified Successfully! ${studentName} (${(similarity * 100).toFixed(2)}%)`;
+      currentLabelElement.style.color = "black"; // Or white if preferred
+      currentLabelElement.textContent = text;
+      currentBoxElement.style.borderColor = color;
 
-        if (decimalNumber !== null && decimalNumber > 0.80) {
-          // --- MODIFICATION START ---
-          // Instead of removing and recreating the box, just update its style.
-          color = "green";
-          text = "Verified Successfully! " + decimalNumber;
-          currentLabelElement.style.color = "black"; // Or "white" if it looks better
+      console.log("Updated box to green:", studentName, similarity);
 
-          console.log("Updated box to green");
-          // --- MODIFICATION END ---
-          
-        } else if (decimalNumber !== null) {
-          // Not identified case - update existing box and label to red
-          color = "red";
-          text = "Failed to verify"
-          currentLabelElement.style.color = "black"; // Or "white" if it looks better
+    } else if (similarity !== null) {
+      // Not identified
+      color = "red";
+      text = "Failed to verify";
+      currentLabelElement.style.color = "black";
+      currentLabelElement.textContent = text;
+      currentBoxElement.style.borderColor = color;
 
-          console.log("Updated box to red");
-        } else {
-          // Fallback yellow verifying state
-          currentLabelElement.textContent = "Verifying...";
-          currentLabelElement.style.backgroundColor = "yellow";
-          currentLabelElement.style.color = "black";
-          currentBoxElement.style.borderColor = "yellow";
+      console.log("Updated box to red");
+    } else {
+      // Fallback yellow verifying state
+      currentLabelElement.textContent = "Verifying...";
+      currentLabelElement.style.backgroundColor = "yellow";
+      currentLabelElement.style.color = "black";
+      currentBoxElement.style.borderColor = "yellow";
 
-          console.log("Fallback to yellow");
-        }
-      })
-      .catch((err) => {
-        console.error("Error sending image to API:", err);
-        // On error, fallback to yellow verifying
-        if (currentLabelElement && currentBoxElement) {
-          currentLabelElement.textContent = "Verifying...";
-          currentLabelElement.style.backgroundColor = "yellow";
-          currentLabelElement.style.color = "black";
-          currentBoxElement.style.borderColor = "yellow";
-        }
-      });
+      console.log("Fallback to yellow");
+    }
+  })
+  .catch((err) => {
+    console.error("Error sending image to API:", err);
+    if (currentLabelElement && currentBoxElement) {
+      currentLabelElement.textContent = "Verifying...";
+      currentLabelElement.style.backgroundColor = "yellow";
+      currentLabelElement.style.color = "black";
+      currentBoxElement.style.borderColor = "yellow";
+    }
+  });
+
   }
 }
 

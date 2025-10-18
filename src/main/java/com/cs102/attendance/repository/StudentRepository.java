@@ -31,6 +31,16 @@ public class StudentRepository {
         return supabaseService.read(TABLE, null, Student[].class);
     }
 
+    // maps to /{id} endpoint to retrieve a single student record (GET Method) 
+    public Student findById(String id) {
+        Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("id", "eq." + id); // Supabase expects ?id=eq.<uuid>
+
+        List<Student> students = supabaseService.read(TABLE, queryParams, Student[].class);
+        return students.isEmpty() ? null : students.get(0);
+    }
+
+
     // maps to /search endpoint (GET method)
     public List<Student> findByName(String name) {
         Map<String,String> queryParams = new HashMap<>();

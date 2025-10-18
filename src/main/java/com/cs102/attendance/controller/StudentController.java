@@ -41,6 +41,19 @@ public class StudentController {
         return ResponseEntity.ok(studentRepository.findAll());
     }
 
+
+    // maps to findById() in StudentRepository
+    @GetMapping("/{id}")
+    public ResponseEntity<Student> getStudentById(@PathVariable String id) {
+        Student student = studentRepository.findById(id);
+        if (student != null) {
+            return ResponseEntity.ok(student);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+
     //maps to findbyName() in StudentRepository 
      @GetMapping("/search")
      public ResponseEntity<List<Student>> searchStudents(@RequestParam String name) {

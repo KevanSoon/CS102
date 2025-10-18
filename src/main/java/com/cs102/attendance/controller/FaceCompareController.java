@@ -1,9 +1,11 @@
 package com.cs102.attendance.controller;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
+import java.util.Base64;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,33 +25,39 @@ public class FaceCompareController {
     @Autowired
     private FaceCompareService faceCompareService;
 
+    /**
+     * Accepts a Base64 image and a student image URL for comparison
+     */
     @PostMapping("/face-compare-url")
-    public ResponseEntity<JsonNode> compareFacesByUrl(@RequestBody Map<String, String> payload) {
-        String imageUrl1 = payload.get("imageUrl1");
-        String imageUrl2 = payload.get("imageUrl2");
+    public ResponseEntity<JsonNode> compareFaces(@RequestBody Map<String, String> payload) {
+        String imageBase64 = payload.get("imageBase64"); // uploaded image
+        String imageUrl2 = payload.get("imageUrl2");     // student image URL
 
-        if (imageUrl1 == null || imageUrl2 == null) {
+        if (imageBase64 == null || imageUrl2 == null) {
             return ResponseEntity.badRequest().build();
         }
 
         try {
-            // Download images temporarily
+            // Convert Base64 image to temp file
             File file1 = File.createTempFile("img1_", ".jpg");
-            File file2 = File.createTempFile("img2_", ".jpg");
-
-            try (InputStream in1 = new URL(imageUrl1).openStream();
-                 InputStream in2 = new URL(imageUrl2).openStream()) {
-                Files.copy(in1, file1.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                Files.copy(in2, file2.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            byte[] decodedBytes = Base64.getDecoder().decode(imageBase64);
+            try (FileOutputStream fos = new FileOutputStream(file1)) {
+                fos.write(decodedBytes);
             }
 
-            // Call FaceCompareService
+            // Download student image to temp file
+            File file2 = File.createTempFile("img2_", ".jpg");
+            try (InputStream in = new URL(imageUrl2).openStream()) {
+                Files.copy(in, file2.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // Compare faces
             JsonNode result = faceCompareService.faceCompare(
                     file1.getAbsolutePath(),
                     file2.getAbsolutePath()
             );
 
-            // Clean up temporary files
+            // Clean up temp files
             file1.delete();
             file2.delete();
 

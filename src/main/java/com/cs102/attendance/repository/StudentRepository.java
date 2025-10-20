@@ -3,6 +3,7 @@ package com.cs102.attendance.repository;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -47,7 +48,18 @@ public class StudentRepository {
     // maps to /{id} endpoint to delete a student record (DELETE Method) 
     public void delete(Long id) {
             supabaseService.delete(TABLE, id.toString());
-        }
+    }
+
+    // find a single student by ID
+    public Optional<Student> findById(Long id) {
+        Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("id", "eq." + id);
+
+        List<Student> result = supabaseService.read(TABLE, queryParams, Student[].class);
+        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+    }
+
+
 
 
 }

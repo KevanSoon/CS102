@@ -31,15 +31,33 @@ public class AttendanceRecord extends Entity {
     // @Column(name = "marked_at", nullable = false)
     private LocalDateTime markedAt;
     
+    // @Column(name = "last_seen") // ADDED for Cooldown Timer
+    // Making sure that the attendance of an individual is taken only once 
+    private LocalDateTime lastSeen;
+    
+    
     // Constructors
     public AttendanceRecord() {}
     
+    // Original constructor (simplified)
     public AttendanceRecord(Student student, Session session, Status status, Method method) {
         this.student = student;
         this.session = session;
         this.status = status;
         this.method = method;
         this.markedAt = LocalDateTime.now();
+        this.lastSeen = LocalDateTime.now(); // Initialize lastSeen
+    }
+
+    // Full constructor (for convenience in Marker services)
+    public AttendanceRecord(Student student, Session session, Status status, Method method, Double confidence) {
+        this.student = student;
+        this.session = session;
+        this.status = status;
+        this.method = method;
+        this.confidence = confidence;
+        this.markedAt = LocalDateTime.now();
+        this.lastSeen = LocalDateTime.now();
     }
     
     // Getters and Setters
@@ -90,4 +108,12 @@ public class AttendanceRecord extends Entity {
     public void setMarkedAt(LocalDateTime markedAt) {
         this.markedAt = markedAt;
     }
-} 
+
+    public LocalDateTime getLastSeen() {
+        return lastSeen;
+    }
+
+    public void setLastSeen(LocalDateTime lastSeen) {
+        this.lastSeen = lastSeen;
+    }
+}

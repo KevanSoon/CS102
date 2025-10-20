@@ -60,3 +60,81 @@
 //         return attendanceRepository.save(record);
 //     }
 // } 
+
+package com.cs102.attendance.service;
+
+import com.cs102.attendance.entity.AttendanceRecord;
+import com.cs102.attendance.entity.Student;
+import com.cs102.attendance.entity.Session;
+import com.cs102.attendance.enums.Method;
+import com.cs102.attendance.enums.Status;
+import com.cs102.attendance.repository.AttendanceRepository;
+import com.cs102.attendance.repository.StudentRepository;
+import com.cs102.attendance.repository.SessionRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
+/**
+ * Handles manual attendance marking logic.
+ * Triggered when a teacher manually marks attendance via the REST API.
+ */
+@Service
+public class ManualMarker {
+
+    private final AttendanceRepository attendanceRepository;
+    private final StudentRepository studentRepository;
+    private final SessionRepository sessionRepository;
+
+    @Autowired
+    public ManualMarker(AttendanceRepository attendanceRepository,
+                        StudentRepository studentRepository,
+                        SessionRepository sessionRepository) {
+        this.attendanceRepository = attendanceRepository;
+        this.studentRepository = studentRepository;
+        this.sessionRepository = sessionRepository;
+    }
+
+    /**
+     * Marks a student's attendance manually.
+     * Manual changes override auto-marks, logged with "Manual" method.
+     *
+     * @param studentId The student's ID.
+     * @param sessionId The session's ID.
+     * @param statusStr Attendance status string (Present, Absent, Late).
+     * @return The updated or newly created AttendanceRecord.
+     */
+    public AttendanceRecord mark(Long studentId, Long sessionId, String statusStr) {
+        // 1️⃣ Validate entities
+        // FIX: Use .orElseThrow() on Optional<Student>
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("Student not found: " + studentId));
+
+        // FIX: Use .orElseThrow() on Optional<Session>
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        // 2️⃣ Convert status string to Enum
+        Status status = Status.valueOf(statusStr.toUpperCase());
+        
+        // 3️⃣ Check if a record already exists for this student & session
+        AttendanceRecord record = attendanceRepository
+                .findByStudentIdAndSessionId(studentId, sessionId);
+
+        if (record == null) {
+            // New record: Manual changes override auto-marks (default to manual)
+            record = new AttendanceRecord(student, session, status, Method.MANUAL);
+        }
+
+        // 4️⃣ Apply manual overrides (overwrites any existing AUTO or MANUAL mark)
+        record.setStatus(status);
+        record.setMethod(Method.MANUAL);
+        record.setMarkedAt(LocalDateTime.now());
+        record.setLastSeen(LocalDateTime.now()); // Update lastSeen
+
+        // 5️⃣ Save the updated record
+        return attendanceRepository.save(record);
+    }
+}

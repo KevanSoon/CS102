@@ -19,7 +19,7 @@ import com.cs102.attendance.repository.StudentRepository;
 
 
 @RestController 
-@RequestMapping("/api/students")
+@RequestMapping("/api/students") // Sets the base URL for all endpoints 
 public class StudentController {
     private final StudentRepository studentRepository;
 
@@ -30,7 +30,7 @@ public class StudentController {
     }
 
     //maps to create() in StudentRepository 
-    @PostMapping
+    @PostMapping // maps HTTP POST requests to this method 
     public ResponseEntity<Student> createStudent(@RequestBody Student student) {
         return ResponseEntity.ok(studentRepository.create(student));
     }

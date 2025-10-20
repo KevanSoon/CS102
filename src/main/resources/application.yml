@@ -32,4 +32,9 @@ cors:
     - https://cs-102-vert.vercel.app/
     - http://localhost:5173
     - http://localhost:8080
+  
+attendance:
+  auto:
+    cooldown-seconds: 20
+    late-threshold-minutes: 15
     

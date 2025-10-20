@@ -16,6 +16,11 @@ const scaleSlider = document.getElementById("scale");
 const scaleLabel = document.getElementById("scale-value");
 let attendanceStream = null;
 
+// --- NEW: Cooldown State Variables ---
+let cooldownActive = false;
+let cooldownCounter = 0;
+const COOLDOWN_DURATION_FRAMES = 1000; // Approx. 1.5 seconds on a 60fps system
+
 function setStreamSize(width, height) {
   video.width = canvas.width = Math.round(width);
   video.height = canvas.height = Math.round(height);
@@ -23,12 +28,10 @@ function setStreamSize(width, height) {
 
 status.textContent = "Loading model...";
 
-// Load model and processor
 const model_id = "Xenova/gelan-c_all";
 const model = await AutoModel.from_pretrained(model_id);
 const processor = await AutoProcessor.from_pretrained(model_id);
 
-// Set up controls
 let scale = 0.5;
 scaleSlider.addEventListener("input", () => {
   scale = Number(scaleSlider.value);
@@ -58,26 +61,14 @@ status.textContent = "Ready";
 async function sendCanvasImageToAPI(canvas) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(async (blob) => {
-      if (!blob) {
-        return reject("Failed to get Blob from canvas");
-      }
+      if (!blob) return reject("Failed to get Blob from canvas");
       const file = new File([blob], "detected.png", { type: "image/png" });
       try {
         const formData = new FormData();
         formData.append("image", file);
-        const response = await fetch("http://localhost:8080/api/face-batch/face-compare-all", {
-          method: "POST",
-          body: formData,
-        });
-        if (!response.ok) {
-          return reject("Failed to send image: " + response.statusText);
-        }
+        const response = await fetch("http://localhost:8080/api/face-batch/face-compare-all", { method: "POST", body: formData });
+        if (!response.ok) return reject(`Failed to send image: ${response.statusText}`);
         const result = await response.json();
-        if (result.bestMatchStudentId) {
-          console.log("✅ Best Match Found! Student:", result.bestMatchName, "Similarity:", result.highestSimilarity);
-        } else {
-          console.log("❌ No match above threshold:", result.message || "No match found");
-        }
         resolve(result);
       } catch (err) {
         reject(err);
@@ -86,33 +77,20 @@ async function sendCanvasImageToAPI(canvas) {
   });
 }
 
-// Variables to manage detection state
 let currentBoxElement = null;
 let currentLabelElement = null;
 let hasSent = false;
-let color = "yellow"; // Default color
-let text = "Verifying..."; // Default text
+let color = "yellow";
+let text = "Verifying...";
 
 function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
-    // The threshold check here is still useful as a fallback, but the main logic is now in updateCanvas.
-    if (score < threshold) return;
-
     if (!hasSent) {
-        
         color = "yellow";
         text = "Verifying...";
     }
-
     let boxElement = document.createElement("div");
     boxElement.className = "bounding-box";
-    Object.assign(boxElement.style, {
-        borderColor: color,
-        left: `${(100 * xmin) / w}%`,
-        top: `${(100 * ymin) / h}%`,
-        width: `${(100 * (xmax - xmin)) / w}%`,
-        height: `${(100 * (ymax - ymin)) / h}%`,
-    });
-
+    Object.assign(boxElement.style, { borderColor: color, left: `${(100 * xmin) / w}%`, top: `${(100 * ymin) / h}%`, width: `${(100 * (xmax - xmin)) / w}%`, height: `${(100 * (ymax - ymin)) / h}%` });
     let labelElement = document.createElement("span");
     labelElement.textContent = text;
     labelElement.className = "bounding-box-label";
@@ -120,39 +98,44 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
     labelElement.style.color = "black";
     boxElement.appendChild(labelElement);
     overlay.appendChild(boxElement);
-
     currentBoxElement = boxElement;
     currentLabelElement = labelElement;
-
     if (!hasSent) {
-        hasSent = true; 
-        sendCanvasImageToAPI(canvas)
-            .then((response) => {
-                const { highestSimilarity, bestMatchName = "Unknown" } = response;
-                if (highestSimilarity && highestSimilarity > 0.80) {
-                    color = "green";
-                    text = `Verified! ${bestMatchName} (${(highestSimilarity * 100).toFixed(2)}%)`;
-                } else {
-                    color = "red";
-                    text = "Failed to verify";
-                }
-                if (currentLabelElement && currentBoxElement) {
-                    currentLabelElement.textContent = text;
-                    currentLabelElement.style.backgroundColor = color;
-                    currentBoxElement.style.borderColor = color;
-                }
-            })
-            .catch((err) => {
-                console.error("Error sending image to API:", err);
+        hasSent = true;
+        sendCanvasImageToAPI(canvas).then(response => {
+            const { highestSimilarity, bestMatchName = "Unknown" } = response;
+            if (highestSimilarity && highestSimilarity > 0.80) {
+                color = "green";
+                text = `Verified! ${bestMatchName} (${(highestSimilarity * 100).toFixed(2)}%)`;
+            } else {
                 color = "red";
-                text = "Error";
-                if (currentLabelElement && currentBoxElement) {
-                    currentLabelElement.textContent = text;
-                    currentLabelElement.style.backgroundColor = color;
-                    currentBoxElement.style.borderColor = color;
-                }
-            });
+                text = "Failed to verify";
+            }
+            if (currentLabelElement && currentBoxElement) {
+                currentLabelElement.textContent = text;
+                currentLabelElement.style.backgroundColor = color;
+                currentBoxElement.style.borderColor = color;
+            }
+        }).catch(err => {
+            console.error("Error sending image to API:", err);
+            color = "red";
+            text = "Error";
+            if (currentLabelElement && currentBoxElement) {
+                currentLabelElement.textContent = text;
+                currentLabelElement.style.backgroundColor = color;
+                currentBoxElement.style.borderColor = color;
+            }
+        });
     }
+}
+
+// --- NEW: Helper function to display messages on the overlay ---
+function displayMessage(message) {
+    overlay.innerHTML = ""; // Clear any previous content
+    const messageElement = document.createElement("div");
+    messageElement.className = "cooldown-message";
+    messageElement.textContent = message;
+    overlay.appendChild(messageElement);
 }
 
 let isProcessing = false;
@@ -161,63 +144,56 @@ const context = canvas.getContext("2d", { willReadFrequently: true });
 let noFaceFramesCount = 0;
 const NO_FACE_RESET_THRESHOLD = 5;
 
-// =====================================================================================
-// === THE CORRECTED LOGIC IS IN THIS FUNCTION =========================================
-// =====================================================================================
 async function updateCanvas() {
-  const { width, height } = canvas;
-  context.drawImage(video, 0, 0, width, height);
+    const { width, height } = canvas;
+    context.drawImage(video, 0, 0, width, height);
+    if (!isProcessing) {
+        isProcessing = true;
 
-  if (!isProcessing) {
-    isProcessing = true;
-    
-    const pixelData = context.getImageData(0, 0, width, height).data;
-    const image = new RawImage(pixelData, width, height, 4);
-    const inputs = await processor(image);
-    const { outputs } = await model(inputs);
+        // --- MODIFIED LOGIC: Handle Cooldown State First ---
+        if (cooldownActive) {
+            displayMessage("Ready for next scan...");
+            cooldownCounter++;
+            if (cooldownCounter > COOLDOWN_DURATION_FRAMES) {
+                cooldownActive = false;
+                cooldownCounter = 0;
+                overlay.innerHTML = ""; // Clear the message
+            }
+        } else {
+            // --- Original detection logic runs only if not in cooldown ---
+            const pixelData = context.getImageData(0, 0, width, height).data;
+            const image = new RawImage(pixelData, width, height, 4);
+            const inputs = await processor(image);
+            const { outputs } = await model(inputs);
+            const sizes = inputs.reshaped_input_sizes[0].reverse();
+            const rawDetections = outputs.tolist();
+            const visibleDetections = rawDetections.filter(detection => detection[4] >= threshold);
 
-    const sizes = inputs.reshaped_input_sizes[0].reverse();
-    const rawDetections = outputs.tolist();
+            if (visibleDetections.length === 0) {
+                noFaceFramesCount++;
+                if (noFaceFramesCount > NO_FACE_RESET_THRESHOLD) {
+                    // --- Instead of just resetting, we now TRIGGER THE COOLDOWN ---
+                    hasSent = false;
+                    cooldownActive = true; // Activate the cooldown period
+                    overlay.innerHTML = ""; // Clear the last "Verified" box
+                }
+            } else {
+                noFaceFramesCount = 0;
+                overlay.innerHTML = "";
+                visibleDetections.forEach(detection => renderBox(detection, sizes));
+            }
+        }
 
-    // ✅ --- THE FIX: Filter detections by the confidence threshold first --- ✅
-    // The score is the 5th element in each detection array (index 4).
-    const visibleDetections = rawDetections.filter(detection => detection[4] >= threshold);
-
-    // Now, base ALL logic on the filtered list of visible detections.
-    if (visibleDetections.length === 0) {
-      // No VISIBLE face was detected in this frame.
-      noFaceFramesCount++;
-      
-      // If the counter exceeds our threshold, reset the state and clear the screen.
-      if (noFaceFramesCount > NO_FACE_RESET_THRESHOLD) {
-        console.log("Resetted")
-        hasSent = false;
-        overlay.innerHTML = ""; // Clear the lingering box now.
-      }
-      // If we are within the grace period, we do nothing, leaving the old box on screen.
-    } else {
-      // A visible face (or faces) was detected.
-      noFaceFramesCount = 0; // Reset the counter.
-
-      // Clear the overlay ONLY when we are about to draw new boxes.
-      overlay.innerHTML = ""; 
-      
-      // Loop over the VISIBLE detections to draw them.
-      visibleDetections.forEach((detection) => renderBox(detection, sizes));
+        if (previousTime !== undefined) {
+            const fps = 1000 / (performance.now() - previousTime);
+            status.textContent = `FPS: ${fps.toFixed(2)}`;
+        }
+        previousTime = performance.now();
+        isProcessing = false;
     }
-
-    if (previousTime !== undefined) {
-      const fps = 1000 / (performance.now() - previousTime);
-      status.textContent = `FPS: ${fps.toFixed(2)}`;
-    }
-    previousTime = performance.now();
-    isProcessing = false;
-  }
-
-  window.requestAnimationFrame(updateCanvas);
+    window.requestAnimationFrame(updateCanvas);
 }
 
-// ... (The rest of your code, openFaceScanning and closeFaceScanning, remains the same)
 
 async function openFaceScanning() {
   document.getElementById("faceScanModal").classList.add("active");
@@ -226,10 +202,7 @@ async function openFaceScanning() {
     attendanceStream = null;
   }
   try {
-    attendanceStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 480, facingMode: "user" },
-    });
-    const video = document.getElementById("video");
+    attendanceStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" } });
     video.srcObject = attendanceStream;
     video.play();
     const videoTrack = attendanceStream.getVideoTracks()[0];
@@ -237,7 +210,6 @@ async function openFaceScanning() {
     setStreamSize(width * scale, height * scale);
     const ar = width / height;
     const [cw, ch] = ar > 720 / 405 ? [720, 720 / ar] : [405 * ar, 405];
-    const container = document.getElementById("container");
     container.style.width = `${cw}px`;
     container.style.height = `${ch}px`;
     window.requestAnimationFrame(updateCanvas);
@@ -250,17 +222,35 @@ async function openFaceScanning() {
 function closeFaceScanning() {
   document.getElementById("faceScanModal").classList.remove("active");
   if (attendanceStream) {
-    attendanceStream.getTracks().forEach((track) => track.stop());
+    attendanceStream.getTracks().forEach(track => track.stop());
     attendanceStream = null;
   }
   
+  // --- Reset ALL state variables on close ---
   hasSent = false;
   noFaceFramesCount = 0;
+  cooldownActive = false;
+  cooldownCounter = 0;
   overlay.innerHTML = "";
-  document.getElementById("scanResult").style.display = "none";
-  document.getElementById("scanBtn").style.display = "block";
-  document.getElementById("markPresentBtn").style.display = "none";
+  // ... reset other elements
 }
 
 window.openFaceScanning = openFaceScanning;
 window.closeFaceScanning = closeFaceScanning;
+
+// You may want to add some basic styling for the message
+const style = document.createElement('style');
+style.innerHTML = `
+.cooldown-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1.2em;
+    text-align: center;
+}`;
+document.head.appendChild(style);

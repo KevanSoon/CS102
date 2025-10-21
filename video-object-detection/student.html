@@ -16,6 +16,9 @@
             </div>
             <div class="header-right">
                 <span class="welcome-text">Welcome, a@a</span>
+                <button type="button" class="btn btn-primary" id="editProfileBtn" onclick="openEditProfileModal()">
+                    Edit Profile
+                </button>
                 <button class="logout-btn" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -24,31 +27,6 @@
         <div class="welcome-section">
             <h2 class="welcome-title">Welcome back!</h2>
             <p class="welcome-subtitle">Manage your class attendance and view your records</p>
-        </div>
-
-        <!-- Stats cards matching the image -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon blue">✓</div>
-                <div class="stat-content">
-                    <h3>Attendance Rate</h3>
-                    <div class="stat-number">85%</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon orange">📚</div>
-                <div class="stat-content">
-                    <h3>Total Classes</h3>
-                    <div class="stat-number">24</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon yellow">🕐</div>
-                <div class="stat-content">
-                    <h3>Classes Today</h3>
-                    <div class="stat-number">3</div>
-                </div>
-            </div>
         </div>
 
         <!-- Class selection section -->
@@ -64,9 +42,9 @@
                     <option value="math201">MATH201 - Calculus II</option>
                     <option value="phy301">PHY301 - Quantum Physics</option>
                 </select>
-                <button id="scanFaceBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem; display: none;" onclick="openFaceScanning()">
+                <!-- <button id="scanFaceBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem; display: none;" onclick="openFaceScanning()">
                     Scan Face for Attendance
-                </button>
+                </button> -->
             </div>
         </div>
 
@@ -158,7 +136,206 @@
             </div>
         </div>
     </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal px-5" id="editProfileModal">
+        <div class="modal-dialog px-5" style="width: 500px;">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closeEditProfileModal()"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="editName">Full Name</label>
+                        <input type="text" id="editName" class="form-input form-control" required>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="editEmail">Email</label>
+                        <input type="email" id="editEmail" class="form-input form-control" required>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="currentPassword">Current Password</label>
+                        <input type="password" id="currentPassword" class="form-input form-control" placeholder="Leave blank to keep current password">
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="editPassword">New Password</label>
+                        <input type="password" id="editPassword" class="form-input form-control" placeholder="Leave blank to keep current password">
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="editConfirmPassword">Confirm New Password</label>
+                        <input type="password" id="editConfirmPassword" class="form-input form-control" placeholder="Confirm new password">
+                    </div>
+                    
+                    <div id="editPasswordError" style="color: #ef4444; font-size: 0.875rem; margin-bottom: 1rem; display: none;">
+                        Passwords do not match
+                    </div>
+                    
+                    <div id="editSuccessMessage" class="alert alert-success" style="display: none;">
+                        Profile updated successfully!
+                    </div>
+                    
+                    <div id="editErrorMessage" class="alert alert-danger" style="display: none;">
+                        Error updating profile. Please try again.
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer row">
+                <button type="button" class="btn btn-secondary" onclick="closeEditProfileModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveProfileChanges()">Save Changes</button>
+            </div>
+            
+        </div>
+    </div>
+    
     <script type="module" src="src/student.js"></script>
+    <script>
+        // function openEditProfileModal() {
+        //     document.getElementById("editProfileModal").classList.add("active");
+        // }
+        // Function to open the edit profile modal and populate with current user data
+        function closeEditProfileModal() {
+            document.getElementById("editProfileModal").classList.remove("active");
+        }
+        async function openEditProfileModal() {
+        try {
+            // Hardcoded user data for testing
+            const user = {
+                name: "John Doe",
+                email: "john.doe@example.com"
+            };
+            
+            // Original API call (commented out)
+            // const response = await fetch('http://localhost:8080/api/user/profile');
+            // if (!response.ok) {
+            //     throw new Error('Failed to load user data');
+            // }
+            // const user = await response.json();
+            
+            // Populate form with current data
+            document.getElementById('editName').value = user.name || '';
+            document.getElementById('editEmail').value = user.email || '';
+            
+            // Clear password fields
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editConfirmPassword').value = '';
+            
+            // Hide error/success messages
+            document.getElementById('editPasswordError').style.display = 'none';
+            document.getElementById('editSuccessMessage').style.display = 'none';
+            document.getElementById('editErrorMessage').style.display = 'none';
+            
+            document.getElementById("editProfileModal").classList.add("active");
+            
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            alert('Error loading profile data');
+        }
+        }
+
+        // Function to save profile changes
+        async function saveProfileChanges() {
+        // Get form values
+        const name = document.getElementById('editName').value.trim();
+        const email = document.getElementById('editEmail').value.trim();
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('editPassword').value;
+        const confirmPassword = document.getElementById('editConfirmPassword').value;
+        
+        // Hide previous messages
+        document.getElementById('editPasswordError').style.display = 'none';
+        document.getElementById('editSuccessMessage').style.display = 'none';
+        document.getElementById('editErrorMessage').style.display = 'none';
+        
+        // Validate passwords if user is trying to change password
+        if (newPassword || confirmPassword) {
+            if (newPassword !== confirmPassword) {
+                document.getElementById('editPasswordError').style.display = 'block';
+                return;
+            }
+            
+            if (!currentPassword) {
+                alert('Please enter your current password to change it');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                alert('New password must be at least 6 characters long');
+                return;
+            }
+        }
+        
+        // Prepare update data
+        const updateData = {
+            name: name,
+            email: email
+        };
+        
+        // Add password fields only if user wants to change password
+        if (newPassword) {
+            updateData.currentPassword = currentPassword;
+            updateData.newPassword = newPassword;
+        }
+        
+        try {
+            // Log the data that would be sent (for testing)
+            console.log('Update data:', updateData);
+            
+            // Simulate successful update with hardcoded response
+            const updatedUser = {
+                id: "123e4567-e89b-12d3-a456-426614174000",
+                name: name,
+                email: email,
+                updatedAt: new Date().toISOString()
+            };
+            
+            // Original API call (commented out)
+            // const response = await fetch('http://localhost:8080/api/user/profile', {
+            //     method: 'PUT',
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //     },
+            //     body: JSON.stringify(updateData)
+            // });
+            // 
+            // if (!response.ok) {
+            //     const errorData = await response.json();
+            //     throw new Error(errorData.message || 'Failed to update profile');
+            // }
+            // 
+            // const updatedUser = await response.json();
+            
+            // Show success message
+            document.getElementById('editSuccessMessage').style.display = 'block';
+            
+            // Update UI with new data if needed
+            console.log('Profile updated:', updatedUser);
+            
+            // Close modal after 1.5 seconds
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+                modal.hide();
+                
+                // Optionally refresh the page or update displayed user info
+                // location.reload();
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            document.getElementById('editErrorMessage').textContent = error.message;
+            document.getElementById('editErrorMessage').style.display = 'block';
+        }
+        }
+
+        
+    </script>
 </body>
 </html>
 

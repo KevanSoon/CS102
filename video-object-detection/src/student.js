@@ -332,6 +332,192 @@ function scanFace() {
   }, 1500)
 }
 
+// Function to open the edit profile modal and populate with current user data
+async function openEditProfileModal() {
+  try {
+    // Hardcoded user data for testing
+    const user = {
+        name: "John Doe",
+        email: "john.doe@example.com"
+    };
+    
+    // Original API call (commented out)
+    // const response = await fetch('http://localhost:8080/api/user/profile');
+    // if (!response.ok) {
+    //     throw new Error('Failed to load user data');
+    // }
+    // const user = await response.json();
+    
+    // Populate form with current data
+    document.getElementById('editName').value = user.name || '';
+    document.getElementById('editEmail').value = user.email || '';
+    
+    // Clear password fields
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('editPassword').value = '';
+    document.getElementById('editConfirmPassword').value = '';
+    
+    // Hide error/success messages
+    document.getElementById('editPasswordError').style.display = 'none';
+    document.getElementById('editSuccessMessage').style.display = 'none';
+    document.getElementById('editErrorMessage').style.display = 'none';
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
+    modal.show();
+      
+  } catch (error) {
+    console.error('Error loading profile:', error);
+    alert('Error loading profile data');
+  }
+}
+
+// Function to save profile changes
+async function saveProfileChanges() {
+  // Get form values
+  const name = document.getElementById('editName').value.trim();
+  const email = document.getElementById('editEmail').value.trim();
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('editPassword').value;
+  const confirmPassword = document.getElementById('editConfirmPassword').value;
+  
+  // Hide previous messages
+  document.getElementById('editPasswordError').style.display = 'none';
+  document.getElementById('editSuccessMessage').style.display = 'none';
+  document.getElementById('editErrorMessage').style.display = 'none';
+  
+  // Validate passwords if user is trying to change password
+  if (newPassword || confirmPassword) {
+      if (newPassword !== confirmPassword) {
+          document.getElementById('editPasswordError').style.display = 'block';
+          return;
+      }
+      
+      if (!currentPassword) {
+          alert('Please enter your current password to change it');
+          return;
+      }
+      
+      if (newPassword.length < 6) {
+          alert('New password must be at least 6 characters long');
+          return;
+      }
+  }
+  
+  // Prepare update data
+  const updateData = {
+      name: name,
+      email: email
+  };
+  
+  // Add password fields only if user wants to change password
+  if (newPassword) {
+    updateData.currentPassword = currentPassword;
+    updateData.newPassword = newPassword;
+  }
+  
+  try {
+    // Log the data that would be sent (for testing)
+    console.log('Update data:', updateData);
+    
+    // Simulate successful update with hardcoded response
+    const updatedUser = {
+        id: "123e4567-e89b-12d3-a456-426614174000",
+        name: name,
+        email: email,
+        updatedAt: new Date().toISOString()
+    };
+    
+    // Original API call (commented out)
+    // const response = await fetch('http://localhost:8080/api/user/profile', {
+    //     method: 'PUT',
+    //     headers: {
+    //         'Content-Type': 'application/json'
+    //     },
+    //     body: JSON.stringify(updateData)
+    // });
+    // 
+    // if (!response.ok) {
+    //     const errorData = await response.json();
+    //     throw new Error(errorData.message || 'Failed to update profile');
+    // }
+    // 
+    // const updatedUser = await response.json();
+    
+    // Show success message
+    document.getElementById('editSuccessMessage').style.display = 'block';
+    
+    // Update UI with new data if needed
+    console.log('Profile updated:', updatedUser);
+    
+    // Close modal after 1.5 seconds
+    setTimeout(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+        modal.hide();
+        
+        // Optionally refresh the page or update displayed user info
+        // location.reload();
+    }, 1500);
+      
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    document.getElementById('editErrorMessage').textContent = error.message;
+    document.getElementById('editErrorMessage').style.display = 'block';
+  }
+}
+
+// Add real-time password match validation
+// document.addEventListener('DOMContentLoaded', () => {
+//   const newPassword = document.getElementById('editPassword');
+//   const confirmPassword = document.getElementById('editConfirmPassword');
+//   const errorDiv = document.getElementById('editPasswordError');
+//   const editProfileBtn = document.getElementById('editProfileBtn');
+
+//   console.log('DOM loaded');
+//   console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+//   console.log('Modal element exists:', document.getElementById('editProfileModal') !== null);
+
+//   if (editProfileBtn) {
+//     editProfileBtn.addEventListener('click', openEditProfileModal);
+//   }
+
+//   function checkPasswordMatch() {
+//     if (confirmPassword.value && newPassword.value !== confirmPassword.value) {
+//       errorDiv.style.display = 'block';
+//     } else {
+//       errorDiv.style.display = 'none';
+//     }
+//   }
+    
+//   if (newPassword && confirmPassword) {
+//     newPassword.addEventListener('input', checkPasswordMatch);
+//     confirmPassword.addEventListener('input', checkPasswordMatch);
+//   }
+  
+//   function checkPasswordMatch() {
+//     if (confirmPassword.value && newPassword.value !== confirmPassword.value) {
+//       errorDiv.style.display = 'block';
+//     } else {
+//       errorDiv.style.display = 'none';
+//     }
+//   }
+  
+//   if (newPassword && confirmPassword) {
+//     newPassword.addEventListener('input', checkPasswordMatch);
+//     confirmPassword.addEventListener('input', checkPasswordMatch);
+//   }
+// });
+
+// Close modal on escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+    if (modal) {
+      modal.hide();
+    }
+  }
+});
+
 //so inline in html can be used
 window.logout = logout;
 window.enableFaceScanning = enableFaceScanning;

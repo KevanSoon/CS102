@@ -124,7 +124,7 @@ public class ManualMarker {
                 attendanceRepository.findByStudentIdAndSessionId(studentId, sessionId);
 
         AttendanceRecord record = existingOpt.orElseGet(() ->
-                new AttendanceRecord(student, session, status, Method.MANUAL));
+                new AttendanceRecord(studentId, sessionId, status, Method.MANUAL));
 
         // 5️⃣ Apply manual mark
         record.setStatus(status);

@@ -11,11 +11,11 @@ public class AttendanceRecord extends Entity {
     
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "student_id", nullable = false)
-    private Student student;
+    private Long student;
     
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "session_id", nullable = false)
-    private Session session;
+    private Long session;
     
     // @Enumerated(EnumType.STRING)
     // @Column(nullable = false)
@@ -40,7 +40,7 @@ public class AttendanceRecord extends Entity {
     public AttendanceRecord() {}
     
     // Original constructor (simplified)
-    public AttendanceRecord(Student student, Session session, Status status, Method method) {
+    public AttendanceRecord(Long student, Long session, Status status, Method method) {
         this.student = student;
         this.session = session;
         this.status = status;
@@ -50,7 +50,7 @@ public class AttendanceRecord extends Entity {
     }
 
     // Full constructor (for convenience in Marker services)
-    public AttendanceRecord(Student student, Session session, Status status, Method method, Double confidence) {
+    public AttendanceRecord(Long student, Long session, Status status, Method method, Double confidence) {
         this.student = student;
         this.session = session;
         this.status = status;
@@ -61,19 +61,19 @@ public class AttendanceRecord extends Entity {
     }
     
     // Getters and Setters
-    public Student getStudent() {
+    public Long getStudent() {
         return student;
     }
     
-    public void setStudent(Student student) {
+    public void setStudent(Long student) {
         this.student = student;
     }
     
-    public Session getSession() {
+    public Long getSession() {
         return session;
     }
     
-    public void setSession(Session session) {
+    public void setSession(Long session) {
         this.session = session;
     }
     

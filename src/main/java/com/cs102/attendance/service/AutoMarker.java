@@ -197,7 +197,7 @@ public class AutoMarker {
                 // FIX: Convert UUID to String for updated repository method
                 updatedRecords.add(attendanceRepository.update(((UUID) record.getId()).toString(), record));
             } else {
-                record = new AttendanceRecord(student, session, status, Method.AUTO);
+                record = new AttendanceRecord(studentId, sessionId, status, Method.AUTO);
                 record.setConfidence(MOCK_CONFIDENCE);
                 record.setLastSeen(currentTime);
                 updatedRecords.add(attendanceRepository.create(record));

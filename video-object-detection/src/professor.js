@@ -1,272 +1,320 @@
 console.log("professor.js loaded");
-//original professor.js below onwards
 
-// Global variables
+// ===== CONFIGURATION =====
+const API_BASE_URL = 'http://localhost:8080/api'; // Add this at the top!
+
+// ===== GLOBAL VARIABLES =====
 let attendanceRecords = [
   { date: "2024-01-15", class: "CS101", status: "Present", time: "09:00 AM" },
   { date: "2024-01-14", class: "MATH201", status: "Present", time: "11:00 AM" },
   { date: "2024-01-13", class: "PHY301", status: "Absent", time: "-" },
-]
+];
 
 let allSessions = [];
 
+// ===== SESSION MANAGEMENT =====
+
+// Fetch all sessions from backend
 async function showSessions() {
   try {
-    const response = await fetch('http://localhost:8080/api/sessions');
+    const response = await fetch(`${API_BASE_URL}/sessions`);
     return await response.json();
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error fetching sessions:', error);
     return [];
   }
 }
 
+// Load and display active sessions
+async function loadActiveSessions() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/sessions`);
+    if (!response.ok) {
+      throw new Error('Failed to load sessions');
+    }
+    
+    const sessions = await response.json();
+    const activeSessions = document.getElementById('activeSessions');
+    
+    if (sessions.length === 0) {
+      activeSessions.innerHTML = '<p class="welcome-subtitle">No active session at the moment</p>';
+    } else {
+      // Display the most recent session as "active"
+      const latestSession = sessions[0];
+      activeSessions.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-content">
+            <h4>${latestSession.name}</h4>
+            <p>📅 ${latestSession.date} | ⏰ ${latestSession.startTime}</p>
+          </div>
+          <button class="btn btn-primary" onclick="openFaceScanning()">
+            Scan Face for Attendance
+          </button>
+          <button class="btn btn-danger" onclick="closeActiveSession()">Close Active Session</button>
+        </div>
+        
+        <div class="student-list">
+          <div class="student-item">
+            <span>John Doe (john@example.com)</span>
+            <div class="attendance-controls">
+              <button class="btn btn-success btn-sm">Present</button>
+              <button class="btn btn-danger btn-sm">Absent</button>
+            </div>
+          </div>
+          <div class="student-item">
+            <span>Jane Smith (jane@example.com)</span>
+            <div class="attendance-controls">
+              <button class="btn btn-success btn-sm">Present</button>
+              <button class="btn btn-danger btn-sm">Absent</button>
+            </div>
+          </div>
+          <div class="student-item">
+            <span>Mike Johnson (mike@example.com)</span>
+            <div class="attendance-controls">
+              <button class="btn btn-success btn-sm">Present</button>
+              <button class="btn btn-danger btn-sm">Absent</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading sessions:', error);
+  }
+}
+
+// Initialize sessions on page load
 async function init() {
   allSessions = await showSessions();
   console.log('Sessions loaded:', allSessions);
-  
-  // Call other functions that need allSessions
-  // displaySessions();
+  loadActiveSessions(); // Also load the active sessions display
 }
 
-// function displaySessions() {
-//   // Use allSessions here
-//   console.log(`Found ${allSessions.length} sessions`);
-// }
+// Helper function to calculate end time
+function calculateEndTime(startTime, durationMinutes) {
+  const [hours, minutes] = startTime.split(':').map(Number);
+  const startDate = new Date();
+  startDate.setHours(hours, minutes, 0);
+  
+  startDate.setMinutes(startDate.getMinutes() + durationMinutes);
+  
+  const endHours = String(startDate.getHours()).padStart(2, '0');
+  const endMinutes = String(startDate.getMinutes()).padStart(2, '0');
+  
+  return `${endHours}:${endMinutes}`;
+}
 
-// Call init when page loads
-init();
+// ===== ATTENDANCE FUNCTIONS =====
 
 function markAttendance() {
   if (!selectedClass || !faceScanned) {
-    alert("Please scan your face first")
-    return
+    alert("Please scan your face first");
+    return;
   }
 
-  const now = new Date()
-  const dateStr = now.toISOString().split("T")[0]
+  const now = new Date();
+  const dateStr = now.toISOString().split("T")[0];
   const timeStr = now.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
-  })
+  });
 
-  const classSelect = document.getElementById("classSelect")
-  const className = classSelect.options[classSelect.selectedIndex].text.split(" - ")[0]
+  const classSelect = document.getElementById("classSelect");
+  const className = classSelect.options[classSelect.selectedIndex].text.split(" - ")[0];
 
   const newRecord = {
     date: dateStr,
     class: className,
     status: "Present",
     time: timeStr,
-  }
+  };
 
-  // Remove existing record for same date and class
-  attendanceRecords = attendanceRecords.filter((record) => !(record.date === dateStr && record.class === className))
+  attendanceRecords = attendanceRecords.filter(
+    (record) => !(record.date === dateStr && record.class === className)
+  );
 
-  attendanceRecords.unshift(newRecord)
+  attendanceRecords.unshift(newRecord);
+  updateStudentStats();
 
-  // updateRecentAttendance()
-  updateStudentStats()
+  alert(`Attendance marked successfully for ${className}!`);
+  closeFaceScanning();
 
-  alert(`Attendance marked successfully for ${className}!`)
-  closeFaceScanning()
-
-  // Reset selection
-  document.getElementById("classSelect").value = ""
-  document.getElementById("scanFaceBtn").style.display = "none"
-  selectedClass = ""
+  document.getElementById("classSelect").value = "";
+  document.getElementById("scanFaceBtn").style.display = "none";
+  selectedClass = "";
 }
-
-// function updateRecentAttendance() {
-//   const recentSection = document.querySelector(".section-card:last-child .section-content")
-
-//   if (attendanceRecords.length === 0) {
-//     recentSection.innerHTML = '<p class="welcome-subtitle">No attendance records yet</p>'
-//     return
-//   }
-
-//   const recentRecords = attendanceRecords.slice(0, 5)
-//   let tableHTML = `
-//         <table style="width: 100%; border-collapse: collapse;">
-//             <thead>
-//                 <tr style="border-bottom: 1px solid #e2e8f0;">
-//                     <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Date</th>
-//                     <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Class</th>
-//                     <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Status</th>
-//                     <th style="text-align: left; padding: 0.5rem; color: #64748b; font-weight: 500;">Time</th>
-//                 </tr>
-//             </thead>
-//             <tbody>
-//     `
-//   // pull all
-
-//   recentRecords.forEach((record) => {
-//     const statusColor = record.status === "Present" ? "#10b981" : "#ef4444"
-//     tableHTML += `
-//             <tr style="border-bottom: 1px solid #f1f5f9;">
-//                 <td style="padding: 0.75rem 0.5rem;">${record.date}</td>
-//                 <td style="padding: 0.75rem 0.5rem;">${record.class}</td>
-//                 <td style="padding: 0.75rem 0.5rem; color: ${statusColor}; font-weight: 500;">${record.status}</td>
-//                 <td style="padding: 0.75rem 0.5rem;">${record.time}</td>
-//             </tr>
-//         `
-//   })
-
-//   tableHTML += "</tbody></table>"
-//   recentSection.innerHTML = tableHTML
-// }
 
 function updateStudentStats() {
-  const totalClasses = attendanceRecords.length
-  const presentClasses = attendanceRecords.filter((record) => record.status === "Present").length
-  const attendanceRate = totalClasses > 0 ? Math.round((presentClasses / totalClasses) * 100) : 0
+  const totalClasses = attendanceRecords.length;
+  const presentClasses = attendanceRecords.filter((record) => record.status === "Present").length;
+  const attendanceRate = totalClasses > 0 ? Math.round((presentClasses / totalClasses) * 100) : 0;
 
-  const statNumbers = document.querySelectorAll(".stat-number")
+  const statNumbers = document.querySelectorAll(".stat-number");
   if (statNumbers.length >= 3) {
-    statNumbers[0].textContent = `${attendanceRate}%`
-    statNumbers[1].textContent = totalClasses
+    statNumbers[0].textContent = `${attendanceRate}%`;
+    statNumbers[1].textContent = totalClasses;
 
-    const today = new Date().toISOString().split("T")[0]
-    const classesToday = attendanceRecords.filter((record) => record.date === today).length
-    statNumbers[2].textContent = classesToday
+    const today = new Date().toISOString().split("T")[0];
+    const classesToday = attendanceRecords.filter((record) => record.date === today).length;
+    statNumbers[2].textContent = classesToday;
   }
 }
 
+// ===== MODAL FUNCTIONS =====
+
 function openCreateClass() {
-  document.getElementById("createClassModal").classList.add("active")
+  document.getElementById("createClassModal").classList.add("active");
 }
 
 function closeCreateClass() {
-  document.getElementById("createClassModal").classList.remove("active")
+  document.getElementById("createClassModal").classList.remove("active");
+  document.getElementById("createClassForm").reset();
 }
 
 function openManualAttendance() {
-  document.getElementById("manualAttendanceModal").classList.add("active")
+  document.getElementById("manualAttendanceModal").classList.add("active");
 }
 
 function closeManualAttendance() {
-  document.getElementById("manualAttendanceModal").classList.remove("active")
+  document.getElementById("manualAttendanceModal").classList.remove("active");
 }
 
 function openGenerateReport() {
-  document.getElementById("generateReportModal").classList.add("active")
+  document.getElementById("generateReportModal").classList.add("active");
 }
 
 function closeGenerateReport() {
-  document.getElementById("generateReportModal").classList.remove("active")
+  document.getElementById("generateReportModal").classList.remove("active");
 }
 
 function exportCSV() {
-  alert("Exporting attendance report as CSV...")
+  alert("Exporting attendance report as CSV...");
 }
 
 function exportPDF() {
-  alert("Exporting attendance report as PDF...")
+  alert("Exporting attendance report as PDF...");
 }
 
 function openStudentManagement() {
-  document.getElementById("studentManagementModal").classList.add("active")
+  document.getElementById("studentManagementModal").classList.add("active");
 }
 
 function closeStudentManagement() {
-  document.getElementById("studentManagementModal").classList.remove("active")
+  document.getElementById("studentManagementModal").classList.remove("active");
 }
 
 function openAttendanceCheck() {
-  document.getElementById("attendanceCheckModal").classList.add("active")
+  document.getElementById("attendanceCheckModal").classList.add("active");
 }
 
 function closeAttendanceCheck() {
-  document.getElementById("attendanceCheckModal").classList.remove("active")
+  document.getElementById("attendanceCheckModal").classList.remove("active");
 }
 
 function closeActiveSession() {
   if (confirm("Are you sure you want to close the active session?")) {
-    alert("Active session closed successfully!")
-    const activeSessions = document.getElementById("activeSessions")
+    alert("Active session closed successfully!");
+    const activeSessions = document.getElementById("activeSessions");
     if (activeSessions) {
-      activeSessions.innerHTML = '<p class="welcome-subtitle">No active sessions at the moment</p>'
+      activeSessions.innerHTML = '<p class="welcome-subtitle">No active sessions at the moment</p>';
     }
   }
 }
 
 function showRegister() {
-  document.getElementById("faceRegisterModal").classList.add("active")
+  document.getElementById("faceRegisterModal").classList.add("active");
 }
 
 function closeFaceRegister() {
-  document.getElementById("faceRegisterModal").classList.remove("active")
+  document.getElementById("faceRegisterModal").classList.remove("active");
 }
 
 function captureFace() {
-  alert("Face captured successfully! Registration complete.")
-  closeFaceRegister()
+  alert("Face captured successfully! Registration complete.");
+  closeFaceRegister();
 }
 
 function logout() {
-  window.location.href = "index.html"
+  window.location.href = "index.html";
 }
 
+// ===== PAGE INITIALIZATION =====
+
 document.addEventListener("DOMContentLoaded", () => {
-  // updateRecentAttendance()
-  updateStudentStats()
-  init()
+  updateStudentStats();
+  init();
 
-  // Handle form submissions
-  const createClassForm = document.getElementById("createClassForm")
+  // Handle Create Session Form - SINGLE EVENT LISTENER
+  const createClassForm = document.getElementById("createClassForm");
   if (createClassForm) {
-    createClassForm.addEventListener("submit", (e) => {
-      e.preventDefault()
-      alert("Class session created successfully!")
-      const activeSessions = document.getElementById("activeSessions")
-      if (activeSessions) {
-        activeSessions.innerHTML =
-          `<div class="stat-card">
-          <div class="stat-content">
-          <h4>CS101 - Active Session</h4>
-          <p>Started at 10:00 AM</p>
-          </div>
-            <button id="scanFaceBtn" class="btn btn-primary" onclick="openFaceScanning()">
-                    Scan Face for Attendance
-              </button>
-             <button class="btn btn-danger" onclick="closeActiveSession()">Close Active Session</button>
-            
-          </div>
-          
-            <div class="student-list">
-                <div class="student-item">
-                    <span>John Doe (john@example.com)</span>
-                    <div class="attendance-controls">
-                        <button class="btn btn-success btn-sm">Present</button>
-                        <button class="btn btn-danger btn-sm">Absent</button>
-                    </div>
-                </div>
-                <div class="student-item">
-                    <span>Jane Smith (jane@example.com)</span>
-                    <div class="attendance-controls">
-                        <button class="btn btn-success btn-sm">Present</button>
-                        <button class="btn btn-danger btn-sm">Absent</button>
-                    </div>
-                </div>
-                <div class="student-item">
-                    <span>Mike Johnson (mike@example.com)</span>
-                    <div class="attendance-controls">
-                        <button class="btn btn-success btn-sm">Present</button>
-                        <button class="btn btn-danger btn-sm">Absent</button>
-                    </div>
-                </div>
-            </div>
-          `
-
+    createClassForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      // Get form values
+      const className = document.getElementById('className').value.trim();
+      const sessionDate = document.getElementById('sessionDate').value;
+      const start_time = document.getElementById('startTime').value;
+      // Check if duration field exists, if not default to 60 minutes
+      const durationInput = document.getElementById('duration');
+      const duration = durationInput ? parseInt(durationInput.value) : 90;
+      
+      // Calculate end time based on duration
+      const end_time = calculateEndTime(start_time, duration);
+      
+      // Prepare data for API
+      const sessionData = {
+        name: className,
+        date: sessionDate,
+        start_time: start_time + ':00', // Add seconds
+        end_time: end_time + ':00'
+      };
+      
+      console.log('Sending session data:', sessionData);
+      
+      try {
+        // Show loading state
+        const submitButton = e.target.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        submitButton.textContent = 'Creating...';
+        submitButton.disabled = true;
+        
+        const response = await fetch(`${API_BASE_URL}/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(sessionData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const createdSession = await response.json();
+        console.log('Session created successfully:', createdSession);
+        
+        alert('Session created successfully!');
+        
+        // Reset form and close modal
+        closeCreateClass();
+        
+        // Refresh the sessions list
+        await loadActiveSessions();
+        
+        // Reset button state
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+        
+      } catch (error) {
+        console.error('Error creating session:', error);
+        alert('Error creating session: ' + error.message);
+        
+        // Reset button state
+        const submitButton = e.target.querySelector('button[type="submit"]');
+        submitButton.textContent = 'Create Session';
+        submitButton.disabled = false;
       }
-      closeCreateClass()
-    })
+    });
   }
-})
-
-
-
-
-
-
-
+});

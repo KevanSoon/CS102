@@ -5,7 +5,9 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 //@jakarta.persistence.Entity
 //@Table(name = "sessions")
@@ -18,18 +20,22 @@ public class Session extends Entity {
     private LocalDate date;
     
     //@Column(name = "start_time", nullable = false)
+    @JsonProperty("start_time")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime startTime;
     
     //@Column(name = "end_time", nullable = false)
+    @JsonProperty("end_time")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime endTime;
     
     //@OneToMany(mappedBy = "session", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<AttendanceRecord> attendanceRecords = new ArrayList<>();
     
-    // Constructors
+    // Constructors    
     public Session() {}
-    
+
     public Session(String name, LocalDate date, LocalTime startTime, LocalTime endTime) {
         this.name = name;
         this.date = date;

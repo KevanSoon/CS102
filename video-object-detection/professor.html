@@ -24,30 +24,6 @@
             <p class="welcome-subtitle">Manage your classes and track student attendance</p>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon blue">📊</div>
-                <div class="stat-content">
-                    <h3>Average Attendance</h3>
-                    <div class="stat-number">78%</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon orange">👥</div>
-                <div class="stat-content">
-                    <h3>Total Students</h3>
-                    <div class="stat-number">125</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon yellow">📅</div>
-                <div class="stat-content">
-                    <h3>Active Classes</h3>
-                    <div class="stat-number">3</div>
-                </div>
-            </div>
-        </div>
-
         <div class="section-card">
             <div class="section-header">
                 <h3 class="section-title">Class Management</h3>
@@ -55,11 +31,11 @@
             </div>
             <div class="section-content">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                    <button class="btn btn-primary" onclick="openCreateClass()">Create Class/Session</button>
-                    <button class="btn btn-secondary" onclick="openManualAttendance()">Manual Attendance</button>
+                    <button class="btn btn-primary" onclick="openCreateClass()">Create Session</button>
+                    <!-- <button class="btn btn-secondary" onclick="openManualAttendance()">Manual Attendance</button> -->
                     <button class="btn btn-secondary" onclick="openGenerateReport()">Generate Report</button>
                     <button class="btn btn-secondary" onclick="openStudentManagement()">Manage Students</button>
-                    <button class="btn btn-secondary" onclick="openAttendanceCheck()">Check Total Attendance</button>
+                    <!-- <button class="btn btn-secondary" onclick="openAttendanceCheck()">Check Total Attendance</button> -->
                     <!-- <button class="btn btn-danger" onclick="closeActiveSession()">Close Active Session</button> -->
                 </div>
             </div>
@@ -67,10 +43,10 @@
 
         <div class="section-card">
             <div class="section-header">
-                <h3 class="section-title">Active Sessions</h3>
+                <h3 class="section-title">Active Session</h3>
             </div>
             <div class="section-content" id="activeSessions">
-                <p class="welcome-subtitle">No active sessions at the moment</p>
+                <p class="welcome-subtitle">No active session at the moment</p>
             </div>
         </div>
     </div>
@@ -86,23 +62,53 @@
             <form id="createClassForm">
                 <div class="form-group">
                     <label class="form-label">Class Name</label>
-                    <input type="text" class="form-input" placeholder="e.g., CS101 - Introduction to Programming" required>
+                    <input 
+                        type="text" 
+                        class="form-input" 
+                        id="className"
+                        name="name"
+                        placeholder="e.g., CS101 - Introduction to Programming" 
+                        required>
                 </div>
+                
                 <div class="form-group">
                     <label class="form-label">Session Date</label>
-                    <input type="date" class="form-input" required>
+                    <input 
+                        type="date" 
+                        class="form-input" 
+                        id="sessionDate"
+                        name="date"
+                        required>
                 </div>
+                
                 <div class="form-group">
                     <label class="form-label">Start Time</label>
-                    <input type="time" class="form-input" required>
+                    <input 
+                        type="time" 
+                        class="form-input" 
+                        id="startTime"
+                        name="startTime"
+                        required>
                 </div>
+
                 <div class="form-group">
-                    <label class="form-label">Duration (minutes)</label>
-                    <input type="number" class="form-input" placeholder="90" required>
+                    <label class="form-label">Duration (mins)</label>
+                    <select class="form-input" name="duration" id="duration" required>
+                        <option value="90">90</option>
+                        <option value="195">195</option>
+                    </select>
                 </div>
+
                 <div style="display: flex; gap: 1rem;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Create Session</button>
-                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeCreateClass()">Cancel</button>
+                    <button 
+                        type="submit" 
+                        class="btn btn-primary" 
+                        style="flex: 1;">Create Session</button>
+                    <button 
+                        type="button" 
+                        class="btn btn-secondary" 
+                        style="flex: 1;" 
+                        onclick="closeCreateClass()">Cancel</button>
                 </div>
             </form>
         </div>
@@ -291,11 +297,6 @@
                 <p style="text-align: center; color: #64748b; margin-bottom: 1rem;">
                     Position your face within the frame for attendance verification
                 </p>
-                <!-- <div class="camera-container" style="position: relative; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 1rem;">
-                    <video id="attendanceVideo" style="width: 100%; height: 300px; object-fit: cover;" autoplay muted></video>
-                    <canvas id="attendanceCanvas" style="display: none;"></canvas>
-                    <div class="scan-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 200px; border: 2px solid #22d3ee; border-radius: 50%; opacity: 0.8;"></div>
-                </div> -->
                 <div id="container">
                     <video id="video" autoplay muted playsinline></video>
                     <canvas id="canvas" width="360" height="240"></canvas>

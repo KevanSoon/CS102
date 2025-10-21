@@ -1,112 +1,83 @@
-// package com.cs102.attendance.controller;
+package com.cs102.attendance.controller;
 
-// import com.cs102.attendance.entity.Session;
-// import com.cs102.attendance.dto.SessionDto;
-// import com.cs102.attendance.service.SessionService;
-// import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.http.ResponseEntity;
-// import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-// import java.time.LocalDate;
-// import java.time.LocalTime;
-// import java.util.List;
-// import java.util.UUID;
-// import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-// @RestController
-// @RequestMapping("/api/sessions")
-// public class SessionController {
+import com.cs102.attendance.entity.Session;
+import com.cs102.attendance.repository.SessionRepository;
 
-//     @Autowired
-//     private SessionService sessionService;
 
-//     // Create a new session
-//     @PostMapping
-//     public ResponseEntity<Session> createSession(@RequestBody CreateSessionRequest request) {
-//         try {
-//             Session session = sessionService.createSession(
-//                 request.getName(),
-//                 request.getDate(),
-//                 request.getStartTime(),
-//                 request.getEndTime()
-//             );
-//             return ResponseEntity.ok(session);
-//         } catch (Exception e) {
-//             return ResponseEntity.badRequest().build();
-//         }
-//     }
+@RestController 
+@RequestMapping("/api/sessions")
+public class SessionController {
+    private final SessionRepository sessionRepository;
 
-//     // Get all sessions
-//     @GetMapping
-//     public ResponseEntity<List<Session>> getAllSessions() {
-//         List<Session> sessions = sessionService.getAllSessions();
-//         return ResponseEntity.ok(sessions);
-//     }
+    //auto initialize using the constructor
+    @Autowired
+    public SessionController(SessionRepository sessionRepository) {
+        this.sessionRepository = sessionRepository;
+    }
 
-//     // Get session by ID
-//     @GetMapping("/{id}")
-//     public ResponseEntity<Session> getSessionById(@PathVariable UUID id) {
-//         Optional<Session> session = sessionService.getSessionById(id);
-//         return session.map(ResponseEntity::ok)
-//                      .orElse(ResponseEntity.notFound().build());
-//     }
+    //maps to create() in SessionRepository 
+    @PostMapping
+    public ResponseEntity<Session> createSession(@RequestBody Session session) {
+        return ResponseEntity.ok(sessionRepository.create(session));
+    }
 
-//     // Get today's sessions
-//     @GetMapping("/today")
-//     public ResponseEntity<List<SessionDto>> getTodaySessions() {
-//         List<SessionDto> sessions = sessionService.getTodaySessionDtos();
-//         return ResponseEntity.ok(sessions);
-//     }
+    //maps to findAll() in SessionRepository 
+    @GetMapping
+    public ResponseEntity<List<Session>> getAllSession() {
+        return ResponseEntity.ok(sessionRepository.findAll());
+    }
 
-//     // Get sessions for specific date
-//     @GetMapping("/date/{date}")
-//     public ResponseEntity<List<Session>> getSessionsByDate(@PathVariable String date) {
-//         try {
-//             LocalDate localDate = LocalDate.parse(date);
-//             List<Session> sessions = sessionService.getTodaySessions(localDate);
-//             return ResponseEntity.ok(sessions);
-//         } catch (Exception e) {
-//             return ResponseEntity.badRequest().build();
-//         }
-//     }
 
-//     // Close session
-//     @PutMapping("/{id}/close")
-//     public ResponseEntity<Session> closeSession(@PathVariable UUID id) {
-//         try {
-//             Session session = sessionService.closeSession(id);
-//             return ResponseEntity.ok(session);
-//         } catch (RuntimeException e) {
-//             return ResponseEntity.notFound().build();
-//         }
-//     }
+    // maps to findById() in StudentRepository
+    // @GetMapping("/{id}")
+    // public ResponseEntity<Student> getStudentById(@PathVariable String id) {
+    //     Student student = studentRepository.findById(id);
+    //     if (student != null) {
+    //         return ResponseEntity.ok(student);
+    //     } else {
+    //         return ResponseEntity.notFound().build();
+    //     }
+    // }
 
-//     // Delete session
-//     @DeleteMapping("/{id}")
-//     public ResponseEntity<Void> deleteSession(@PathVariable UUID id) {
-//         try {
-//             sessionService.deleteSession(id);
-//             return ResponseEntity.ok().build();
-//         } catch (Exception e) {
-//             return ResponseEntity.notFound().build();
-//         }
-//     }
 
-//     // DTO for request body
-//     public static class CreateSessionRequest {
-//         private String name;
-//         private LocalDate date;
-//         private LocalTime startTime;
-//         private LocalTime endTime;
+    //maps to findbyName() in StudentRepository 
+    //  @GetMapping("/search")
+    //  public ResponseEntity<List<Student>> searchStudents(@RequestParam String name) {
+    //     return ResponseEntity.ok(studentRepository.findByName(name));
+    //  }
 
-//         // Getters and setters
-//         public String getName() { return name; }
-//         public void setName(String name) { this.name = name; }
-//         public LocalDate getDate() { return date; }
-//         public void setDate(LocalDate date) { this.date = date; }
-//         public LocalTime getStartTime() { return startTime; }
-//         public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
-//         public LocalTime getEndTime() { return endTime; }
-//         public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
-//     }
-// } 
+     //maps to update() in StudentRespository
+    //  @PutMapping("/{id}")
+    //  public ResponseEntity<Student> updateStudent(@PathVariable Long id, @RequestBody Student student) {
+    //     return ResponseEntity.ok(studentRepository.update(id, student));
+    //  } 
+
+     //maps to delete() in StudentRespository
+    //  @DeleteMapping("/{id}")
+    //  public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
+    //     studentRepository.delete(id);
+    //     return ResponseEntity.ok().build();
+    //  }
+
+
+} 
+
+

@@ -65,7 +65,7 @@ public class SupabaseRestService {
     public <T> T update(String table, String id, T data, Class<T> responseType) {
         String url = String.format("%s/rest/v1/%s?id=eq.%s", supabaseUrl, table, id);
         HttpEntity<T> requestEntity = new HttpEntity<>(data, headers);
-        ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.PATCH, requestEntity, responseType);
+        ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.PUT, requestEntity, responseType);
         return response.getBody();
     }
 

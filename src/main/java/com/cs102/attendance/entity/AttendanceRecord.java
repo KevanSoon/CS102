@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 import com.cs102.attendance.enums.Method;
 import com.cs102.attendance.enums.Status;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 // @jakarta.persistence.Entity
 // @Table(name = "attendance_records")
@@ -11,11 +13,13 @@ public class AttendanceRecord extends Entity {
     
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "student_id", nullable = false)
-    private Long student;
+    @JsonProperty("student_id")
+    private String student;
     
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "session_id", nullable = false)
-    private Long session;
+    @JsonProperty("session_id")
+    private String session;
     
     // @Enumerated(EnumType.STRING)
     // @Column(nullable = false)
@@ -29,6 +33,8 @@ public class AttendanceRecord extends Entity {
     private Double confidence;
     
     // @Column(name = "marked_at", nullable = false)
+    @JsonProperty("marked_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime markedAt;
     
     // @Column(name = "last_seen") // ADDED for Cooldown Timer
@@ -40,7 +46,7 @@ public class AttendanceRecord extends Entity {
     public AttendanceRecord() {}
     
     // Original constructor (simplified)
-    public AttendanceRecord(Long student, Long session, Status status, Method method) {
+    public AttendanceRecord(String student, String session, Status status, Method method) {
         this.student = student;
         this.session = session;
         this.status = status;
@@ -50,7 +56,7 @@ public class AttendanceRecord extends Entity {
     }
 
     // Full constructor (for convenience in Marker services)
-    public AttendanceRecord(Long student, Long session, Status status, Method method, Double confidence) {
+    public AttendanceRecord(String student, String session, Status status, Method method, Double confidence) {
         this.student = student;
         this.session = session;
         this.status = status;
@@ -61,19 +67,19 @@ public class AttendanceRecord extends Entity {
     }
     
     // Getters and Setters
-    public Long getStudent() {
+    public String getStudent() {
         return student;
     }
     
-    public void setStudent(Long student) {
+    public void setStudent(String student) {
         this.student = student;
     }
     
-    public Long getSession() {
+    public String getSession() {
         return session;
     }
     
-    public void setSession(Long session) {
+    public void setSession(String session) {
         this.session = session;
     }
     

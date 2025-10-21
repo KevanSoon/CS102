@@ -88,7 +88,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -103,15 +103,11 @@ import com.cs102.attendance.repository.AttendanceRepository;
 // POST/api/attendance/manual = mark attendance manually
 // POST/api/attendance/auto/{sessionId} = mark attendance automatically
 public class AttendanceController {
-
-    // FIX: Using Repository instead of Service
     private final AttendanceRepository attendanceRepository;
     
 
     @Autowired
-    public AttendanceController(
-            // FIX: Injecting AttendanceRepository directly
-        AttendanceRepository attendanceRepository) {
+    public AttendanceController(AttendanceRepository attendanceRepository) {
         this.attendanceRepository = attendanceRepository;
     }
 
@@ -128,7 +124,7 @@ public class AttendanceController {
      * @param request The object containing manual marking data.
      * @return The updated AttendanceRecord.
      */
-    @PostMapping("/manual/{id}")
+    @PutMapping("/manual/{id}")
     public ResponseEntity<AttendanceRecord> markManual(@PathVariable String id, @RequestBody AttendanceRecord attendanceRecord) {
         // Delegate to the ManualMarker for all business logic
         return ResponseEntity.ok(attendanceRepository.update(id, attendanceRecord));

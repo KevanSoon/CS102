@@ -62,10 +62,13 @@ public class StudentController {
 
      //maps to update() in StudentRespository
      @PutMapping("/{id}")
-     public ResponseEntity<Student> updateStudent(@PathVariable Long id, @RequestBody Student student) {
-        return ResponseEntity.ok(studentRepository.update(id, student));
-     } 
+    public ResponseEntity<Student> updateStudent(
+            @PathVariable String id,
+            @RequestBody Student student) {
 
+        Student updated = studentRepository.update(id, student);
+        return ResponseEntity.ok(updated);
+    }
      //maps to delete() in StudentRespository
      @DeleteMapping("/{id}")
      public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {

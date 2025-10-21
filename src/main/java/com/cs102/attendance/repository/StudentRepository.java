@@ -50,8 +50,8 @@ public class StudentRepository {
     }
     
     // maps to /{id} endpoint to update a student record (PUT Method) 
-    public Student update(Long id, Student student) {
-        return supabaseService.update(TABLE, id.toString(), student, Student.class);
+    public Student update(String id, Student student) {
+        return supabaseService.update(TABLE, id, student, Student.class);
     }
 
     // maps to /{id} endpoint to delete a student record (DELETE Method) 

@@ -63,24 +63,22 @@
 
 package com.cs102.attendance.service;
 
-import com.cs102.attendance.entity.AttendanceRecord;
-import com.cs102.attendance.entity.Student;
-import com.cs102.attendance.entity.Session;
-import com.cs102.attendance.enums.Method;
-import com.cs102.attendance.enums.Status;
-import com.cs102.attendance.repository.AttendanceRepository;
-import com.cs102.attendance.repository.StudentRepository;
-import com.cs102.attendance.repository.SessionRepository;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import com.cs102.attendance.entity.AttendanceRecord;
+import com.cs102.attendance.entity.Session;
+import com.cs102.attendance.entity.Student;
+import com.cs102.attendance.enums.Method;
+import com.cs102.attendance.enums.Status;
+import com.cs102.attendance.repository.AttendanceRepository;
+import com.cs102.attendance.repository.SessionRepository;
+import com.cs102.attendance.repository.StudentRepository; // FIX: Added UUID import for casting
 
-/**
- * Handles manual attendance marking logic.
- * Triggered when a teacher manually marks attendance via the REST API.
- */
 @Service
 public class ManualMarker {
 
@@ -98,43 +96,52 @@ public class ManualMarker {
     }
 
     /**
-     * Marks a student's attendance manually.
-     * Manual changes override auto-marks, logged with "Manual" method.
-     *
-     * @param studentId The student's ID.
-     * @param sessionId The session's ID.
-     * @param statusStr Attendance status string (Present, Absent, Late).
+     * Marks attendance manually.
+     * @param studentId The student's ID (Long).
+     * @param sessionId The session's ID (Long).
+     * @param statusStr Attendance status string.
      * @return The updated or newly created AttendanceRecord.
      */
-    public AttendanceRecord mark(Long studentId, Long sessionId, String statusStr) {
-        // 1️⃣ Validate entities
-        // FIX: Use .orElseThrow() on Optional<Student>
+    public AttendanceRecord mark(Long studentId, Long sessionId, String statusStr) { // Note parameter excluded
+        // 1️⃣ Validate student (Repository findById accepts Long)
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new IllegalArgumentException("Student not found: " + studentId));
 
-        // FIX: Use .orElseThrow() on Optional<Session>
+        // 2️⃣ Validate session (Repository findById accepts Long)
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
-        // 2️⃣ Convert status string to Enum
-        Status status = Status.valueOf(statusStr.toUpperCase());
-        
-        // 3️⃣ Check if a record already exists for this student & session
-        AttendanceRecord record = attendanceRepository
-                .findByStudentIdAndSessionId(studentId, sessionId);
-
-        if (record == null) {
-            // New record: Manual changes override auto-marks (default to manual)
-            record = new AttendanceRecord(student, session, status, Method.MANUAL);
+        // 3️⃣ Convert status string to enum
+        Status status;
+        try {
+            status = Status.valueOf(statusStr.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid attendance status: " + statusStr);
         }
 
-        // 4️⃣ Apply manual overrides (overwrites any existing AUTO or MANUAL mark)
+        // 4️⃣ Check existing record
+        Optional<AttendanceRecord> existingOpt =
+                attendanceRepository.findByStudentIdAndSessionId(studentId, sessionId);
+
+        AttendanceRecord record = existingOpt.orElseGet(() ->
+                new AttendanceRecord(student, session, status, Method.MANUAL));
+
+        // 5️⃣ Apply manual mark
         record.setStatus(status);
         record.setMethod(Method.MANUAL);
         record.setMarkedAt(LocalDateTime.now());
-        record.setLastSeen(LocalDateTime.now()); // Update lastSeen
+        record.setLastSeen(LocalDateTime.now());
 
-        // 5️⃣ Save the updated record
-        return attendanceRepository.save(record);
+        // 6️⃣ Save or update
+        if (existingOpt.isPresent()) {
+            // FIX: Cast to UUID (actual type) and call toString() to match the updated repository signature
+            return attendanceRepository.update(((UUID) record.getId()).toString(), record); 
+        } else {
+            return attendanceRepository.create(record);
+        }
     }
 }
+
+
+
+

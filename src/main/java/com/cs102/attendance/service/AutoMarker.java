@@ -87,50 +87,45 @@
 //         }
 //     }
 // } 
-
 package com.cs102.attendance.service;
 
-import com.cs102.attendance.dto.FaceDataDto;
-import com.cs102.attendance.entity.AttendanceRecord;
-import com.cs102.attendance.entity.Session;
-import com.cs102.attendance.entity.Student;
-import com.cs102.attendance.enums.Method;
-import com.cs102.attendance.enums.Status;
-import com.cs102.attendance.repository.AttendanceRepository;
-import com.cs102.attendance.repository.SessionRepository;
-import com.cs102.attendance.repository.StudentRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.LocalTime; // <-- ADDED: Needed if getStartTime returns LocalTime
-import java.time.LocalDate; // <-- ADDED: Needed for LocalTime to LocalDateTime conversion
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import com.cs102.attendance.dto.FaceDataDto;
+import com.cs102.attendance.entity.AttendanceRecord;     // FIX: Added back
+import com.cs102.attendance.entity.Session;
+import com.cs102.attendance.entity.Student;     // FIX: Added back
+import com.cs102.attendance.enums.Method;
+import com.cs102.attendance.enums.Status;
+import com.cs102.attendance.repository.AttendanceRepository;
+import com.cs102.attendance.repository.SessionRepository;
+import com.cs102.attendance.repository.StudentRepository;      // FIX: Added UUID import
 
-/**
- * Handles automatic attendance marking based on face recognition data.
- * Triggered by POST /api/attendance/auto/{sessionId}.
- */
 @Service
 public class AutoMarker {
 
     private final AttendanceRepository attendanceRepository;
     private final StudentRepository studentRepository;
     private final SessionRepository sessionRepository;
-    
-    // Configuration values (MOCK/default values)
-    private static final double MOCK_CONFIDENCE = 0.95; 
-    
+
+    private static final double MOCK_CONFIDENCE = 0.95;
+
     @Value("${attendance.auto.cooldown-seconds:20}")
-    private long cooldownSeconds; 
+    private long cooldownSeconds;
 
     @Value("${attendance.auto.late-threshold-minutes:15}")
-    private long lateThresholdMinutes; 
+    private long lateThresholdMinutes;
 
     @Autowired
     public AutoMarker(AttendanceRepository attendanceRepository,
@@ -143,97 +138,81 @@ public class AutoMarker {
 
     /**
      * Processes face recognition results and marks attendance automatically.
-     *
-     * @param sessionId The session ID to which the attendance belongs.
-     * @param recognitionResults A list of recognized faces (each contains studentId and imageUrl).
-     * @return A list of attendance records that were marked or updated.
      */
     public List<AttendanceRecord> process(Long sessionId, List<FaceDataDto> recognitionResults) {
         List<AttendanceRecord> updatedRecords = new ArrayList<>();
         LocalDateTime currentTime = LocalDateTime.now();
-        LocalDate today = LocalDate.now(); // Get today's date for LocalTime conversion
+        LocalDate today = LocalDate.now(); // FIX: Needed for date conversion
 
-        // 1️⃣ Ensure the session exists and get its start time for the late check
+        // ✅ Load session
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
-        
-        // FIX: The getter should be for the session start time. Assuming it returns LocalTime (from error).
-        // We convert it to LocalDateTime for comparison.
-        LocalTime sessionLocalTime = session.getStartTime(); 
-        LocalDateTime sessionStartTime = sessionLocalTime != null ? 
-            LocalDateTime.of(today, sessionLocalTime) : null; 
 
-        // 2️⃣ Loop through each recognized face
+        // FIX: Combine today's date with the session's LocalTime
+        LocalTime sessionLocalTime = session.getStartTime();
+        LocalDateTime sessionStartTime =
+                sessionLocalTime != null ? LocalDateTime.of(today, sessionLocalTime) : null;
+                
         for (FaceDataDto faceData : recognitionResults) {
+            String studentIdStr = faceData.getStudentId();
+            if (studentIdStr == null || studentIdStr.isBlank()) continue;
+
             Long studentId;
             try {
-                studentId = Long.valueOf(faceData.getStudentId());
+                studentId = Long.valueOf(studentIdStr);
             } catch (NumberFormatException e) {
-                continue; // Skip invalid ID
+                continue; 
             }
 
-            // A. Roster Check: Verify student exists
+            // ✅ Roster Check
             Optional<Student> studentOpt = studentRepository.findById(studentId);
-            if (studentOpt.isEmpty()) {
-                continue; // Student not found/not in roster
-            }
+            if (studentOpt.isEmpty()) continue;
             Student student = studentOpt.get();
 
+            // ✅ Check existing record
+            Optional<AttendanceRecord> existingOpt =
+                    attendanceRepository.findByStudentIdAndSessionId(studentId, sessionId);
 
-            // B. Find existing record
-            AttendanceRecord record = attendanceRepository.findByStudentIdAndSessionId(studentId, sessionId);
-            
-            // C. Determine Status (Present or Late)
             Status status = determineStatus(sessionStartTime, currentTime);
+            AttendanceRecord record;
 
-            if (record != null) {
-                // i. Manual Marking Override Check: Manual changes override auto-marks
-                if (record.getMethod() == Method.MANUAL) {
-                    continue; // Skip: Do not overwrite a manual mark
-                }
+            if (existingOpt.isPresent()) {
+                record = existingOpt.get();
 
-                // ii. Cooldown Timer Check: Prevent duplicates
+                if (record.getMethod() == Method.MANUAL) continue;
+
                 long secondsSinceLastSeen = ChronoUnit.SECONDS.between(record.getLastSeen(), currentTime);
                 if (secondsSinceLastSeen <= cooldownSeconds) {
-                    // Update “Last Seen” instead.
                     record.setLastSeen(currentTime);
-                    updatedRecords.add(attendanceRepository.save(record));
-                    continue; // Skip creation/full update
+                    // FIX: Convert UUID to String for updated repository method
+                    updatedRecords.add(attendanceRepository.update(((UUID) record.getId()).toString(), record));
+                    continue;
                 }
-                
-                // iii. Update existing auto/absent record
+
                 record.setStatus(status);
                 record.setMethod(Method.AUTO);
                 record.setMarkedAt(currentTime);
                 record.setLastSeen(currentTime);
                 record.setConfidence(MOCK_CONFIDENCE);
-
+                // FIX: Convert UUID to String for updated repository method
+                updatedRecords.add(attendanceRepository.update(((UUID) record.getId()).toString(), record));
             } else {
-                // D. Create a new attendance record
                 record = new AttendanceRecord(student, session, status, Method.AUTO);
                 record.setConfidence(MOCK_CONFIDENCE);
                 record.setLastSeen(currentTime);
+                updatedRecords.add(attendanceRepository.create(record));
             }
-
-            // E. Save and add to result list
-            updatedRecords.add(attendanceRepository.save(record));
         }
 
         return updatedRecords;
     }
 
-    /**
-     * Determines if the mark should be "Present" or "Late".
-     */
     private Status determineStatus(LocalDateTime sessionStartTime, LocalDateTime markingTime) {
-        if (sessionStartTime == null) return Status.PRESENT; 
-
+        if (sessionStartTime == null) return Status.PRESENT;
         LocalDateTime lateTime = sessionStartTime.plusMinutes(lateThresholdMinutes);
-        
-        if (markingTime.isAfter(lateTime)) {
-            return Status.LATE;
-        } else {
-            return Status.PRESENT;
-        }
+        return markingTime.isAfter(lateTime) ? Status.LATE : Status.PRESENT;
     }
 }
+
+
+

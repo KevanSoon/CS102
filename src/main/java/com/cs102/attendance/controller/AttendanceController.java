@@ -93,11 +93,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cs102.attendance.dto.FaceDataDto;
 import com.cs102.attendance.entity.AttendanceRecord;
-import com.cs102.attendance.service.AttendanceService;
-import com.cs102.attendance.service.AutoMarker;
-import com.cs102.attendance.service.ManualMarker;
+import com.cs102.attendance.repository.AttendanceRepository;
+
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -106,76 +104,63 @@ import com.cs102.attendance.service.ManualMarker;
 // POST/api/attendance/auto/{sessionId} = mark attendance automatically
 public class AttendanceController {
 
-    private final AttendanceService attendanceService;
-    private final ManualMarker manualMarker;
-    private final AutoMarker autoMarker;
+    // FIX: Using Repository instead of Service
+    private final AttendanceRepository attendanceRepository;
+    
 
     @Autowired
     public AttendanceController(
-            AttendanceService attendanceService,
-            ManualMarker manualMarker,
-            AutoMarker autoMarker) {
-        this.attendanceService = attendanceService;
-        this.manualMarker = manualMarker;
-        this.autoMarker = autoMarker;
+            // FIX: Injecting AttendanceRepository directly
+        AttendanceRepository attendanceRepository) {
+        this.attendanceRepository = attendanceRepository;
     }
 
     @GetMapping // HTTP GET/api/attendance --> retrieving all stored attendance records
     public ResponseEntity<List<AttendanceRecord>> getAllAttendanceRecords() {
-        return ResponseEntity.ok(attendanceService.findAllRecords());
+        // FIX: Calling findAll() directly on the repository
+        return ResponseEntity.ok(attendanceRepository.findAll());
     }
 
 
     /**
      * Handles manual attendance marking. 
-     * Expects a JSON body with keys: studentId, sessionId, status, and note (optional).
+     * Expects a JSON body with keys: studentId, sessionId, status.
      * @param request The object containing manual marking data.
      * @return The updated AttendanceRecord.
      */
-    @PostMapping("/manual")
-    public ResponseEntity<AttendanceRecord> markManual(@RequestBody ManualMarkingRequest request) {
+    @PostMapping("/manual/{id}")
+    public ResponseEntity<AttendanceRecord> markManual(@PathVariable String id, @RequestBody AttendanceRecord attendanceRecord) {
         // Delegate to the ManualMarker for all business logic
-        AttendanceRecord updatedRecord = manualMarker.mark(
-            request.getStudentId(),
-            request.getSessionId(),
-            request.getStatus()
-        );
-        return ResponseEntity.ok(updatedRecord);
+        return ResponseEntity.ok(attendanceRepository.update(id, attendanceRecord));
     }
 
     // Simple inner class to represent the expected manual marking request body.
-    public static class ManualMarkingRequest {
-        private Long studentId; // Changed type to Long
-        private Long sessionId; // Changed type to Long
-        private String status; // Present/Absent/Late
+    // public static class ManualMarkingRequest {
+    //     private Long studentId; // Changed type to Long
+    //     private Long sessionId; // Changed type to Long
+    //     private String status; // Present/Absent/Late
         
-        // Getters
-        public Long getStudentId() { return studentId; }
-        public Long getSessionId() { return sessionId; }
-        public String getStatus() { return status; }
+    //     // Getters
+    //     public Long getStudentId() { return studentId; }
+    //     public Long getSessionId() { return sessionId; }
+    //     public String getStatus() { return status; }
 
-        // Setters (required for Spring JSON binding)
-        public void setStudentId(Long studentId) { this.studentId = studentId; }
-        public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
-        public void setStatus(String status) { this.status = status; }
-    }
+    //     // Setters (required for Spring JSON binding)
+    //     public void setStudentId(Long studentId) { this.studentId = studentId; }
+    //     public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
+    //     public void setStatus(String status) { this.status = status; }
+    // }
 
     // Auto Face Recognition Marking Endpoint (Using FaceDataDto)
 
-    /**
-     * Handles automatic marking based on face recognition results, utilizing the AutoMarker service.
-     * @param sessionId The ID of the session the records belong to.
-     * @param recognitionResults List of FaceDataDto (studentId, imageUrl).
-     * @return List of AttendanceRecords that were newly created or updated.
-     */
-    @PostMapping("/auto/{sessionId}")
-    public ResponseEntity<List<AttendanceRecord>> markAuto(
-            @PathVariable Long sessionId,
-            @RequestBody List<FaceDataDto> recognitionResults) {
+    // @PostMapping("/auto/{sessionId}")
+    // public ResponseEntity<List<AttendanceRecord>> markAuto(
+    //         @PathVariable Long sessionId,
+    //         @RequestBody List<FaceDataDto> recognitionResults) {
 
-        // Delegate to the AutoMarker for all business logic
-        List<AttendanceRecord> markedRecords = autoMarker.process(sessionId, recognitionResults);
+    //     // Delegate to the AutoMarker for all business logic
+    //     List<AttendanceRecord> markedRecords = autoMarker.process(sessionId, recognitionResults);
         
-        return ResponseEntity.ok(markedRecords);
-    }
+    //     return ResponseEntity.ok(markedRecords);
+    // }
 }

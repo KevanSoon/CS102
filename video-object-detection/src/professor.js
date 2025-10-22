@@ -188,14 +188,6 @@ function closeGenerateReport() {
   document.getElementById("generateReportModal").classList.remove("active");
 }
 
-function exportCSV() {
-  alert("Exporting attendance report as CSV...");
-}
-
-function exportPDF() {
-  alert("Exporting attendance report as PDF...");
-}
-
 function openStudentManagement() {
   document.getElementById("studentManagementModal").classList.add("active");
 }
@@ -318,3 +310,45 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+async function exportCSV() {
+  await exportReport("csv");
+}
+
+function exportPDF() {
+    const classSelect = document.querySelector("#generateReportModal select");
+    const selectedClass = classSelect ? classSelect.value : "";
+
+    const url = `${API_BASE_URL}/reports/generate?format=pdf&className=${encodeURIComponent(selectedClass)}`;
+
+    window.open(url, "_blank");
+}
+
+
+async function exportReport(format) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/reports/generate?format=${format}`, {
+      method: "POST"
+    });
+
+    if (!response.ok) {
+      alert("Failed to generate report.");
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `students.${format}`;
+    document.body.appendChild(a);
+    a.click();
+
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error generating report:", error);
+    alert("Error generating report");
+  }
+}

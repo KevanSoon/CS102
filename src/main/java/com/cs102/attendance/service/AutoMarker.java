@@ -214,5 +214,61 @@
 //     }
 // }
 
+package com.cs102.attendance.service;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.cs102.attendance.entity.AttendanceRecord;
+import com.cs102.attendance.enums.Method;
+import com.cs102.attendance.enums.Status;
+import com.cs102.attendance.repository.AttendanceRepository;
+
+@Service
+public class AutoMarker {
+
+    private final AttendanceRepository attendanceRepository;
+
+    @Autowired
+    public AutoMarker(AttendanceRepository attendanceRepository) {
+        this.attendanceRepository = attendanceRepository;
+    }
+
+    // update a student's attendance for a given session
+    public AttendanceRecord markAttendance(String studentId, String sessionId, Double confidence) {
+        // Optional means the result might be present/empty (asks the database if we have a record for this student and session)
+        Optional<AttendanceRecord> existingRecordOpt =
+                attendanceRepository.findByStudentIdAndSessionId(studentId, sessionId);
+
+        if (existingRecordOpt.isEmpty()) {
+            // No record to update
+            return null;
+        }
+
+        AttendanceRecord record = existingRecordOpt.get();
+
+        // Cooldown check --> this checks if the record was recently updated (seen within the last 5 minutes)
+        if (record.getLastSeen() != null &&
+            record.getLastSeen().isAfter(LocalDateTime.now().minusMinutes(5))) {
+            // if record is too recent, just refresh lastSeen to now and update the record (prevents system from marking same student repeatedly every few seconds)
+            record.setLastSeen(LocalDateTime.now());
+            return attendanceRepository.update(record.getId().toString(), record);
+        }
+
+        record.setStatus(Status.PRESENT);
+        record.setMethod(Method.AUTO);
+        record.setConfidence(confidence);
+        record.setLastSeen(LocalDateTime.now());
+        record.setMarkedAt(LocalDateTime.now());
+
+        return attendanceRepository.update(record.getId().toString(), record);
+    }
+}
+
+
+
 
 

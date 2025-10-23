@@ -21,42 +21,45 @@ import org.springframework.stereotype.Repository;
 import com.cs102.attendance.entity.AttendanceRecord;
 import com.cs102.attendance.service.SupabaseRestService;
 
-@Repository
+@Repository // data access area 
 public class AttendanceRepository {
     private static final String TABLE = "attendance_records";
     private final SupabaseRestService supabaseService;
 
     @Autowired
+    // whenever we use attendanceRepository, ready to connect to Supabase
     public AttendanceRepository(SupabaseRestService supabaseService) {
         this.supabaseService = supabaseService;
     }
 
-    // ✅ Create new attendance record (POST)
+    // ✅ Create new attendance record (POST = creates new) --> saves a new record into the database
     public AttendanceRecord create(AttendanceRecord record) {
         return supabaseService.create(TABLE, record, AttendanceRecord.class);
     }
 
-    // ✅ Get all attendance records (GET)
+    // ✅ Get all attendance records (GET) --> reads all records from the table
     public List<AttendanceRecord> findAll() {
         return supabaseService.read(TABLE, null, AttendanceRecord[].class);
+        // null means no filters, get everything 
     }
 
     // ✅ Find by session ID
-    public List<AttendanceRecord> findBySessionId(Long sessionId) {
+    public List<AttendanceRecord> findBySessionId(String sessionId) {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("session_id", "eq." + sessionId);
+        // queryParams to filter conditions 
         return supabaseService.read(TABLE, queryParams, AttendanceRecord[].class);
     }
 
     // ✅ Find by student ID
-    public List<AttendanceRecord> findByStudentId(Long studentId) {
+    public List<AttendanceRecord> findByStudentId(String studentId) {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("student_id", "eq." + studentId);
         return supabaseService.read(TABLE, queryParams, AttendanceRecord[].class);
     }
 
     // ✅ Find by student ID and session ID (one specific record)
-    public Optional<AttendanceRecord> findByStudentIdAndSessionId(Long studentId, Long sessionId) {
+    public Optional<AttendanceRecord> findByStudentIdAndSessionId(String studentId, String sessionId) {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("student_id", "eq." + studentId);
         queryParams.put("session_id", "eq." + sessionId);
@@ -66,7 +69,7 @@ public class AttendanceRepository {
     }
 
     // ✅ Update an existing attendance record
-    // FIX: Change ID type to String to match UUIDs being sent to Supabase
+    // PUT request: Replace existing 
     public AttendanceRecord update(String id, AttendanceRecord record) {
         // The id is now passed directly as a String (the UUID's string representation)
         return supabaseService.update(TABLE, id, record, AttendanceRecord.class);

@@ -82,18 +82,24 @@
 
 package com.cs102.attendance.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cs102.attendance.entity.AttendanceRecord;
+import com.cs102.attendance.enums.Method;
+import com.cs102.attendance.enums.Status;
 import com.cs102.attendance.repository.AttendanceRepository;
 
 
@@ -130,6 +136,38 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceRepository.update(id, attendanceRecord));
     }
 
+    @PostMapping("/auto/{id}")
+    public ResponseEntity<AttendanceRecord> markAuto(@PathVariable String id, @RequestBody Map<String, Object> body){
+        // extract data from the request body
+        String studentId = (String) body.get("studentId");
+        // checks if there is confidence key 
+        Double confidence = body.containsKey("confidence") ? ((Number) body.get("confidence")).doubleValue() : null;
+
+            // check if record exists in database
+            Optional<AttendanceRecord> existingOpt =
+                    attendanceRepository.findByStudentIdAndSessionId(studentId, id);
+
+            if (existingOpt.isEmpty()) {
+                // No record found respond with HTTP 204 No Content (indicating nothing to update)
+                return ResponseEntity.noContent().build();
+
+            }
+
+            // retrieves existing attendance record 
+            AttendanceRecord record = existingOpt.get();
+            record.setStatus(Status.PRESENT);
+            record.setMethod(Method.AUTO);
+            record.setConfidence(confidence);
+            record.setMarkedAt(LocalDateTime.now());
+            record.setLastSeen(LocalDateTime.now());
+
+            // saves the updated attendance record back into the database 
+            AttendanceRecord updated = attendanceRepository.update(record.getId().toString(), record);
+            return ResponseEntity.ok(updated);
+    }
+}
+
+
     // Simple inner class to represent the expected manual marking request body.
     // public static class ManualMarkingRequest {
     //     private Long studentId; // Changed type to Long
@@ -159,4 +197,3 @@ public class AttendanceController {
         
     //     return ResponseEntity.ok(markedRecords);
     // }
-}

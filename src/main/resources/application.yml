@@ -2,6 +2,11 @@ spring:
   server:
     shutdown: graceful
 
+supabase:
+  url: ${supabase.url}
+  api-key: ${supabase.key}
+
+
 # Basic monitoring endpoints
 management:
   endpoints:

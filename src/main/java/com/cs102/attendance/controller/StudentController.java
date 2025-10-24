@@ -33,6 +33,11 @@ public class StudentController {
         return studentService.getAll();
     }
 
+    @GetMapping("/{id}")
+    public Student getById(@PathVariable String id) {
+        return studentService.getById(id);
+    }
+
     @PatchMapping("/{id}")
     public Student update(@PathVariable String id, @RequestBody StudentUpdateDTO updateDto) {
         return studentService.update(id, updateDto);

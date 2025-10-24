@@ -7,9 +7,11 @@ import java.util.List;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.cs102.attendance.dto.AttendanceRecordUpdateDTO;
+import com.cs102.attendance.dto.FaceDataUpdateDTO;
 import com.cs102.attendance.dto.SessionUpdateDTO;
 import com.cs102.attendance.dto.StudentUpdateDTO;
 import com.cs102.attendance.model.AttendanceRecord;
+import com.cs102.attendance.model.FaceData;
 import com.cs102.attendance.model.Session;
 import com.cs102.attendance.model.Student;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,6 +56,25 @@ public abstract class SupabaseService<T> {
                 .block();
         return Arrays.asList(results);
     }
+
+    // Get single record by ID
+    public T getById(String id) {
+        T[] results = webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path(tableName)
+                        .queryParam("id", "eq." + id)
+                        .queryParam("select", "*")
+                        .build())
+                .retrieve()
+                .bodyToMono(arrayType)
+                .block();
+
+        if (results == null || results.length == 0) {
+            throw new RuntimeException("No record found in table '" + tableName + "' with id: " + id);
+        }
+        return results[0];
+    }
+
 
     //Student Update
     public Student update(String id, StudentUpdateDTO updateDTO) {
@@ -108,6 +129,22 @@ public abstract class SupabaseService<T> {
                 .block();
     }
 
+    //Face Data Update
+     public FaceData update(String id, FaceDataUpdateDTO updateDTO) {
+        try {
+            String json = objectMapper.writeValueAsString(updateDTO);
+            System.out.println("Update request body: " + json);
+        } 
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return webClient.patch()
+                .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
+                .bodyValue(updateDTO)
+                .retrieve()
+                .bodyToMono(FaceData.class)
+                .block();
+    }
 
 
     public void delete(String id) {

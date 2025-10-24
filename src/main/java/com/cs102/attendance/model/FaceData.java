@@ -1,10 +1,15 @@
 package com.cs102.attendance.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class FaceData {
 
     private String id;
+    @JsonProperty("student_id")
     private String studentId;
+    @JsonProperty("image_url")
     private String imageUrl;
+    @JsonProperty("image_data")
     private byte[] imageData;
 
     public FaceData() {

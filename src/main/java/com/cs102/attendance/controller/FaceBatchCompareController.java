@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cs102.attendance.dto.AttendanceRecordUpdateDTO;
+import com.cs102.attendance.model.AttendanceRecord;
 import com.cs102.attendance.model.FaceData;
+import com.cs102.attendance.service.AttendanceRecordService;
 import com.cs102.attendance.service.FaceDataService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +29,9 @@ public class FaceBatchCompareController {
 
     @Autowired
     private FaceDataService faceDataService;
+
+    @Autowired
+    private AttendanceRecordService attendanceRecordService;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -90,6 +96,8 @@ public class FaceBatchCompareController {
 
         if (bestStudentId != null) {
             try {
+
+                //retrieving best student data for frontend
                 ResponseEntity<JsonNode> studentResponse = restTemplate.getForEntity(
                         "http://localhost:8080/api/students/" + bestStudentId,
                         JsonNode.class
@@ -103,6 +111,23 @@ public class FaceBatchCompareController {
                 finalResponse.put("bestMatchStudentId", bestStudentId);
                 finalResponse.put("bestMatchName", studentName);
                 finalResponse.put("highestSimilarity", highestScore);
+
+                //Auto marker method
+                String sessionId = "129a7eeb-c163-428e-b639-ab0107358114";  // Hardcoded for now 
+
+                AttendanceRecordUpdateDTO updateDTO = new AttendanceRecordUpdateDTO();
+                updateDTO.setStatus("PRESENT");
+                updateDTO.setMethod("AUTO");
+
+                try {
+                    AttendanceRecord updatedRecord = attendanceRecordService.updateBySessionAndStudent(sessionId, bestStudentId, updateDTO);
+                    // Optionally add info to finalResponse
+                    finalResponse.put("autoMarkerStatus", "Success");
+                } catch (Exception e) {
+                    finalResponse.put("autoMarkerError", "Failed to update attendance record: " + e.getMessage());
+                }
+
+
 
             } catch (Exception e) {
                 finalResponse.put("bestMatchStudentId", bestStudentId);

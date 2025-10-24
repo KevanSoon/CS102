@@ -1,10 +1,7 @@
 package com.cs102.attendance.model;
 
-
-import java.util.UUID;
-
 public class Student {
-    private UUID id;
+    // private String id;
     private String name;
     private String email;
     private String code;
@@ -16,24 +13,25 @@ public class Student {
         // No-args constructor
     }
 
-    public Student(UUID id, String name, String email, String code, String phone, String class_name, String student_group) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.code = code;
-        this.phone = phone;
-        this.class_name = class_name;
-        this.student_group = student_group;
-    }
+   public Student(String name, String email, String code, String phone, String class_name, String student_group) {
+    this.name = name;
+    this.email = email;
+    //code must be UNIQUE
+    this.code = code;
+    this.phone = phone;
+    this.class_name = class_name;
+    this.student_group = student_group;
+}
+
 
     // Getters and setters for every field
 
-    public UUID getId() { 
-        return id; 
-    }
-    public void setId(UUID id) { 
-        this.id = id; 
-    }
+    // public String getId() { 
+    //     return id; 
+    // }
+    // public void setId(String id) { 
+    //     this.id = id; 
+    // }
     public String getName() { 
         return name; 
     }

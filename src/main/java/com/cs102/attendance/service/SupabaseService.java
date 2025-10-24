@@ -3,6 +3,8 @@ package com.cs102.attendance.service;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -128,6 +130,32 @@ public abstract class SupabaseService<T> {
                 .bodyToMono(AttendanceRecord.class)
                 .block();
     }
+
+    //Attendance Manual / Auto Marker
+      public T updateWithFilters(Map<String, String> filters, Object updateDTO) {
+        try {
+            String json = objectMapper.writeValueAsString(updateDTO);
+            System.out.println("Update request body: " + json);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        // Build query params string for filters, e.g., session_id=eq.x&student_id=eq.y
+        String filterQuery = filters.entrySet().stream()
+            .map(entry -> entry.getKey() + "=eq." + entry.getValue())
+            .collect(Collectors.joining("&"));
+        
+        // Compose URI with tableName and filter query parameters
+        String uri = tableName + "?" + filterQuery;
+        
+        return webClient.patch()
+                .uri(uri)
+                .bodyValue(updateDTO)
+                .retrieve()
+                .bodyToMono(singleType)
+                .block();
+    }
+
 
     //Face Data Update
      public FaceData update(String id, FaceDataUpdateDTO updateDTO) {

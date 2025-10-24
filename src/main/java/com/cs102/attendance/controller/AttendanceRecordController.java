@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cs102.attendance.dto.AttendanceRecordUpdateDTO;
@@ -46,5 +47,15 @@ public class AttendanceRecordController {
     public void deleteSession(@PathVariable String id) {
         attendanceRecordService.delete(id);
     }
+
+
+    @PatchMapping("/auto_manual_marker")
+    public AttendanceRecord updateBySessionAndStudent(
+            @RequestParam String sessionId,
+            @RequestParam String studentId,
+            @RequestBody AttendanceRecordUpdateDTO updateDTO) {
+        return attendanceRecordService.updateBySessionAndStudent(sessionId, studentId, updateDTO);
+    }
+
     
 }

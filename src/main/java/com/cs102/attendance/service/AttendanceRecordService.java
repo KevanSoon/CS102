@@ -1,5 +1,7 @@
 package com.cs102.attendance.service;
 
+import java.util.Map;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -19,5 +21,12 @@ public class AttendanceRecordService extends SupabaseService<AttendanceRecord> {
         return super.update(id, updatedDto);
     }
 
+    public AttendanceRecord updateBySessionAndStudent(String sessionId, String studentId, AttendanceRecordUpdateDTO updateDTO) {
+        Map<String, String> filters = Map.of(
+            "session_id", sessionId,
+            "student_id", studentId
+        );
+        return updateWithFilters(filters, updateDTO);
+    }
     
 }

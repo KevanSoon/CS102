@@ -1,6 +1,6 @@
 package com.cs102.attendance.controller;
 
-import com.cs102.attendance.entity.Student;
+import com.cs102.attendance.model.Student;
 import com.cs102.attendance.service.SupabaseRestService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.pdfbox.pdmodel.PDDocument;

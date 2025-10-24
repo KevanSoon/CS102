@@ -1,11 +1,11 @@
 package com.cs102.attendance.service;
 
-import com.cs102.attendance.entity.AttendanceRecord;
-import com.cs102.attendance.entity.Session;
-import com.cs102.attendance.entity.Student;
-import com.cs102.attendance.enums.Status;
-
 import java.util.UUID;
+
+import com.cs102.attendance.enums.Status;
+import com.cs102.attendance.model.AttendanceRecord;
+import com.cs102.attendance.model.Session;
+import com.cs102.attendance.model.Student;
 
 public interface AttendanceService {
     AttendanceRecord markAttendance(UUID studentId, UUID sessionId, Status status);

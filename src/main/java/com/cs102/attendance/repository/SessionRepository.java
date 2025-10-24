@@ -6,7 +6,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.cs102.attendance.entity.Session;
+import com.cs102.attendance.model.Session;
 import com.cs102.attendance.service.SupabaseRestService;
 
 @Repository

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cs102.attendance.entity.FaceData;
+import com.cs102.attendance.model.FaceData;
 import com.cs102.attendance.repository.FaceDataRepository;
 
 

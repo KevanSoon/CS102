@@ -7,7 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.cs102.attendance.entity.Student;
+import com.cs102.attendance.model.Student;
 import com.cs102.attendance.service.SupabaseRestService;
 
 @Repository

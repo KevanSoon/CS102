@@ -1,23 +1,15 @@
-package com.cs102.attendance.entity;
+package com.cs102.attendance.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+public class FaceData {
 
-public class FaceData extends Entity {
-
-    @JsonProperty("id")
-    private String id; // ← Optional, if your table has an ID column
-
-    @JsonProperty("student_id")
-    private String studentId; // ✅ Supabase returns UUID string, not Student object
-
-    @JsonProperty("image_url")
+    private String id;
+    private String studentId;
     private String imageUrl;
-
-    @JsonProperty("image_data")
     private byte[] imageData;
 
-    // Constructors
-    public FaceData() {}
+    public FaceData() {
+        // No-args constructor
+    }
 
     public FaceData(String studentId, String imageUrl) {
         this.studentId = studentId;
@@ -29,7 +21,9 @@ public class FaceData extends Entity {
         this.imageData = imageData;
     }
 
-    // Getters and Setters
+    public String getId() {
+        return id;
+    }
 
     public void setId(String id) {
         this.id = id;

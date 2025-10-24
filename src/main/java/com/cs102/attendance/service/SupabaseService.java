@@ -6,7 +6,9 @@ import java.util.List;
 
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.cs102.attendance.dto.SessionUpdateDTO;
 import com.cs102.attendance.dto.StudentUpdateDTO;
+import com.cs102.attendance.model.Session;
 import com.cs102.attendance.model.Student;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,6 +28,14 @@ public abstract class SupabaseService<T> {
     }
 
     public T create(T entity) {
+    //debugging request body
+    try {
+        String json = objectMapper.writeValueAsString(entity);
+        System.out.println("Insert request body: " + json);
+    } 
+    catch (Exception e) {
+        e.printStackTrace();
+    }
         return webClient.post()
                 .uri(tableName)
                 .bodyValue(entity)
@@ -44,6 +54,7 @@ public abstract class SupabaseService<T> {
     }
 
     public Student update(String id, StudentUpdateDTO updateDTO) {
+    //debugging request body
     try {
         String json = objectMapper.writeValueAsString(updateDTO);
         System.out.println("Update request body: " + json);
@@ -57,26 +68,24 @@ public abstract class SupabaseService<T> {
             .retrieve()
             .bodyToMono(Student.class)
             .block();
-}
+    }
 
-    // public T update(String id, T updatedEntity) {
-    // try {
-    //     String json = objectMapper.writeValueAsString(updatedEntity);
-    //     System.out.println("Update request body: " + json);
-    // } catch (Exception e) {
-    //     e.printStackTrace();
-    // }
-    // Map<String, Object> updateFields = new HashMap<>();
-    // updateFields.put("name", "New Name");
-    // updateFields.put("email", "newemail@example.com");
+    public Session update(String id, SessionUpdateDTO updateDTO) {
+        try {
+            String json = objectMapper.writeValueAsString(updateDTO);
+            System.out.println("Update request body: " + json);
+        } 
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return webClient.patch()
+                .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
+                .bodyValue(updateDTO)
+                .retrieve()
+                .bodyToMono(Session.class)
+                .block();
+    }
 
-    // return webClient.patch()
-    //         .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
-    //         .bodyValue(updateFields)
-    //         .retrieve()
-    //         .bodyToMono(singleType)
-    //         .block();
-    // }
 
     public void delete(String id) {
         webClient.delete()

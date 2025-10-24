@@ -2,39 +2,35 @@ package com.cs102.attendance.model;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Session {
     
-    private UUID id;
+ 
     private String name;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate date;
+    @JsonProperty("start_time")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
     private LocalTime startTime;
+    @JsonProperty("end_time")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
     private LocalTime endTime;
-    private List<AttendanceRecord> attendanceRecords = new ArrayList<>();
+
 
     public Session() {
         // No-args constructor
     }
 
-    public Session(UUID id, String name, LocalDate date, LocalTime startTime, LocalTime endTime) {
-        this.id = id;
+    public Session( String name, LocalDate date, LocalTime startTime, LocalTime endTime) {
         this.name = name;
         this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
 
     public String getName() {
         return name;
@@ -68,24 +64,4 @@ public class Session {
         this.endTime = endTime;
     }
 
-    public List<AttendanceRecord> getAttendanceRecords() {
-        return attendanceRecords;
-    }
-
-    public void setAttendanceRecords(List<AttendanceRecord> attendanceRecords) {
-        this.attendanceRecords = attendanceRecords;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Session)) return false;
-        Session session = (Session) o;
-        return Objects.equals(id, session.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
 }

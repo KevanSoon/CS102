@@ -4,8 +4,10 @@ spring:
 
 supabase:
   url: ${supabase.url}
-  api-key: ${supabase.key}
-
+  api-key: ${supabase.api-key}
+  service-role-key: ${supabase.service-role-key}
+  jwt:
+    secret: ${supabase.jwt.secret}
 
 # Basic monitoring endpoints
 management:

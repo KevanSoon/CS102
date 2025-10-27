@@ -1,7 +1,23 @@
 console.log("professor.js loaded");
 
+// ===== AUTH CHECK =====
+import { displayUserInfo, logout, authService } from './authCheck.js';
+
+// Auth check and user info
+const userInfo = displayUserInfo();
+console.log('Logged in as:', userInfo.name);
+
+// Update welcome text with actual user name
+const welcomeText = document.querySelector('.welcome-text');
+if (welcomeText) {
+    welcomeText.textContent = `Welcome, ${userInfo.name}`;
+}
+
+// Make logout available globally for onclick handler
+window.logout = logout;
+
 // ===== CONFIGURATION =====
-const API_BASE_URL = 'http://localhost:8080/api'; // Add this at the top!
+const API_BASE_URL = 'http://localhost:8080/api';
 
 // ===== GLOBAL VARIABLES =====
 let attendanceRecords = [
@@ -17,7 +33,7 @@ let allSessions = [];
 // Fetch all sessions from backend
 async function showSessions() {
   try {
-    const response = await fetch(`${API_BASE_URL}/sessions`);
+    const response = await authService.apiRequest('/sessions');
     return await response.json();
   } catch (error) {
     console.error('Error fetching sessions:', error);
@@ -28,7 +44,7 @@ async function showSessions() {
 // Load and display active sessions
 async function loadActiveSessions() {
   try {
-    const response = await fetch(`${API_BASE_URL}/sessions`);
+    const response = await authService.apiRequest('/sessions');
     if (!response.ok) {
       throw new Error('Failed to load sessions');
     }
@@ -227,10 +243,6 @@ function captureFace() {
   closeFaceRegister();
 }
 
-function logout() {
-  window.location.href = "index.html";
-}
-
 // ===== PAGE INITIALIZATION =====
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -270,12 +282,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const originalText = submitButton.textContent;
         submitButton.textContent = 'Creating...';
         submitButton.disabled = true;
-        
-        const response = await fetch(`${API_BASE_URL}/sessions`, {
+
+        const response = await authService.apiRequest('/sessions', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
           body: JSON.stringify(sessionData)
         });
         
@@ -327,7 +336,7 @@ function exportPDF() {
 
 async function exportReport(format) {
   try {
-    const response = await fetch(`${API_BASE_URL}/reports/generate?format=${format}`, {
+    const response = await authService.apiRequest(`/reports/generate?format=${format}`, {
       method: "POST"
     });
 
@@ -352,3 +361,19 @@ async function exportReport(format) {
     alert("Error generating report");
   }
 }
+
+// ===== MAKE FUNCTIONS GLOBALLY ACCESSIBLE FOR ONCLICK HANDLERS =====
+window.closeActiveSession = closeActiveSession;
+window.closeAttendanceCheck = closeAttendanceCheck;
+window.closeCreateClass = closeCreateClass;
+window.closeFaceScanning = closeFaceScanning;
+window.closeGenerateReport = closeGenerateReport;
+window.closeManualAttendance = closeManualAttendance;
+window.closeStudentManagement = closeStudentManagement;
+window.exportCSV = exportCSV;
+window.exportPDF = exportPDF;
+window.openAttendanceCheck = openAttendanceCheck;
+window.openCreateClass = openCreateClass;
+window.openGenerateReport = openGenerateReport;
+window.openManualAttendance = openManualAttendance;
+window.openStudentManagement = openStudentManagement;

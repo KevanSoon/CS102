@@ -37,17 +37,42 @@ public abstract class SupabaseService<T> {
     //debugging request body
     try {
         String json = objectMapper.writeValueAsString(entity);
+        System.out.println("=== SUPABASE INSERT ===");
+        System.out.println("Table: " + tableName);
         System.out.println("Insert request body: " + json);
-    } 
+    }
     catch (Exception e) {
         e.printStackTrace();
     }
-        return webClient.post()
-                .uri(tableName)
-                .bodyValue(entity)
-                .retrieve()
-                .bodyToMono(singleType)
-                .block();
+        try {
+            // Supabase returns an array even for single inserts when using Prefer: return=representation
+            T[] results = webClient.post()
+                    .uri(tableName)
+                    .bodyValue(entity)
+                    .retrieve()
+                    .onStatus(
+                        status -> status.is4xxClientError() || status.is5xxServerError(),
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                            .flatMap(errorBody -> {
+                                System.err.println("Supabase insert error response: " + errorBody);
+                                return reactor.core.publisher.Mono.error(new RuntimeException("Supabase insert failed: " + errorBody));
+                            })
+                    )
+                    .bodyToMono(arrayType)
+                    .block();
+
+            if (results != null && results.length > 0) {
+                System.out.println("Insert successful! Returned " + results.length + " record(s)");
+                return results[0];
+            } else {
+                System.out.println("Insert completed but no records returned");
+                return null;
+            }
+        } catch (Exception e) {
+            System.err.println("Exception during insert: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     public List<T> getAll() {

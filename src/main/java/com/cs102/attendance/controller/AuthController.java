@@ -34,17 +34,28 @@ public class AuthController {
     /**
      * Sign up a new user (student or professor)
      * POST /api/auth/signup
-     * Body: { "email": "user@example.com", "password": "password123", "userMetadata": { "role": "student", "name": "John Doe" } }
+     * Body: { "email": "user@example.com", "password": "password123", "userMetadata": { "role": "student", "name": "Bob Tan" } }
      */
     @PostMapping("/signup")
     public ResponseEntity<?> signUp(@RequestBody SignUpRequest signUpRequest) {
         try {
+            System.out.println("=== SIGNUP REQUEST START ===");
             System.out.println("Sign-up request received for email: " + signUpRequest.getEmail());
+            System.out.println("Name: " + signUpRequest.getName());
 
             AuthResponse response = supabaseAuthService.signUp(signUpRequest);
 
+            System.out.println("Auth response received: " + (response != null));
+            System.out.println("Response user: " + (response != null && response.getUser() != null));
+            if (response != null && response.getUser() != null) {
+                System.out.println("User ID from response: " + response.getUser().getId());
+                System.out.println("User email: " + response.getUser().getEmail());
+            }
+
             String role = signUpRequest.getUserMetadata() != null ?
                          signUpRequest.getUserMetadata().get("role") : null;
+
+            System.out.println("Role from metadata: " + role);
 
             if (role == null) {
                 System.err.println("Warning: No role specified in userMetadata");
@@ -53,27 +64,53 @@ public class AuthController {
 
             if ("student".equalsIgnoreCase(role)) {
                 try {
-                    Student student = new Student(
-                        signUpRequest.getName(),
-                        signUpRequest.getEmail(),
-                        signUpRequest.getCode(),
-                        signUpRequest.getPhone(),
-                        signUpRequest.getClassName(),
-                        signUpRequest.getStudentGroup()
-                    );
-                    Student createdStudent = studentService.create(student);
-                    System.out.println("Student record created with ID: " + createdStudent);
+                    // Get the auth user ID from the response
+                    String authUserId = response.getUser() != null ? response.getUser().getId() : null;
+
+                    if (authUserId == null) {
+                        System.err.println("Failed to create student: Auth user ID is null");
+                    } else {
+                        Student student = new Student(
+                            signUpRequest.getName(),
+                            signUpRequest.getEmail(),
+                            signUpRequest.getCode(),
+                            signUpRequest.getPhone(),
+                            signUpRequest.getClassName(),
+                            signUpRequest.getStudentGroup()
+                        );
+                        student.setId(authUserId);  // Set the ID to match auth user
+                        System.out.println("Creating student with ID: " + authUserId + ", Name: " + signUpRequest.getName());
+                        Student createdStudent = studentService.create(student);
+                        if (createdStudent != null) {
+                            System.out.println("Student record created successfully: " + createdStudent.getName() + " (ID: " + createdStudent.getId() + ")");
+                        } else {
+                            System.out.println("Student record created (response was null, but insert was successful)");
+                        }
+                    }
                 } catch (Exception e) {
                     System.err.println("Failed to create student record: " + e.getMessage());
-                    // Auth user is created, but student record failed
+                    e.printStackTrace();
                 }
             } else if ("professor".equalsIgnoreCase(role)) {
                 try {
-                    Professor professor = new Professor(signUpRequest.getName());
-                    Professor createdProfessor = professorService.create(professor);
-                    System.out.println("Professor record created: " + createdProfessor.getName());
+                    // Get the auth user ID from the response
+                    String authUserId = response.getUser() != null ? response.getUser().getId() : null;
+
+                    if (authUserId == null) {
+                        System.err.println("Failed to create professor: Auth user ID is null");
+                    } else {
+                        Professor professor = new Professor(authUserId, signUpRequest.getName());
+                        System.out.println("Creating professor with ID: " + authUserId + ", Name: " + signUpRequest.getName());
+                        Professor createdProfessor = professorService.create(professor);
+                        if (createdProfessor != null) {
+                            System.out.println("Professor record created successfully: " + createdProfessor.getName() + " (ID: " + createdProfessor.getId() + ")");
+                        } else {
+                            System.out.println("Professor record created (response was null, but insert was successful)");
+                        }
+                    }
                 } catch (Exception e) {
                     System.err.println("Failed to create professor record: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
 

@@ -1,7 +1,7 @@
 package com.cs102.attendance.model;
 
 public class Student {
-    // private String id;
+    private String id;
     private String name;
     private String email;
     private String code;
@@ -26,12 +26,12 @@ public class Student {
 
     // Getters and setters for every field
 
-    // public String getId() { 
-    //     return id; 
-    // }
-    // public void setId(String id) { 
-    //     this.id = id; 
-    // }
+    public String getId() {
+        return id;
+    }
+    public void setId(String id) {
+        this.id = id;
+    }
     public String getName() { 
         return name; 
     }

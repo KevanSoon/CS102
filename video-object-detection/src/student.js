@@ -1,5 +1,19 @@
 import { AutoModel, AutoProcessor, RawImage } from "@huggingface/transformers";
 import { Client } from "@gradio/client";
+import { displayUserInfo, logout, authService } from './authCheck.js';
+
+// Auth check and user info
+const userInfo = displayUserInfo();
+console.log('Logged in as:', userInfo.name);
+
+// Update welcome text with actual user name
+const welcomeText = document.querySelector('.welcome-text');
+if (welcomeText) {
+    welcomeText.textContent = `Welcome, ${userInfo.name}`;
+}
+
+// Make logout available globally for onclick handler
+window.logout = logout;
 
 // Reference the elements that we will need
 const status = document.getElementById("status");
@@ -233,10 +247,6 @@ let selectedClass = ""
 let attendanceStream = null
 let faceScanned = false
 
-
-function logout() {
-  window.location.href = "index.html"
-}
 
 function enableFaceScanning() {
   const classSelect = document.getElementById("classSelect")
@@ -519,11 +529,14 @@ document.addEventListener('keydown', (e) => {
 });
 
 //so inline in html can be used
-window.logout = logout;
 window.enableFaceScanning = enableFaceScanning;
 window.openFaceScanning = openFaceScanning;
 window.closeFaceScanning = closeFaceScanning;
 window.scanFace = scanFace;
+window.closeEditProfileModal = closeEditProfileModal;
+window.markAttendance = markAttendance;
+window.openEditProfileModal = openEditProfileModal;
+window.saveProfileChanges = saveProfileChanges;
 
 
 

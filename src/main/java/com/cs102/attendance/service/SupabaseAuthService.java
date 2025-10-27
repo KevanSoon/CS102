@@ -55,7 +55,8 @@ public class SupabaseAuthService {
 
     // Sign in an existing user with email and password
     public AuthResponse signIn(SignInRequest signInRequest) {
-        return authWebClient.post()
+        System.out.println("Signing in user: " + signInRequest.getEmail());
+        AuthResponse response = authWebClient.post()
                 .uri("token?grant_type=password")
                 .bodyValue(signInRequest)
                 .retrieve()
@@ -65,6 +66,21 @@ public class SupabaseAuthService {
                     return Mono.error(new RuntimeException("Invalid credentials"));
                 })
                 .block();
+
+        System.out.println("Sign-in response received");
+        if (response != null && response.getUser() != null) {
+            System.out.println("User ID: " + response.getUser().getId());
+            System.out.println("User Email: " + response.getUser().getEmail());
+            System.out.println("User Metadata: " + response.getUser().getUserMetadata());
+            if (response.getUser().getUserMetadata() != null) {
+                System.out.println("User Metadata Role: " + response.getUser().getUserMetadata().getRole());
+                System.out.println("User Metadata Name: " + response.getUser().getUserMetadata().getName());
+            } else {
+                System.err.println("WARNING: User metadata is NULL in sign-in response!");
+            }
+        }
+
+        return response;
     }
 
     // Sign out the current user

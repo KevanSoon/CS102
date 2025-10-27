@@ -35,10 +35,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        String requestUri = request.getRequestURI();
         String authHeader = request.getHeader("Authorization");
 
+        // Skip JWT validation for public endpoints
+        if (requestUri.startsWith("/api/auth/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+            String token = authHeader.substring(7).trim();
+
+            // Validate token is not empty
+            if (token.isEmpty()) {
+                System.err.println("JWT validation error for " + requestUri + ": Token is empty (Authorization header was: " + authHeader + ")");
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             try {
                 String jwtSecret = supabaseAuthService.getJwtSecret();
@@ -72,9 +86,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             } catch (Exception e) {
-                System.err.println("JWT validation error: " + e.getMessage());
+                System.err.println("JWT validation error for " + requestUri + ": " + e.getMessage());
                 // Continue without authentication
             }
+        } else if (authHeader != null && !authHeader.startsWith("Bearer ")) {
+            System.err.println("Invalid Authorization header format for " + requestUri + ": '" + authHeader + "'");
         }
 
         filterChain.doFilter(request, response);

@@ -43,76 +43,39 @@ public class AuthController {
             System.out.println("Sign-up request received for email: " + signUpRequest.getEmail());
             System.out.println("Name: " + signUpRequest.getName());
 
+            // Enhance user metadata with all student/professor data for later use
+            Map<String, String> userMetadata = signUpRequest.getUserMetadata();
+            if (userMetadata != null) {
+                String role = userMetadata.get("role");
+
+                // Add student-specific fields to metadata if role is student
+                if ("student".equalsIgnoreCase(role)) {
+                    if (signUpRequest.getCode() != null) {
+                        userMetadata.put("code", signUpRequest.getCode());
+                    }
+                    if (signUpRequest.getPhone() != null) {
+                        userMetadata.put("phone", signUpRequest.getPhone());
+                    }
+                    if (signUpRequest.getClassName() != null) {
+                        userMetadata.put("class_name", signUpRequest.getClassName());
+                    }
+                    if (signUpRequest.getStudentGroup() != null) {
+                        userMetadata.put("student_group", signUpRequest.getStudentGroup());
+                    }
+                }
+
+                signUpRequest.setUserMetadata(userMetadata);
+                System.out.println("Enhanced user metadata with role-specific data");
+            }
+
             AuthResponse response = supabaseAuthService.signUp(signUpRequest);
 
             System.out.println("Auth response received: " + (response != null));
             System.out.println("Response user: " + (response != null && response.getUser() != null));
-            if (response != null && response.getUser() != null) {
-                System.out.println("User ID from response: " + response.getUser().getId());
-                System.out.println("User email: " + response.getUser().getEmail());
-            }
 
-            String role = signUpRequest.getUserMetadata() != null ?
-                         signUpRequest.getUserMetadata().get("role") : null;
-
-            System.out.println("Role from metadata: " + role);
-
-            if (role == null) {
-                System.err.println("Warning: No role specified in userMetadata");
-                return ResponseEntity.ok(response); // Return auth response even if no role
-            }
-
-            if ("student".equalsIgnoreCase(role)) {
-                try {
-                    // Get the auth user ID from the response
-                    String authUserId = response.getUser() != null ? response.getUser().getId() : null;
-
-                    if (authUserId == null) {
-                        System.err.println("Failed to create student: Auth user ID is null");
-                    } else {
-                        Student student = new Student(
-                            signUpRequest.getName(),
-                            signUpRequest.getEmail(),
-                            signUpRequest.getCode(),
-                            signUpRequest.getPhone(),
-                            signUpRequest.getClassName(),
-                            signUpRequest.getStudentGroup()
-                        );
-                        student.setId(authUserId);  // Set the ID to match auth user
-                        System.out.println("Creating student with ID: " + authUserId + ", Name: " + signUpRequest.getName());
-                        Student createdStudent = studentService.create(student);
-                        if (createdStudent != null) {
-                            System.out.println("Student record created successfully: " + createdStudent.getName() + " (ID: " + createdStudent.getId() + ")");
-                        } else {
-                            System.out.println("Student record created (response was null, but insert was successful)");
-                        }
-                    }
-                } catch (Exception e) {
-                    System.err.println("Failed to create student record: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            } else if ("professor".equalsIgnoreCase(role)) {
-                try {
-                    // Get the auth user ID from the response
-                    String authUserId = response.getUser() != null ? response.getUser().getId() : null;
-
-                    if (authUserId == null) {
-                        System.err.println("Failed to create professor: Auth user ID is null");
-                    } else {
-                        Professor professor = new Professor(authUserId, signUpRequest.getName());
-                        System.out.println("Creating professor with ID: " + authUserId + ", Name: " + signUpRequest.getName());
-                        Professor createdProfessor = professorService.create(professor);
-                        if (createdProfessor != null) {
-                            System.out.println("Professor record created successfully: " + createdProfessor.getName() + " (ID: " + createdProfessor.getId() + ")");
-                        } else {
-                            System.out.println("Professor record created (response was null, but insert was successful)");
-                        }
-                    }
-                } catch (Exception e) {
-                    System.err.println("Failed to create professor record: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
+            // NOTE: With email verification enabled, user object will be null until email is verified
+            // Database records will be created on first successful sign-in instead
+            System.out.println("Database record creation deferred until email verification and first sign-in");
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -132,10 +95,85 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<AuthResponse> signIn(@RequestBody SignInRequest signInRequest) {
         try {
+            System.out.println("=== SIGNIN REQUEST START ===");
             AuthResponse response = supabaseAuthService.signIn(signInRequest);
+
+            if (response != null && response.getUser() != null) {
+                String userId = response.getUser().getId();
+                User.UserMetadata metadata = response.getUser().getUserMetadata();
+
+                if (metadata != null && metadata.getRole() != null) {
+                    String role = metadata.getRole();
+                    System.out.println("User role: " + role);
+
+                    // Create database record on first login if it doesn't exist
+                    if ("student".equalsIgnoreCase(role)) {
+                        try {
+                            // Check if student record already exists
+                            studentService.getById(userId);
+                            System.out.println("Student record already exists for ID: " + userId);
+                        } catch (RuntimeException e) {
+                            // Record doesn't exist, create it
+                            System.out.println("Creating student record for first-time user: " + userId);
+
+                            Student student = new Student(
+                                metadata.getName(),
+                                response.getUser().getEmail(),
+                                getMetadataField(metadata, "code", "STU" + System.currentTimeMillis()),
+                                getMetadataField(metadata, "phone", ""),
+                                getMetadataField(metadata, "class_name", ""),
+                                getMetadataField(metadata, "student_group", "")
+                            );
+                            student.setId(userId);
+
+                            Student createdStudent = studentService.create(student);
+                            if (createdStudent != null) {
+                                System.out.println("Student record created successfully: " + createdStudent.getName());
+                            }
+                        }
+                    } else if ("professor".equalsIgnoreCase(role)) {
+                        try {
+                            // Check if professor record already exists
+                            professorService.getById(userId);
+                            System.out.println("Professor record already exists for ID: " + userId);
+                        } catch (RuntimeException e) {
+                            // Record doesn't exist, create it
+                            System.out.println("Creating professor record for first-time user: " + userId);
+
+                            Professor professor = new Professor(userId, metadata.getName());
+                            Professor createdProfessor = professorService.create(professor);
+                            if (createdProfessor != null) {
+                                System.out.println("Professor record created successfully: " + createdProfessor.getName());
+                            }
+                        }
+                    }
+                }
+            }
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            System.err.println("Sign-in error: " + e.getMessage());
             return ResponseEntity.status(401).build();
+        }
+    }
+
+    // Helper method to safely get metadata fields
+    private String getMetadataField(User.UserMetadata metadata, String fieldName, String defaultValue) {
+        try {
+            switch (fieldName) {
+                case "code":
+                    return metadata.getCode() != null ? metadata.getCode() : defaultValue;
+                case "phone":
+                    return metadata.getPhone() != null ? metadata.getPhone() : defaultValue;
+                case "class_name":
+                    return metadata.getClassName() != null ? metadata.getClassName() : defaultValue;
+                case "student_group":
+                    return metadata.getStudentGroup() != null ? metadata.getStudentGroup() : defaultValue;
+                default:
+                    return defaultValue;
+            }
+        } catch (Exception e) {
+            return defaultValue;
         }
     }
 
@@ -187,6 +225,34 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(401).build();
+        }
+    }
+
+    /**
+     * Resend verification email
+     * POST /api/auth/resend-verification
+     * Body: { "email": "user@example.com" }
+     */
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Map<String, String>> resendVerification(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            if (email == null || email.isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Email is required");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            supabaseAuthService.resendVerificationEmail(email);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Verification email sent successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("Resend verification error: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
         }
     }
 }

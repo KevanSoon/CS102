@@ -89,6 +89,56 @@ window.closeFaceRegister = function() {
     document.getElementById('completeBtn').style.display = 'none';
 }
 
+window.showEmailVerificationModal = function(email) {
+    const modal = document.getElementById('emailVerificationModal');
+    modal.classList.add('active');
+
+    // Store email for resend functionality
+    window.verificationEmail = email;
+}
+
+window.closeEmailVerificationModal = function() {
+    const modal = document.getElementById('emailVerificationModal');
+    modal.classList.remove('active');
+
+    // Clear auth since they can't proceed without verification
+    authService.clearAuth();
+}
+
+window.resendVerificationEmail = async function() {
+    const btn = document.getElementById('resendVerificationBtn');
+    const email = window.verificationEmail;
+
+    if (!email) {
+        alert('Email not found. Please try logging in again.');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+        const result = await authService.resendVerificationEmail(email);
+
+        if (result.success) {
+            alert('Verification email sent! Please check your inbox.');
+            // Show success message in the modal
+            const messageDiv = document.getElementById('verificationMessage');
+            if (messageDiv) {
+                messageDiv.textContent = 'Verification email sent! Please check your inbox.';
+                messageDiv.style.color = '#22c55e';
+            }
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        alert('Failed to send verification email: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Resend Verification Email';
+    }
+}
+
 window.captureFace = function() {
     const video = document.getElementById('faceVideo');
     const canvas = document.getElementById('faceCanvas');
@@ -123,14 +173,19 @@ window.completeRegistration = async function() {
         );
 
         if (result.success) {
-            alert('Registration completed successfully! Redirecting...');
             window.closeFaceRegister();
 
-            // Redirect based on role
-            if (registerData.role === 'student') {
-                window.location.href = '/student.html';
+            // Check if email is verified
+            if (!authService.isEmailVerified()) {
+                showEmailVerificationModal(registerData.email);
             } else {
-                window.location.href = '/professor.html';
+                // If email is already verified (shouldn't happen normally), redirect
+                alert('Registration completed successfully! Redirecting...');
+                if (registerData.role === 'student') {
+                    window.location.href = '/student.html';
+                } else {
+                    window.location.href = '/professor.html';
+                }
             }
         } else {
             throw new Error(result.error);
@@ -158,8 +213,16 @@ window.completeProfessorRegistration = async function() {
         );
 
         if (result.success) {
-            alert('Registration completed successfully! Redirecting...');
-            window.location.href = '/professor.html';
+            // Check if email is verified
+            if (!authService.isEmailVerified()) {
+                showEmailVerificationModal(registerData.email);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Register';
+            } else {
+                // If email is already verified (shouldn't happen normally), redirect
+                alert('Registration completed successfully! Redirecting...');
+                window.location.href = '/professor.html';
+            }
         } else {
             throw new Error(result.error);
         }
@@ -188,6 +251,15 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             console.log('User object:', result.data.user);
             console.log('User metadata:', result.data.user?.user_metadata);
 
+            // Check if email is verified
+            if (!authService.isEmailVerified()) {
+                console.log('Email not verified');
+                showEmailVerificationModal(email);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Login';
+                return;
+            }
+
             const role = authService.getUserRole();
             console.log('Extracted role:', role);
 
@@ -206,7 +278,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         console.error('Login error:', error);
         alert('Login failed: ' + error.message);
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Sign In';
+        submitBtn.textContent = 'Login';
     }
 });
 

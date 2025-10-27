@@ -10,6 +10,9 @@ public class User {
     @JsonProperty("user_metadata")
     private UserMetadata userMetadata;
 
+    @JsonProperty("email_confirmed_at")
+    private String emailConfirmedAt;
+
     public User() {
         // No-args constructor
     }
@@ -53,9 +56,29 @@ public class User {
         this.userMetadata = userMetadata;
     }
 
+    public String getEmailConfirmedAt() {
+        return emailConfirmedAt;
+    }
+
+    public void setEmailConfirmedAt(String emailConfirmedAt) {
+        this.emailConfirmedAt = emailConfirmedAt;
+    }
+
+    public boolean isEmailVerified() {
+        return emailConfirmedAt != null && !emailConfirmedAt.isEmpty();
+    }
+
     public static class UserMetadata {
         private String role;
         private String name;
+        private String code;
+        private String phone;
+
+        @JsonProperty("class_name")
+        private String className;
+
+        @JsonProperty("student_group")
+        private String studentGroup;
 
         public UserMetadata() {
         }
@@ -79,6 +102,38 @@ public class User {
 
         public void setName(String name) {
             this.name = name;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
+
+        public String getPhone() {
+            return phone;
+        }
+
+        public void setPhone(String phone) {
+            this.phone = phone;
+        }
+
+        public String getClassName() {
+            return className;
+        }
+
+        public void setClassName(String className) {
+            this.className = className;
+        }
+
+        public String getStudentGroup() {
+            return studentGroup;
+        }
+
+        public void setStudentGroup(String studentGroup) {
+            this.studentGroup = studentGroup;
         }
     }
 }

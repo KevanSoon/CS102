@@ -178,6 +178,48 @@
         </div>
     </div>
 
+    <!-- Email Verification Modal -->
+    <div id="emailVerificationModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Verify Your Email</h3>
+                <button class="close-btn" onclick="closeEmailVerificationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <div style="font-size: 3rem; color: #0ea5e9; margin-bottom: 1rem;">✉️</div>
+                    <p style="color: #64748b; line-height: 1.6;">
+                        We've sent a verification email to your inbox. Please click the verification link in the email to activate your account.
+                    </p>
+                </div>
+
+                <div id="verificationMessage" style="text-align: center; margin-bottom: 1rem; color: #64748b; font-size: 0.875rem;"></div>
+
+                <div style="background: #f1f5f9; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <p style="font-size: 0.875rem; color: #475569; margin: 0;">
+                        <strong>Didn't receive the email?</strong><br>
+                        • Check your spam/junk folder<br>
+                        • Make sure you entered the correct email address<br>
+                        • Click the button below to resend
+                    </p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button id="resendVerificationBtn" class="btn btn-primary" style="width: 100%;" onclick="resendVerificationEmail()">
+                        Resend Verification Email
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="closeEmailVerificationModal()">
+                        Close
+                    </button>
+                </div>
+
+                <p style="text-align: center; margin-top: 1.5rem; color: #64748b; font-size: 0.875rem;">
+                    After verifying your email, please return here and log in again.
+                </p>
+            </div>
+        </div>
+    </div>
+
      <script type="module" src="src/index.js"></script>
 </body>
 </html>

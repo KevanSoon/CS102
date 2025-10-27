@@ -10,6 +10,13 @@ if (!authService.isAuthenticated()) {
     window.location.href = '/';
 }
 
+// Check if email is verified
+if (!authService.isEmailVerified()) {
+    alert('Please verify your email before accessing this page. Check your inbox for the verification email.');
+    authService.clearAuth();
+    window.location.href = '/';
+}
+
 // Get user info
 const currentUser = authService.getUser();
 const userRole = authService.getUserRole();

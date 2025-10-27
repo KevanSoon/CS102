@@ -186,6 +186,35 @@ class AuthService {
         }
     }
 
+    // Resend verification email
+    async resendVerificationEmail(email) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to resend verification email');
+            }
+
+            return { success: true, message: data.message };
+        } catch (error) {
+            console.error('Resend verification error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Check if user email is verified
+    isEmailVerified() {
+        return this.user?.email_confirmed_at != null;
+    }
+
     // Make authenticated API request
     async apiRequest(endpoint, options = {}) {
         const headers = {

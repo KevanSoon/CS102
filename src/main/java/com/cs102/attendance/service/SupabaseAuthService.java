@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class SupabaseAuthService {
@@ -110,6 +112,28 @@ public class SupabaseAuthService {
                 .bodyValue(new RefreshTokenRequest(refreshToken))
                 .retrieve()
                 .bodyToMono(AuthResponse.class)
+                .block();
+    }
+
+    // Resend verification email
+    public void resendVerificationEmail(String email) {
+        System.out.println("Resending verification email to: " + email);
+        Map<String, String> request = new HashMap<>();
+        request.put("email", email);
+
+        authWebClient.post()
+                .uri("resend")
+                .bodyValue(request)
+                .retrieve()
+                .onStatus(
+                    status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorBody -> {
+                            System.err.println("Supabase error response: " + errorBody);
+                            return Mono.error(new RuntimeException("Failed to resend verification email: " + errorBody));
+                        })
+                )
+                .bodyToMono(Void.class)
                 .block();
     }
 

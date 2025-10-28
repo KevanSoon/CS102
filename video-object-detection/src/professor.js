@@ -10,11 +10,8 @@ console.log('Logged in as:', userInfo.name);
 // Update welcome text with actual user name
 const welcomeText = document.querySelector('.welcome-text');
 if (welcomeText) {
-    welcomeText.textContent = `Welcome, ${userInfo.name}`;
+    welcomeText.textContent = `${userInfo.name}`;
 }
-
-// Make logout available globally for onclick handler
-window.logout = logout;
 
 // ===== CONFIGURATION =====
 const API_BASE_URL = 'http://localhost:8080/api';
@@ -366,7 +363,6 @@ async function exportReport(format) {
 window.closeActiveSession = closeActiveSession;
 window.closeAttendanceCheck = closeAttendanceCheck;
 window.closeCreateClass = closeCreateClass;
-window.closeFaceScanning = closeFaceScanning;
 window.closeGenerateReport = closeGenerateReport;
 window.closeManualAttendance = closeManualAttendance;
 window.closeStudentManagement = closeStudentManagement;
@@ -377,3 +373,4 @@ window.openCreateClass = openCreateClass;
 window.openGenerateReport = openGenerateReport;
 window.openManualAttendance = openManualAttendance;
 window.openStudentManagement = openStudentManagement;
+window.logout = logout;

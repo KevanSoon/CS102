@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+    
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,15 +37,16 @@
                 <p class="section-subtitle">Available Classes</p>
             </div>
             <div class="section-content">
-                <select class="form-select" id="classSelect" onchange="enableFaceScanning()">
+                <select class="form-select" id="classSelect" onchange="displayDummyAttendance()"> 
                     <option value="">Select a class</option>
                     <option value="cs101">CS101 - Introduction to Programming</option>
                     <option value="math201">MATH201 - Calculus II</option>
                     <option value="phy301">PHY301 - Quantum Physics</option>
                 </select>
-                <!-- <button id="scanFaceBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem; display: none;" onclick="openFaceScanning()">
-                    Scan Face for Attendance
-                </button> -->
+            </div>
+            <!-- Move attendance table container here: -->
+            <div class="section-content" id="attendanceTableContainer">
+                <p class="welcome-subtitle">Your attendance records for the semester will appear here</p>
             </div>
         </div>
 
@@ -53,11 +55,260 @@
             <div class="section-header">
                 <h3 class="section-title">Recent Attendance</h3>
             </div>
-            <div class="section-content">
-                <p class="welcome-subtitle">Your recent attendance records will appear here</p>
-            </div>
+            <div class="section-content" id="recentAttendanceTableContainer"></div>
         </div>
     </div>
+
+<style>
+    /* Modern table styling that matches dashboard aesthetic */
+    .attendance-header {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    table.attendance-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 1rem;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    table.attendance-table thead tr {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    table.attendance-table th {
+        padding: 16px 20px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: none;
+    }
+
+    table.attendance-table td {
+        padding: 14px 20px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+        font-size: 0.9375rem;
+    }
+
+    table.attendance-table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    table.attendance-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    table.attendance-table tbody tr:hover {
+        background-color: #f8fafc;
+        transform: scale(1.01);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Status badges with modern design */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        text-transform: capitalize;
+    }
+
+    .present {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .absent {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .late {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    /* Add some stats at the top */
+    .attendance-stats {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .stat-card {
+        flex: 1;
+        min-width: 150px;
+        padding: 1rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.25rem;
+    }
+</style>
+
+<script>
+// Global variable for attendance records to allow sharing between tables
+let globalAllAttendanceRecords = [];
+
+function displayDummyAttendance() {
+    const classSelect = document.getElementById("classSelect");
+    const mainContainer = document.getElementById("attendanceTableContainer");
+    const recentContainer = document.getElementById("recentAttendanceTableContainer");
+    const selectedClass = classSelect.value;
+
+    const classes = [
+        { code: "CS101", name: "Introduction to Programming", day: 1 }, // Monday
+        { code: "MATH201", name: "Calculus II", day: 2 },               // Tuesday
+        { code: "PHY301", name: "Quantum Physics", day: 4 }            // Thursday
+    ];
+    const statuses = ["Present", "Absent", "Late"];
+    const weeksCount = 14;
+    const startDate = new Date(2025, 7, 18); // August 18, 2025 (month 7 = August, zero-based)
+    const weeks = Array.from({ length: weeksCount }, (_, i) => i + 1);
+
+    function getClassDateForWeek(week, dayOfWeek) {
+        const baseDate = new Date(startDate.getTime());
+        const daysOffset = (week - 1) * 7 + (dayOfWeek - baseDate.getDay());
+        baseDate.setDate(baseDate.getDate() + daysOffset);
+        return baseDate;
+    }
+
+    globalAllAttendanceRecords = weeks.map(() =>
+        classes.map(() => statuses[Math.floor(Math.random() * statuses.length)])
+    );
+
+    if (!selectedClass) {
+        // Show all classes attendance table
+        let tableHTML = `<h3 class="attendance-header">Attendance for All Classes</h3>
+            <table class="attendance-table">
+                <thead><tr><th>Week</th><th>Date</th><th>Course Code and Name</th><th>Status</th></tr></thead><tbody>`;
+
+        weeks.forEach((week) => {
+            classes.forEach((cls, classIndex) => {
+                const classDate = getClassDateForWeek(week, cls.day);
+                const day = String(classDate.getDate()).padStart(2, '0');
+                const month = String(classDate.getMonth() + 1).padStart(2, '0');
+                const year = String(classDate.getFullYear()).slice(-2);
+                const formattedDate = `${day}/${month}/${year}`;
+                const status = globalAllAttendanceRecords[week - 1][classIndex];
+                tableHTML += `<tr><td><strong>Week ${week}</strong></td><td>${formattedDate}</td><td>${cls.code} - ${cls.name}</td><td><span class="status-badge ${status.toLowerCase()}">${status}</span></td></tr>`;
+            });
+        });
+        tableHTML += "</tbody></table>";
+        mainContainer.innerHTML = tableHTML;
+
+        recentContainer.innerHTML = "<p class='welcome-subtitle'>Your recent attendance records will appear here</p>";
+        return;
+    }
+
+    const classObj = classes.find(cls => cls.code.toLowerCase() === selectedClass);
+    if (!classObj) {
+        mainContainer.innerHTML = "<p>Invalid class selected.</p>";
+        recentContainer.innerHTML = "";
+        return;
+    }
+    const attendanceRecords = weeks.map(() => statuses[Math.floor(Math.random() * statuses.length)]);
+
+    let tableHTML = `<h3 class="attendance-header">Attendance for ${classObj.code} - ${classObj.name}</h3>
+        <table class="attendance-table">
+            <thead><tr><th>Week</th><th>Date</th><th>Status</th></tr></thead><tbody>`;
+    weeks.forEach((week, idx) => {
+        const classDate = getClassDateForWeek(week, classObj.day);
+        const day = String(classDate.getDate()).padStart(2, '0');
+        const month = String(classDate.getMonth() + 1).padStart(2, '0');
+        const year = String(classDate.getFullYear()).slice(-2);
+        const formattedDate = `${day}/${month}/${year}`;
+        const status = attendanceRecords[idx];
+        tableHTML += `<tr><td><strong>Week ${week}</strong></td><td>${formattedDate}</td><td><span class="status-badge ${status.toLowerCase()}">${status}</span></td></tr>`;
+    });
+    tableHTML += "</tbody></table>";
+    mainContainer.innerHTML = tableHTML;
+
+    // Show recent attendance table only after selection
+    showLatest2WeeksTable(classes, weeks, startDate, selectedClass);
+}
+
+function showLatest2WeeksTable(classes, weeks, startDate, selectedClass) {
+    const recentContainer = document.getElementById("recentAttendanceTableContainer");
+
+    // Show only if a selection exists
+    if (!selectedClass) {
+        recentContainer.innerHTML = "";
+        return;
+    }
+
+    function getClassDateForWeek(week, dayOfWeek) {
+        const baseDate = new Date(startDate.getTime());
+        const daysOffset = (week - 1) * 7 + (dayOfWeek - baseDate.getDay());
+        baseDate.setDate(baseDate.getDate() + daysOffset);
+        return baseDate;
+    }
+
+    // Calculate time range for last 14 days
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lastTwoWeeksStart = new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000);
+
+    let summaryHTML = `<h4 class="attendance-header">Latest 2 Weeks (All Classes)</h4>
+    <table class="attendance-table">
+    <thead><tr><th>Week</th><th>Date</th><th>Course Code and Name</th><th>Status</th></tr></thead><tbody>`;
+
+    weeks.forEach((week, i) => {
+        classes.forEach((cls, idx) => {
+            const classDate = getClassDateForWeek(week, cls.day);
+            // Show only if in the desired recent 2 weeks range
+            if (classDate >= lastTwoWeeksStart && classDate <= today) {
+                const day = String(classDate.getDate()).padStart(2, "0");
+                const month = String(classDate.getMonth() + 1).padStart(2, "0");
+                const year = String(classDate.getFullYear()).slice(-2);
+                const formattedDate = `${day}/${month}/${year}`;
+                const status = globalAllAttendanceRecords[i][idx];
+                summaryHTML += `<tr><td><strong>Week ${week}</strong></td><td>${formattedDate}</td><td>${cls.code} - ${cls.name}</td><td><span class="status-badge ${status.toLowerCase()}">${status}</span></td></tr>`;
+            }
+        });
+    });
+    summaryHTML += "</tbody></table>";
+    recentContainer.innerHTML = summaryHTML;
+}
+
+
+// Initial call after page loaded so tables are shown based on default dropdown value
+window.onload = function () {
+    displayDummyAttendance();
+};
+
+document.getElementById("classSelect").addEventListener("change", displayDummyAttendance);
+
+</script>
 
     <!-- Face Scanning Modal -->
     <div id="faceScanModal" class="modal">

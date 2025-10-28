@@ -1,6 +1,5 @@
 package com.cs102.attendance.config;
 
-import com.cs102.attendance.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,6 +10,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.cs102.attendance.security.JwtAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -45,6 +46,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/attendance/**").hasAnyRole("STUDENT", "PROFESSOR")
                 .requestMatchers("/api/face-data/**").hasAnyRole("STUDENT", "PROFESSOR")
                 .requestMatchers("/api/face-recognition/**").hasAnyRole("STUDENT", "PROFESSOR")
+                .requestMatchers("/api/groups/**").hasAnyRole("STUDENT", "PROFESSOR")
+                .requestMatchers("/api/classes/**").hasAnyRole("STUDENT", "PROFESSOR")
 
                 // All other requests require authentication
                 .anyRequest().authenticated()

@@ -517,6 +517,21 @@ async function saveProfileChanges() {
 //     confirmPassword.addEventListener('input', checkPasswordMatch);
 //   }
 // });
+const currentUser = authService.getUser();
+console.log(currentUser.id);
+fetch('http://localhost:8080/api/groups')
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok ' + response.statusText);
+    }
+    return response.json(); // if you expect JSON
+  })
+  .then(data => {
+    console.log(data); // will log your groups array/object to console
+  })
+  .catch(error => {
+    console.error('There was a problem with the fetch operation:', error);
+  });
 
 // Close modal on escape key
 document.addEventListener('keydown', (e) => {

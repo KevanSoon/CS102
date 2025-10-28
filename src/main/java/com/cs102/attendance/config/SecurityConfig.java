@@ -36,18 +36,26 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll() // Auth endpoints
                 .requestMatchers("/actuator/**").permitAll() // Actuator endpoints
                 .requestMatchers("/error").permitAll() // Error page
+                
+                //FOR TESTING ENDPOINTS PURPOSES
+                .requestMatchers("/api/students/**").permitAll()
+                .requestMatchers("/api/attendance/**").permitAll()
+                .requestMatchers("/api/face-data/**").permitAll()
+                .requestMatchers("/api/face-recognition/**").permitAll()
+                .requestMatchers("/api/groups/**").permitAll()
+                .requestMatchers("/api/classes/**").permitAll()
 
                 // Professor-only endpoints
                 .requestMatchers("/api/sessions/**").hasRole("PROFESSOR")
                 .requestMatchers("/api/professors/**").hasRole("PROFESSOR")
 
                 // Student and Professor can access their own data
-                .requestMatchers("/api/students/**").hasAnyRole("STUDENT", "PROFESSOR")
-                .requestMatchers("/api/attendance/**").hasAnyRole("STUDENT", "PROFESSOR")
-                .requestMatchers("/api/face-data/**").hasAnyRole("STUDENT", "PROFESSOR")
-                .requestMatchers("/api/face-recognition/**").hasAnyRole("STUDENT", "PROFESSOR")
-                .requestMatchers("/api/groups/**").hasAnyRole("STUDENT", "PROFESSOR")
-                .requestMatchers("/api/classes/**").hasAnyRole("STUDENT", "PROFESSOR")
+                // .requestMatchers("/api/students/**").hasAnyRole("STUDENT", "PROFESSOR")
+                // .requestMatchers("/api/attendance/**").hasAnyRole("STUDENT", "PROFESSOR")
+                // .requestMatchers("/api/face-data/**").hasAnyRole("STUDENT", "PROFESSOR")
+                // .requestMatchers("/api/face-recognition/**").hasAnyRole("STUDENT", "PROFESSOR")
+                // .requestMatchers("/api/groups/**").hasAnyRole("STUDENT", "PROFESSOR")
+                // .requestMatchers("/api/classes/**").hasAnyRole("STUDENT", "PROFESSOR")
 
                 // All other requests require authentication
                 .anyRequest().authenticated()

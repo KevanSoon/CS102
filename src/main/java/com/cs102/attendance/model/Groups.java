@@ -12,7 +12,7 @@ public class Groups {
 
     // This assumes student_list is a comma-separated string or a JSON array, you can change type to List<String> if it is an array in JSON.
     @JsonProperty("student_list")
-    private String studentList;
+    private String[] studentList;
 
     @JsonProperty("professor_id")
     private String professorId;
@@ -21,7 +21,7 @@ public class Groups {
         // No-args constructor
     }
 
-    public Groups(String groupNumber, String classCode, String studentList, String professorId) {
+    public Groups(String groupNumber, String classCode, String[] studentList, String professorId) {
         this.groupNumber = groupNumber;
         this.classCode = classCode;
         this.studentList = studentList;
@@ -44,11 +44,11 @@ public class Groups {
         this.classCode = classCode;
     }
 
-    public String getStudentList() {
+    public String[] getStudentList() {
         return studentList;
     }
 
-    public void setStudentList(String studentList) {
+    public void setStudentList(String[] studentList) {
         this.studentList = studentList;
     }
 

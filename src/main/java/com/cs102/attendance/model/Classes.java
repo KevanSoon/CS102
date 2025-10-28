@@ -12,13 +12,13 @@ public class Classes {
 
     // This assumes professor_list is a comma-separated string or a JSON array.
     @JsonProperty("professor_list")
-    private String professorList;
+    private String[] professorList;
 
     public Classes() {
         // No-args constructor
     }
 
-    public Classes(String classCode, String className, String professorList) {
+    public Classes(String classCode, String className, String[] professorList) {
         this.classCode = classCode;
         this.className = className;
         this.professorList = professorList;
@@ -40,11 +40,11 @@ public class Classes {
         this.className = className;
     }
 
-    public String getProfessorList() {
+    public String[] getProfessorList() {
         return professorList;
     }
 
-    public void setProfessorList(String professorList) {
+    public void setProfessorList(String[] professorList) {
         this.professorList = professorList;
     }
 }

@@ -102,7 +102,7 @@ public abstract class SupabaseService<T> {
         return results[0];
     }
 
-
+    
     //Student Update
     public Student update(String id, StudentUpdateDTO updateDTO) {
     //debugging request body
@@ -127,16 +127,22 @@ public abstract class SupabaseService<T> {
         try {
             String json = objectMapper.writeValueAsString(updateDTO);
             System.out.println("Update request body: " + json);
-        } 
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        return webClient.patch()
+        
+        Session[] results = (Session[]) webClient.patch()
                 .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
                 .bodyValue(updateDTO)
                 .retrieve()
-                .bodyToMono(Session.class)
+                .bodyToMono(arrayType) 
                 .block();
+        
+        // Return first element or null
+        if (results != null && results.length > 0) {
+            return results[0];
+        }
+        return null;
     }
 
     //Attendance Record Update

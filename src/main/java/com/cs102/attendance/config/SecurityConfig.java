@@ -39,6 +39,7 @@ public class SecurityConfig {
                 
                 //FOR TESTING ENDPOINTS PURPOSES
                 .requestMatchers("/api/students/**").permitAll()
+                .requestMatchers("/api/sessions/**").permitAll()
                 .requestMatchers("/api/attendance/**").permitAll()
                 .requestMatchers("/api/face-data/**").permitAll()
                 .requestMatchers("/api/face-recognition/**").permitAll()
@@ -46,7 +47,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/classes/**").permitAll()
 
                 // Professor-only endpoints
-                .requestMatchers("/api/sessions/**").hasRole("PROFESSOR")
+                // .requestMatchers("/api/sessions/**").hasRole("PROFESSOR")
                 .requestMatchers("/api/professors/**").hasRole("PROFESSOR")
 
                 // Student and Professor can access their own data

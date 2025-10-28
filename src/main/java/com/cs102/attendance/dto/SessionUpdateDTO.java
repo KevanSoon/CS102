@@ -12,6 +12,7 @@ public class SessionUpdateDTO {
     private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
+    private Boolean active;
 
     public SessionUpdateDTO() {}
 
@@ -26,5 +27,8 @@ public class SessionUpdateDTO {
 
     public LocalTime getEndTime() { return endTime; }
     public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active ) { this.active = active; }
 
 }

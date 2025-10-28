@@ -35,6 +35,11 @@ public class SessionController {
         return sessionService.getAll();
     }
 
+    @GetMapping("/active/{profId}")
+    public Session getActiveSession(@PathVariable String profId) {
+        return sessionService.getActiveSession(profId);
+    }
+
     // Implement update and delete as needed, example:
   
     @PatchMapping("/{id}")

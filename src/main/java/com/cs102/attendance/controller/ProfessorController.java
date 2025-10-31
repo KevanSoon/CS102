@@ -40,6 +40,11 @@ public class ProfessorController {
         return professorService.getById(id);
     }
 
+    @GetMapping("/{id}/classes")
+    public Object getProfessorClasses(@PathVariable String id) {
+        return professorService.getProfessorClasses(id);
+    }
+
     @PatchMapping("/{id}")
     public Professor update(@PathVariable String id, @RequestBody ProfessorUpdateDTO updateDto) {
         return professorService.update(id, updateDto);

@@ -46,10 +46,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/face-recognition/**").permitAll()
                 .requestMatchers("/api/groups/**").permitAll()
                 .requestMatchers("/api/classes/**").permitAll()
+                .requestMatchers("/api/professors/**").permitAll()
 
                 // Professor-only endpoints
                 // .requestMatchers("/api/sessions/**").hasRole("PROFESSOR")
-                .requestMatchers("/api/professors/**").hasRole("PROFESSOR")
+                //.requestMatchers("/api/professors/**").hasRole("PROFESSOR")
 
                 // Student and Professor can access their own data
                 // .requestMatchers("/api/students/**").hasAnyRole("STUDENT", "PROFESSOR")

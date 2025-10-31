@@ -5,7 +5,11 @@ import { displayUserInfo, logout, authService } from './authCheck.js';
 
 // Auth check and user info
 const userInfo = displayUserInfo();
-console.log('Logged in as:', userInfo.name);
+// NOTE: Using a hardcoded ID for demo purposes as requested, 
+// but in a real app, userInfo.id should be used.
+const DEMO_PROFESSOR_ID = "5ad0725f-18f5-446a-bb72-8b07730d8548"; 
+
+console.log('Logged in as:', userInfo.name, 'ID:', userInfo.id); 
 
 // Update welcome text with actual user name
 const welcomeText = document.querySelector('.welcome-text');
@@ -24,8 +28,103 @@ let attendanceRecords = [
 ];
 
 let allSessions = [];
+// This will store flattened objects: { display_name: "CS102 Programming related - G3", class_code: "CS102", group_number: "G3" }
+let professorClasses = []; 
 
-// ===== SESSION MANAGEMENT =====
+// ===== CLASS DATA FETCHING (UPDATED FOR HARDCODED ID) =====
+
+/**
+ * Fetches the list of classes and flattens them into session-specific display names.
+ * Format: "ClassCode ClassName - GroupNumber"
+ * @returns {Array} An array of flattened class/group objects.
+ */
+async function fetchProfessorClasses() {
+    // Use the hardcoded ID for the specific API endpoint requested
+    const professorId = DEMO_PROFESSOR_ID; 
+
+    try {
+        // Construct the specific API endpoint
+        const url = `/professors/${professorId}/classes`;
+        const response = await authService.apiRequest(url);
+        
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Failed to fetch professor classes: ${response.status} - ${errorBody}`);
+        }
+
+        const classes = await response.json();
+        
+        // Flatten the data structure to get all groups taught by the professor
+        const flattenedClasses = [];
+        
+        classes.forEach(classItem => {
+            // Find groups where the current professor is the assigned professor (using the hardcoded ID)
+            const professorGroups = classItem.groups.filter(group => group.professor_id === professorId);
+
+            professorGroups.forEach(group => {
+                // Creates the requested format: "CS102 Programming related - G3"
+                const display_name = `${classItem.class_code} ${classItem.class_name} - ${group.group_number}`;
+                
+                flattenedClasses.push({
+                    display_name: display_name,
+                    class_code: classItem.class_code,
+                    class_name: classItem.class_name,
+                    group_number: group.group_number,
+                    student_list: group.student_list 
+                });
+            });
+        });
+
+        professorClasses = flattenedClasses; // Store the flattened list globally
+        console.log('Professor classes loaded:', professorClasses);
+        return flattenedClasses;
+    } catch (error) {
+        console.error('Error fetching professor classes:', error);
+        return [];
+    }
+}
+
+/**
+ * Dynamically creates a <datalist> for class names based on fetched data.
+ */
+function setupClassNameDatalist() {
+    const classNameInput = document.getElementById('className');
+    const datalistId = 'class-session-list';
+
+    // 1. Ensure the input is correctly configured to use the datalist
+    if (classNameInput) {
+        classNameInput.setAttribute('list', datalistId);
+    }
+    
+    // 2. Remove any existing datalist with the same ID
+    let datalist = document.getElementById(datalistId);
+    if (datalist) {
+        datalist.remove();
+    }
+
+    // 3. Create the new datalist element
+    datalist = document.createElement('datalist');
+    datalist.id = datalistId;
+    
+    // 4. Populate the datalist with <option> elements using the display_name
+    professorClasses.forEach(classItem => {
+        const option = document.createElement('option');
+        // The value attribute is what appears in the dropdown and in the input field.
+        option.value = classItem.display_name; 
+        datalist.appendChild(option);
+    });
+
+    // 5. Append the datalist to the form for proper scope
+    const createClassForm = document.getElementById("createClassForm");
+    if (createClassForm) {
+        createClassForm.appendChild(datalist);
+    } else {
+        document.body.appendChild(datalist);
+    }
+}
+
+
+// ===== SESSION MANAGEMENT (UNCHANGED) =====
 
 // Fetch all sessions from backend
 async function showSessions() {
@@ -96,11 +195,15 @@ async function loadActiveSessions() {
   }
 }
 
-// Initialize sessions on page load
+// Initialize all necessary data on page load
 async function init() {
+  // 1. Load professor classes first
+  await fetchProfessorClasses(); 
+  
+  // 2. Load sessions and display active sessions
   allSessions = await showSessions();
   console.log('Sessions loaded:', allSessions);
-  loadActiveSessions(); // Also load the active sessions display
+  loadActiveSessions(); 
 }
 
 // Helper function to calculate end time
@@ -117,7 +220,7 @@ function calculateEndTime(startTime, durationMinutes) {
   return `${endHours}:${endMinutes}`;
 }
 
-// ===== ATTENDANCE FUNCTIONS =====
+// ===== ATTENDANCE FUNCTIONS (UNCHANGED) =====
 
 function markAttendance() {
   if (!selectedClass || !faceScanned) {
@@ -174,9 +277,15 @@ function updateStudentStats() {
   }
 }
 
-// ===== MODAL FUNCTIONS =====
 
+// ===== MODAL FUNCTIONS (UPDATED openCreateClass) =====
+
+/**
+ * Opens the create class modal and sets up the class name datalist.
+ */
 function openCreateClass() {
+  // Populate the datalist with the fetched classes before showing the modal
+  setupClassNameDatalist();
   document.getElementById("createClassModal").classList.add("active");
 }
 
@@ -240,11 +349,11 @@ function captureFace() {
   closeFaceRegister();
 }
 
-// ===== PAGE INITIALIZATION =====
+// ===== PAGE INITIALIZATION (UPDATED) =====
 
 document.addEventListener("DOMContentLoaded", () => {
   updateStudentStats();
-  init();
+  init(); 
 
   // Handle Create Session Form - SINGLE EVENT LISTENER
   const createClassForm = document.getElementById("createClassForm");
@@ -253,21 +362,31 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       
       // Get form values
-      const className = document.getElementById('className').value.trim();
+      const classNameValue = document.getElementById('className').value.trim();
       const sessionDate = document.getElementById('sessionDate').value;
       const start_time = document.getElementById('startTime').value;
-      // Check if duration field exists, if not default to 60 minutes
       const durationInput = document.getElementById('duration');
       const duration = durationInput ? parseInt(durationInput.value) : 90;
+      
+      // Find the corresponding class object in professorClasses using the display name
+      const selectedClass = professorClasses.find(c => c.display_name === classNameValue);
+      
+      if (!selectedClass) {
+          alert("Please select a valid class and group from the list.");
+          return;
+      }
       
       // Calculate end time based on duration
       const end_time = calculateEndTime(start_time, duration);
       
       // Prepare data for API
       const sessionData = {
-        name: className,
+        // Use the full display name for the session name
+        name: selectedClass.display_name, 
+        class_code: selectedClass.class_code,
+        group_number: selectedClass.group_number, // Include group number in submission
         date: sessionDate,
-        start_time: start_time + ':00', // Add seconds
+        start_time: start_time + ':00', 
         end_time: end_time + ':00'
       };
       
@@ -359,7 +478,7 @@ async function exportReport(format) {
   }
 }
 
-// ===== MAKE FUNCTIONS GLOBALLY ACCESSIBLE FOR ONCLICK HANDLERS =====
+// ===== MAKE FUNCTIONS GLOBALLY ACCESSIBLE FOR ONCLICK HANDLERS (UNCHANGED) =====
 window.closeActiveSession = closeActiveSession;
 window.closeAttendanceCheck = closeAttendanceCheck;
 window.closeCreateClass = closeCreateClass;
@@ -369,7 +488,7 @@ window.closeStudentManagement = closeStudentManagement;
 window.exportCSV = exportCSV;
 window.exportPDF = exportPDF;
 window.openAttendanceCheck = openAttendanceCheck;
-window.openCreateClass = openCreateClass;
+window.openCreateClass = openCreateClass; 
 window.openGenerateReport = openGenerateReport;
 window.openManualAttendance = openManualAttendance;
 window.openStudentManagement = openStudentManagement;

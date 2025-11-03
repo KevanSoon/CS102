@@ -73,9 +73,62 @@ public class AuthController {
             System.out.println("Auth response received: " + (response != null));
             System.out.println("Response user: " + (response != null && response.getUser() != null));
 
-            // NOTE: With email verification enabled, user object will be null until email is verified
-            // Database records will be created on first successful sign-in instead
-            System.out.println("Database record creation deferred until email verification and first sign-in");
+            // Create database record if user object is available (even if email not verified yet)
+            // This allows face data to be linked to student_id immediately after registration
+            if (response != null && response.getUser() != null) {
+                String userId = response.getUser().getId();
+                User.UserMetadata metadata = response.getUser().getUserMetadata();
+
+                if (metadata != null && metadata.getRole() != null) {
+                    String role = metadata.getRole();
+                    System.out.println("User role: " + role);
+
+                    // Create database record for student during signup
+                    if ("student".equalsIgnoreCase(role)) {
+                        try {
+                            // Check if student record already exists
+                            studentService.getById(userId);
+                            System.out.println("Student record already exists for ID: " + userId);
+                        } catch (RuntimeException e) {
+                            // Record doesn't exist, create it
+                            System.out.println("Creating student record during signup: " + userId);
+
+                            Student student = new Student(
+                                metadata.getName(),
+                                response.getUser().getEmail(),
+                                getMetadataField(metadata, "code", "STU" + System.currentTimeMillis()),
+                                getMetadataField(metadata, "phone", ""),
+                                getMetadataField(metadata, "class_name", ""),
+                                getMetadataField(metadata, "student_group", "")
+                            );
+                            student.setId(userId);
+
+                            Student createdStudent = studentService.create(student);
+                            if (createdStudent != null) {
+                                System.out.println("Student record created successfully: " + createdStudent.getName());
+                            }
+                        }
+                    } else if ("professor".equalsIgnoreCase(role)) {
+                        try {
+                            // Check if professor record already exists
+                            professorService.getById(userId);
+                            System.out.println("Professor record already exists for ID: " + userId);
+                        } catch (RuntimeException e) {
+                            // Record doesn't exist, create it
+                            System.out.println("Creating professor record during signup: " + userId);
+
+                            Professor professor = new Professor(userId, metadata.getName());
+                            Professor createdProfessor = professorService.create(professor);
+                            if (createdProfessor != null) {
+                                System.out.println("Professor record created successfully: " + createdProfessor.getName());
+                            }
+                        }
+                    }
+                }
+            } else {
+                // If user object is null (email verification required), database records will be created on first sign-in
+                System.out.println("User object not available yet. Database record creation deferred until email verification and first sign-in");
+            }
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {

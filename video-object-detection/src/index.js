@@ -3,6 +3,7 @@ import authService from './auth.js';
 let currentUser = 'student';
 let faceStream = null;
 let faceCaptured = false;
+let capturedFaceImage = null; // Store captured face image blob
 let registerData = {}; // Store registration data
 
 // Check if already logged in
@@ -84,6 +85,7 @@ window.closeFaceRegister = function() {
     }
     // Reset capture state
     faceCaptured = false;
+    capturedFaceImage = null;
     document.getElementById('captureResult').style.display = 'none';
     document.getElementById('captureBtn').style.display = 'block';
     document.getElementById('completeBtn').style.display = 'none';
@@ -139,7 +141,7 @@ window.resendVerificationEmail = async function() {
     }
 }
 
-window.captureFace = function() {
+window.captureFace = async function() {
     const video = document.getElementById('faceVideo');
     const canvas = document.getElementById('faceCanvas');
     const ctx = canvas.getContext('2d');
@@ -148,13 +150,29 @@ window.captureFace = function() {
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
 
-    // Simulate face detection processing
-    setTimeout(() => {
-        faceCaptured = true;
-        document.getElementById('captureResult').style.display = 'block';
-        document.getElementById('captureBtn').style.display = 'none';
-        document.getElementById('completeBtn').style.display = 'block';
-    }, 1000);
+    // Convert canvas to blob
+    try {
+        capturedFaceImage = await new Promise((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject(new Error('Failed to capture image'));
+                }
+            }, 'image/jpeg', 0.9); // Use JPEG with 90% quality
+        });
+
+        // Simulate face detection processing
+        setTimeout(() => {
+            faceCaptured = true;
+            document.getElementById('captureResult').style.display = 'block';
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('completeBtn').style.display = 'block';
+        }, 1000);
+    } catch (error) {
+        console.error('Error capturing face:', error);
+        alert('Failed to capture face image. Please try again.');
+    }
 }
 
 window.completeRegistration = async function() {
@@ -163,6 +181,14 @@ window.completeRegistration = async function() {
     submitBtn.textContent = 'Registering...';
 
     try {
+        // Check if face was captured
+        if (!faceCaptured || !capturedFaceImage) {
+            alert('Please capture your face first before completing registration.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Complete Registration';
+            return;
+        }
+
         // Perform actual registration
         const result = await authService.signUp(
             registerData.email,
@@ -173,6 +199,123 @@ window.completeRegistration = async function() {
         );
 
         if (result.success) {
+            console.log('=== REGISTRATION SUCCESS ===');
+            console.log('Full result object:', result);
+            console.log('Result.data:', result.data);
+            
+            // Get student ID from the response - try multiple sources
+            // Note: With email verification, user object might be null
+            let userId = result.data?.user?.id;
+            console.log('userId from result.data.user.id:', userId);
+            
+            // If not in response, try to get from localStorage (saved by authService)
+            if (!userId) {
+                const savedUser = authService.getUser();
+                console.log('Checking localStorage for user:', savedUser);
+                userId = savedUser?.id;
+                console.log('userId from localStorage:', userId);
+            }
+            
+            // Log the actual response for debugging
+            console.log('Registration response:', result.data);
+            console.log('User from localStorage:', authService.getUser());
+            
+            if (!userId) {
+                // If still no userId, check if user object exists but id is in a different format
+                const userObj = result.data?.user || authService.getUser();
+                console.log('Checking userObj for alternative ID fields:', userObj);
+                if (userObj) {
+                    userId = userObj.id || userObj.user_id || userObj.sub;
+                    console.log('userId after checking alternative fields:', userId);
+                }
+            }
+            
+            console.log('Final userId before upload check:', userId);
+            console.log('faceCaptured:', faceCaptured);
+            console.log('capturedFaceImage exists:', !!capturedFaceImage);
+            
+            // Upload face image if we have userId, otherwise store it for later
+            if (userId) {
+                console.log('=== FACE IMAGE UPLOAD ===');
+                console.log('Using user ID:', userId);
+                console.log('Face image blob:', capturedFaceImage);
+                console.log('Face image size:', capturedFaceImage?.size, 'bytes');
+                console.log('Face image type:', capturedFaceImage?.type);
+                
+                try {
+                    submitBtn.textContent = 'Uploading face data...';
+                    
+                    const formData = new FormData();
+                    formData.append('image', capturedFaceImage, 'face.jpg');
+                    formData.append('studentId', userId);
+
+                    console.log('Sending upload request to: http://localhost:8080/api/face_data/upload');
+                    
+                    const uploadResponse = await fetch('http://localhost:8080/api/face_data/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    console.log('Upload response status:', uploadResponse.status);
+                    console.log('Upload response ok:', uploadResponse.ok);
+
+                    if (!uploadResponse.ok) {
+                        const errorText = await uploadResponse.text();
+                        console.error('Upload error response:', errorText);
+                        let errorData;
+                        try {
+                            errorData = JSON.parse(errorText);
+                        } catch (e) {
+                            errorData = { error: errorText };
+                        }
+                        throw new Error(errorData.error || 'Failed to upload face image');
+                    }
+
+                    const uploadResult = await uploadResponse.json();
+                    console.log('Face data uploaded successfully:', uploadResult);
+                    console.log('Face data record:', uploadResult.faceData);
+                    console.log('Image URL:', uploadResult.imageUrl);
+                    
+                    // Clear stored face image if upload succeeds
+                    capturedFaceImage = null;
+                    
+                } catch (uploadError) {
+                    console.error('Error uploading face data:', uploadError);
+                    console.error('Error details:', uploadError.message);
+                    console.error('Error stack:', uploadError.stack);
+                    
+                    // Store face image for upload on first login
+                    try {
+                        const faceImageDataUrl = await new Promise(resolve => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.readAsDataURL(capturedFaceImage);
+                        });
+                        sessionStorage.setItem('pendingFaceImage', faceImageDataUrl);
+                        console.log('Stored face image for upload on first login');
+                        alert('Registration successful! Your face data will be saved when you verify your email and log in for the first time.');
+                    } catch (storageError) {
+                        console.error('Error storing face image in sessionStorage:', storageError);
+                    }
+                }
+            } else {
+                // User ID not available (email verification required)
+                // Store face image as data URL in sessionStorage for upload on first login
+                console.warn('User ID not available in signup response. Storing face image for upload on first login.');
+                
+                try {
+                    const faceImageDataUrl = await new Promise(resolve => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(capturedFaceImage);
+                    });
+                    sessionStorage.setItem('pendingFaceImage', faceImageDataUrl);
+                    console.log('Face image stored for upload on first login');
+                } catch (storageError) {
+                    console.error('Error storing face image:', storageError);
+                }
+            }
+
             window.closeFaceRegister();
 
             // Check if email is verified
@@ -233,6 +376,67 @@ window.completeProfessorRegistration = async function() {
     }
 }
 
+// Helper function to upload pending face image if exists
+async function uploadPendingFaceImage(userId) {
+    console.log('=== CHECKING PENDING FACE IMAGE ===');
+    console.log('userId:', userId);
+    
+    const pendingFaceImageDataUrl = sessionStorage.getItem('pendingFaceImage');
+    console.log('pendingFaceImageDataUrl exists:', !!pendingFaceImageDataUrl);
+    
+    if (!pendingFaceImageDataUrl || !userId) {
+        console.log('Skipping pending upload - missing dataUrl or userId');
+        return;
+    }
+
+    try {
+        console.log('=== UPLOADING PENDING FACE IMAGE ===');
+        console.log('Uploading pending face image for user:', userId);
+        
+        // Convert data URL to blob
+        const response = await fetch(pendingFaceImageDataUrl);
+        const blob = await response.blob();
+        console.log('Converted blob size:', blob.size, 'bytes');
+        console.log('Blob type:', blob.type);
+        
+        const formData = new FormData();
+        formData.append('image', blob, 'face.jpg');
+        formData.append('studentId', userId);
+
+        console.log('Sending upload request to: http://localhost:8080/api/face_data/upload');
+        
+        const uploadResponse = await fetch('http://localhost:8080/api/face_data/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        console.log('Upload response status:', uploadResponse.status);
+        console.log('Upload response ok:', uploadResponse.ok);
+
+        if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            console.log('Pending face data uploaded successfully:', uploadResult);
+            sessionStorage.removeItem('pendingFaceImage');
+            return true;
+        } else {
+            const errorText = await uploadResponse.text();
+            console.error('Failed to upload pending face image. Response:', errorText);
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch (e) {
+                errorData = { error: errorText };
+            }
+            console.error('Error details:', errorData);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error uploading pending face image:', error);
+        console.error('Error stack:', error.stack);
+        return false;
+    }
+}
+
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -260,8 +464,15 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                 return;
             }
 
+            const user = authService.getUser();
+            const userId = user?.id;
             const role = authService.getUserRole();
             console.log('Extracted role:', role);
+
+            // Upload pending face image if exists (for users who registered with email verification)
+            if (userId && role === 'student') {
+                await uploadPendingFaceImage(userId);
+            }
 
             if (role === 'student') {
                 window.location.href = '/student.html';

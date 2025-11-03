@@ -10,14 +10,13 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header design matching the image -->
         <div class="header">
             <div class="header-left">
                 <div class="logo-icon">👤</div>
                 <h1 class="header-title">Student Dashboard</h1>
             </div>
             <div class="header-right">
-                <span class="welcome-text">Welcome, a@a</span>
+                <span class="welcome-text">Welcome, luxuan.wee.2024@computing.smu.sg</span>
                 <button type="button" class="btn btn-primary" id="editProfileBtn" onclick="openEditProfileModal()">
                     Edit Profile
                 </button>
@@ -32,13 +31,11 @@
             </div>
         </div>
 
-        <!-- Welcome section -->
         <div class="welcome-section">
             <h2 class="welcome-title">Welcome back!</h2>
             <p class="welcome-subtitle">Manage your class attendance and view your records</p>
         </div>
 
-        <!-- Class selection section -->
         <div class="section-card">
             <div class="section-header">
                 <h3 class="section-title">Select Class/Session</h3>
@@ -47,18 +44,16 @@
             <div class="section-content">
                 <select class="form-select" id="classSelect" onchange="displayDummyAttendance()"> 
                     <option value="">Select a class</option>
-                    <!-- <option value="cs101">CS101 - Introduction to Programming</option>
+                    <option value="cs101">CS101 - Introduction to Programming</option>
                     <option value="math201">MATH201 - Calculus II</option>
-                    <option value="phy301">PHY301 - Quantum Physics</option> -->
+                    <option value="phy301">PHY301 - Quantum Physics</option>
                 </select>
             </div>
-            <!-- Move attendance table container here: -->
             <div class="section-content" id="attendanceTableContainer">
                 <p class="welcome-subtitle">Your attendance records for the semester will appear here</p>
             </div>
         </div>
 
-        <!-- Recent Attendance section -->
         <div class="section-card">
             <div class="section-header">
                 <h3 class="section-title">Recent Attendance</h3>
@@ -184,141 +179,516 @@
 </style>
 
 <script>
-// Global variable for attendance records to allow sharing between tables
-let globalAllAttendanceRecords = [];
+    // Global variable for attendance records to allow sharing between tables
+    let globalAllAttendanceRecords = [];
+    let enrolledClasses = []; // Store student's enrolled classes
 
-function displayDummyAttendance() {
-    const classSelect = document.getElementById("classSelect");
-    const mainContainer = document.getElementById("attendanceTableContainer");
-    const recentContainer = document.getElementById("recentAttendanceTableContainer");
-    const selectedClass = classSelect.value;
+    // Fetch student's enrolled classes from the groups table
+    async function fetchStudentClasses() {
+        try {
+            const token = localStorage.getItem("access_token");
+            if (!token) throw new Error("Please log in first");
 
-    const classes = [
-        { code: "CS101", name: "Introduction to Programming", day: 1 }, // Monday
-        { code: "MATH201", name: "Calculus II", day: 2 },               // Tuesday
-        { code: "PHY301", name: "Quantum Physics", day: 4 }            // Thursday
-    ];
-    const statuses = ["Present", "Absent", "Late"];
-    const weeksCount = 14;
-    const startDate = new Date(2025, 7, 18); // August 18, 2025 (month 7 = August, zero-based)
-    const weeks = Array.from({ length: weeksCount }, (_, i) => i + 1);
+            const userJson = localStorage.getItem("user");
+            if (!userJson) throw new Error("User data not found in storage. Please re-login.");
 
-    function getClassDateForWeek(week, dayOfWeek) {
-        const baseDate = new Date(startDate.getTime());
-        const daysOffset = (week - 1) * 7 + (dayOfWeek - baseDate.getDay());
-        baseDate.setDate(baseDate.getDate() + daysOffset);
-        return baseDate;
-    }
+            const userData = JSON.parse(userJson);
+            const studentId = userData.id;
+            if (!studentId) throw new Error("Student ID missing in storage");
 
-    globalAllAttendanceRecords = weeks.map(() =>
-        classes.map(() => statuses[Math.floor(Math.random() * statuses.length)])
-    );
-
-    if (!selectedClass) {
-        // Show all classes attendance table
-        let tableHTML = `<h3 class="attendance-header">Attendance for All Classes</h3>
-            <table class="attendance-table">
-                <thead><tr><th>Week</th><th>Date</th><th>Course Code and Name</th><th>Status</th></tr></thead><tbody>`;
-
-        weeks.forEach((week) => {
-            classes.forEach((cls, classIndex) => {
-                const classDate = getClassDateForWeek(week, cls.day);
-                const day = String(classDate.getDate()).padStart(2, '0');
-                const month = String(classDate.getMonth() + 1).padStart(2, '0');
-                const year = String(classDate.getFullYear()).slice(-2);
-                const formattedDate = `${day}/${month}/${year}`;
-                const status = globalAllAttendanceRecords[week - 1][classIndex];
-                tableHTML += `<tr><td><strong>Week ${week}</strong></td><td>${formattedDate}</td><td>${cls.code} - ${cls.name}</td><td><span class="status-badge ${status.toLowerCase()}">${status}</span></td></tr>`;
+            // Fetch groups where this student is enrolled
+            const res = await fetch(`http://localhost:8080/api/groups`, {
+                headers: { Authorization: `Bearer ${token}` }
             });
-        });
-        tableHTML += "</tbody></table>";
-        mainContainer.innerHTML = tableHTML;
 
-        recentContainer.innerHTML = "<p class='welcome-subtitle'>Your recent attendance records will appear here</p>";
-        return;
-    }
-
-    const classObj = classes.find(cls => cls.code.toLowerCase() === selectedClass);
-    if (!classObj) {
-        mainContainer.innerHTML = "<p>Invalid class selected.</p>";
-        recentContainer.innerHTML = "";
-        return;
-    }
-    const attendanceRecords = weeks.map(() => statuses[Math.floor(Math.random() * statuses.length)]);
-
-    let tableHTML = `<h3 class="attendance-header">Attendance for ${classObj.code} - ${classObj.name}</h3>
-        <table class="attendance-table">
-            <thead><tr><th>Week</th><th>Date</th><th>Status</th></tr></thead><tbody>`;
-    weeks.forEach((week, idx) => {
-        const classDate = getClassDateForWeek(week, classObj.day);
-        const day = String(classDate.getDate()).padStart(2, '0');
-        const month = String(classDate.getMonth() + 1).padStart(2, '0');
-        const year = String(classDate.getFullYear()).slice(-2);
-        const formattedDate = `${day}/${month}/${year}`;
-        const status = attendanceRecords[idx];
-        tableHTML += `<tr><td><strong>Week ${week}</strong></td><td>${formattedDate}</td><td><span class="status-badge ${status.toLowerCase()}">${status}</span></td></tr>`;
-    });
-    tableHTML += "</tbody></table>";
-    mainContainer.innerHTML = tableHTML;
-
-    // Show recent attendance table only after selection
-    showLatest2WeeksTable(classes, weeks, startDate, selectedClass);
-}
-
-function showLatest2WeeksTable(classes, weeks, startDate, selectedClass) {
-    const recentContainer = document.getElementById("recentAttendanceTableContainer");
-
-    // Show only if a selection exists
-    if (!selectedClass) {
-        recentContainer.innerHTML = "";
-        return;
-    }
-
-    function getClassDateForWeek(week, dayOfWeek) {
-        const baseDate = new Date(startDate.getTime());
-        const daysOffset = (week - 1) * 7 + (dayOfWeek - baseDate.getDay());
-        baseDate.setDate(baseDate.getDate() + daysOffset);
-        return baseDate;
-    }
-
-    // Calculate time range for last 14 days
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const lastTwoWeeksStart = new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000);
-
-    let summaryHTML = `<h4 class="attendance-header">Latest 2 Weeks (All Classes)</h4>
-    <table class="attendance-table">
-    <thead><tr><th>Week</th><th>Date</th><th>Course Code and Name</th><th>Status</th></tr></thead><tbody>`;
-
-    weeks.forEach((week, i) => {
-        classes.forEach((cls, idx) => {
-            const classDate = getClassDateForWeek(week, cls.day);
-            // Show only if in the desired recent 2 weeks range
-            if (classDate >= lastTwoWeeksStart && classDate <= today) {
-                const day = String(classDate.getDate()).padStart(2, "0");
-                const month = String(classDate.getMonth() + 1).padStart(2, "0");
-                const year = String(classDate.getFullYear()).slice(-2);
-                const formattedDate = `${day}/${month}/${year}`;
-                const status = globalAllAttendanceRecords[i][idx];
-                summaryHTML += `<tr><td><strong>Week ${week}</strong></td><td>${formattedDate}</td><td>${cls.code} - ${cls.name}</td><td><span class="status-badge ${status.toLowerCase()}">${status}</span></td></tr>`;
+            if (!res.ok) {
+                throw new Error("Failed to load groups");
             }
+
+            const allGroups = await res.json();
+            
+            // Filter groups where student is in the student_list
+            const studentGroups = allGroups.filter(group => {
+                if (!group.student_list) return false;
+                
+                // Parse student_list if it's a string (JSON array format)
+                let studentList = group.student_list;
+                if (typeof studentList === 'string') {
+                    try {
+                        studentList = JSON.parse(studentList);
+                    } catch (e) {
+                        // If not JSON, try splitting by comma
+                        studentList = studentList.split(',').map(s => s.trim());
+                    }
+                }
+                
+                // Check if student ID or email is in the list
+                return studentList.includes(studentId) || 
+                    studentList.includes(userData.email) ||
+                    studentList.includes(userData.code);
+            });
+
+            // Extract unique class codes from the student's groups
+            const uniqueClassCodes = [...new Set(studentGroups.map(g => g.class_code).filter(Boolean))];
+            
+            // Fetch all classes from the classes table
+            const classesRes = await fetch(`http://localhost:8080/api/classes`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            let allClasses = [];
+            if (classesRes.ok) {
+                allClasses = await classesRes.json();
+            }
+            
+            // Map class codes to class details
+            const classMap = new Map();
+            
+            for (const classCode of uniqueClassCodes) {
+                // Find the class in the fetched classes
+                const classData = allClasses.find(c => c.class_code === classCode);
+                
+                if (classData) {
+                    classMap.set(classCode, {
+                        class_code: classData.class_code,
+                        class_name: classData.class_name,
+                        professor_list: classData.professor_list || ''
+                    });
+                } else {
+                    // Fallback if class not found
+                    console.warn(`Class ${classCode} not found in classes table`);
+                    classMap.set(classCode, {
+                        class_code: classCode,
+                        class_name: `Class ${classCode}`,
+                        professor_list: ''
+                    });
+                }
+            }
+
+            const classes = Array.from(classMap.values());
+            
+            if (classes.length === 0) {
+                console.warn("No classes found for this student");
+            }
+
+            enrolledClasses = classes;
+            populateClassDropdown(classes);
+            return classes;
+
+        } catch (err) {
+            console.error("Error fetching classes:", err);
+            alert("Error loading classes: " + err.message);
+            
+            // Show empty dropdown
+            enrolledClasses = [];
+            populateClassDropdown([]);
+            return [];
+        }
+    }
+
+    // Populate the class dropdown with enrolled classes
+    function populateClassDropdown(classes) {
+        const classSelect = document.getElementById("classSelect");
+        
+        // Clear existing options
+        while (classSelect.firstChild) {
+            classSelect.removeChild(classSelect.firstChild);
+        }
+        
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = "";
+        defaultOption.textContent = "Select a class";
+        classSelect.appendChild(defaultOption);
+        
+        // Add classes to dropdown
+        if (classes && classes.length > 0) {
+            classes.forEach(cls => {
+                const option = document.createElement('option');
+                option.value = cls.class_code.toLowerCase();
+                option.textContent = `${cls.class_code} - ${cls.class_name}`;
+                option.dataset.classCode = cls.class_code;
+                option.dataset.className = cls.class_name;
+                classSelect.appendChild(option);
+            });
+        } else {
+            // Show message if no classes found
+            const option = document.createElement('option');
+            option.value = "";
+            option.textContent = "No classes enrolled";
+            option.disabled = true;
+            classSelect.appendChild(option);
+        }
+    }
+
+    // Fetch attendance records for a specific class from attendance_records table
+    async function fetchAttendanceRecordsForClass(classCode, studentId) {
+        try {
+            const token = localStorage.getItem("access_token");
+
+            // Fetch all attendance records
+            const res = await fetch(
+                `http://localhost:8080/api/attendance_records`,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            if (!res.ok) {
+                console.log("No attendance records found");
+                return [];
+            }
+
+            const allRecords = await res.json();
+            
+            // Filter for this specific student
+            const studentRecords = allRecords.filter(record => record.student_id === studentId);
+            
+            return studentRecords;
+        } catch (err) {
+            console.error("Error fetching attendance records:", err);
+            return [];
+        }
+    }
+
+    // Fetch sessions for a class to build attendance table
+    async function fetchSessionsForClass(classCode) {
+        try {
+            const token = localStorage.getItem("access_token");
+            
+            const res = await fetch(`http://localhost:8080/api/sessions`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                return [];
+            }
+
+            const allSessions = await res.json();
+            // Filter sessions for this specific class
+            return allSessions.filter(s => s.class_code === classCode);
+        } catch (err) {
+            console.error("Error fetching sessions:", err);
+            return [];
+        }
+    }
+
+    // Helper function to clear container
+    function clearContainer(container) {
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+    }
+
+    // Helper function to create message element
+    function createMessage(text, className = 'welcome-subtitle') {
+        const p = document.createElement('p');
+        p.className = className;
+        p.textContent = text;
+        return p;
+    }
+
+    // Updated displayDummyAttendance to use attendance_records table
+    async function displayDummyAttendance() {
+        const classSelect = document.getElementById("classSelect");
+        const mainContainer = document.getElementById("attendanceTableContainer");
+        const recentContainer = document.getElementById("recentAttendanceTableContainer");
+        const selectedClass = classSelect.value;
+
+        // Clear containers
+        clearContainer(mainContainer);
+        clearContainer(recentContainer);
+
+        if (!selectedClass) {
+            // Show message when no class is selected
+            mainContainer.appendChild(createMessage("Please select a class to view attendance records"));
+            return;
+        }
+
+        // Get selected class data
+        const selectedOption = classSelect.options[classSelect.selectedIndex];
+        const classCode = selectedOption.dataset.classCode;
+        const className = selectedOption.dataset.className;
+
+        const userJson = localStorage.getItem("user");
+        const userData = JSON.parse(userJson);
+        const studentId = userData.id;
+
+        // Fetch sessions and attendance records for the selected class
+        const sessions = await fetchSessionsForClass(classCode);
+        const allAttendanceRecords = await fetchAttendanceRecordsForClass(classCode, studentId);
+
+        if (sessions.length === 0) {
+            const header = document.createElement('h3');
+            header.className = 'attendance-header';
+            header.textContent = `Attendance for ${classCode} - ${className}`;
+            mainContainer.appendChild(header);
+            mainContainer.appendChild(createMessage("No sessions found for this class yet"));
+            return;
+        }
+
+        // Build attendance map by session_id
+        const attendanceMap = new Map();
+        allAttendanceRecords.forEach(record => {
+            attendanceMap.set(record.session_id, record);
         });
-    });
-    summaryHTML += "</tbody></table>";
-    recentContainer.innerHTML = summaryHTML;
-}
 
+        // Create header
+        const header = document.createElement('h3');
+        header.className = 'attendance-header';
+        header.textContent = `Attendance for ${classCode} - ${className}`;
+        mainContainer.appendChild(header);
 
-// Initial call after page loaded so tables are shown based on default dropdown value
-window.onload = function () {
-    displayDummyAttendance();
-};
+        // Create table
+        const table = document.createElement('table');
+        table.className = 'attendance-table';
 
-document.getElementById("classSelect").addEventListener("change", displayDummyAttendance);
+        // Create thead
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        ['Session', 'Date', 'Status', 'Method', 'Marked At'].forEach(text => {
+            const th = document.createElement('th');
+            th.textContent = text;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
 
+        // Create tbody
+        const tbody = document.createElement('tbody');
+        sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        sessions.forEach(session => {
+            const row = document.createElement('tr');
+            
+            const sessionDate = new Date(session.date);
+            const formattedDate = sessionDate.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit'
+            });
+            
+            const attendance = attendanceMap.get(session.id);
+            const status = attendance ? attendance.status : 'Absent';
+            const method = attendance ? (attendance.method || 'N/A') : 'N/A';
+            
+            let markedAt = 'N/A';
+            if (attendance && attendance.marked_at) {
+                const markedDate = new Date(attendance.marked_at);
+                markedAt = markedDate.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: '2-digit'
+                }) + ' ' + markedDate.toLocaleTimeString('en-GB', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            // Session name cell
+            const sessionCell = document.createElement('td');
+            const sessionStrong = document.createElement('strong');
+            sessionStrong.textContent = session.name || 'Session';
+            sessionCell.appendChild(sessionStrong);
+            row.appendChild(sessionCell);
+            
+            // Date cell
+            const dateCell = document.createElement('td');
+            dateCell.textContent = formattedDate;
+            row.appendChild(dateCell);
+            
+            // Status cell
+            const statusCell = document.createElement('td');
+            const statusBadge = document.createElement('span');
+            statusBadge.className = `status-badge ${status.toLowerCase()}`;
+            statusBadge.textContent = status;
+            statusCell.appendChild(statusBadge);
+            row.appendChild(statusCell);
+            
+            // Method cell
+            const methodCell = document.createElement('td');
+            methodCell.textContent = method;
+            row.appendChild(methodCell);
+            
+            // Marked At cell
+            const markedAtCell = document.createElement('td');
+            markedAtCell.textContent = markedAt;
+            row.appendChild(markedAtCell);
+            
+            tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        mainContainer.appendChild(table);
+
+        // Show recent attendance (last 2 weeks)
+        await showRecentAttendance();
+    }
+
+    // Show recent attendance across all classes using attendance_records table
+    async function showRecentAttendance() {
+        const recentContainer = document.getElementById("recentAttendanceTableContainer");
+        clearContainer(recentContainer);
+
+        try {
+            const token = localStorage.getItem("access_token");
+            const userJson = localStorage.getItem("user");
+            const userData = JSON.parse(userJson);
+            const studentId = userData.id;
+
+            // Calculate date range for last 2 weeks
+            const today = new Date();
+            today.setHours(23, 59, 59, 999);
+            const twoWeeksAgo = new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000);
+            twoWeeksAgo.setHours(0, 0, 0, 0);
+
+            // Fetch all attendance records
+            const res = await fetch(
+                `http://localhost:8080/api/attendance_records`,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            if (!res.ok) {
+                return;
+            }
+
+            const allRecords = await res.json();
+
+            // Filter for this student and last 2 weeks
+            const recentRecords = allRecords.filter(record => {
+                if (record.student_id !== studentId) return false;
+                const recordDate = new Date(record.marked_at);
+                return recordDate >= twoWeeksAgo && recordDate <= today;
+            });
+
+            if (recentRecords.length === 0) {
+                recentContainer.appendChild(createMessage("No recent attendance in the last 2 weeks"));
+                return;
+            }
+
+            // Fetch session details for each record
+            const recordsWithDetails = await Promise.all(
+                recentRecords.map(async (record) => {
+                    try {
+                        const sessionRes = await fetch(`http://localhost:8080/api/sessions/${record.session_id}`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        
+                        if (sessionRes.ok) {
+                            const session = await sessionRes.json();
+                            
+                            // Get class details
+                            const classObj = enrolledClasses.find(c => c.class_code === session.class_code);
+                            
+                            return {
+                                ...record,
+                                class_code: session.class_code,
+                                class_name: classObj ? classObj.class_name : session.class_code,
+                                session_name: session.name,
+                                session_date: session.date
+                            };
+                        }
+                        return record;
+                    } catch (err) {
+                        return record;
+                    }
+                })
+            );
+
+            // Create header
+            const header = document.createElement('h4');
+            header.className = 'attendance-header';
+            header.textContent = 'Recent Attendance (Last 2 Weeks)';
+            recentContainer.appendChild(header);
+
+            // Create table
+            const table = document.createElement('table');
+            table.className = 'attendance-table';
+
+            // Create thead
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Marked At', 'Session', 'Course', 'Status', 'Method'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // Create tbody
+            const tbody = document.createElement('tbody');
+
+            // Sort by marked_at descending (most recent first)
+            recordsWithDetails.sort((a, b) => new Date(b.marked_at) - new Date(a.marked_at));
+
+            recordsWithDetails.forEach(record => {
+                const row = document.createElement('tr');
+                
+                const markedDate = new Date(record.marked_at);
+                const formattedMarkedAt = markedDate.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: '2-digit'
+                }) + ' ' + markedDate.toLocaleTimeString('en-GB', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Marked At cell
+                const markedAtCell = document.createElement('td');
+                markedAtCell.textContent = formattedMarkedAt;
+                row.appendChild(markedAtCell);
+                
+                // Session cell
+                const sessionCell = document.createElement('td');
+                sessionCell.textContent = record.session_name || 'Session';
+                row.appendChild(sessionCell);
+                
+                // Course cell
+                const courseCell = document.createElement('td');
+                courseCell.textContent = record.class_code + (record.class_name ? ' - ' + record.class_name : '');
+                row.appendChild(courseCell);
+                
+                // Status cell
+                const statusCell = document.createElement('td');
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `status-badge ${record.status.toLowerCase()}`;
+                statusBadge.textContent = record.status;
+                statusCell.appendChild(statusBadge);
+                row.appendChild(statusCell);
+                
+                // Method cell
+                const methodCell = document.createElement('td');
+                methodCell.textContent = record.method || 'N/A';
+                row.appendChild(methodCell);
+                
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(tbody);
+            recentContainer.appendChild(table);
+
+        } catch (err) {
+            console.error("Error loading recent attendance:", err);
+        }
+    }
+
+    // Initialize on page load
+    window.onload = async function () {
+        // Fetch and populate classes from groups table
+        await fetchStudentClasses();
+        
+        // Display initial state
+        displayDummyAttendance();
+    };
+
+    // Add event listener for class selection
+    document.getElementById("classSelect").addEventListener("change", displayDummyAttendance);
 </script>
 
-    <!-- Face Scanning Modal -->
     <div id="faceScanModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
@@ -329,11 +699,6 @@ document.getElementById("classSelect").addEventListener("change", displayDummyAt
                 <p style="text-align: center; color: #64748b; margin-bottom: 1rem;">
                     Position your face within the frame for attendance verification
                 </p>
-                <!-- <div class="camera-container" style="position: relative; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 1rem;">
-                    <video id="attendanceVideo" style="width: 100%; height: 300px; object-fit: cover;" autoplay muted></video>
-                    <canvas id="attendanceCanvas" style="display: none;"></canvas>
-                    <div class="scan-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 200px; border: 2px solid #22d3ee; border-radius: 50%; opacity: 0.8;"></div>
-                </div> -->
                 <div id="container">
                     <video id="video" autoplay muted playsinline></video>
                     <canvas id="canvas" width="360" height="240"></canvas>
@@ -396,7 +761,6 @@ document.getElementById("classSelect").addEventListener("change", displayDummyAt
         </div>
     </div>
 
-    <!-- Edit Profile Modal -->
     <div class="modal px-5" id="editProfileModal">
         <div class="modal-dialog px-5" style="width: 500px;">
             <div class="modal-content">
@@ -414,6 +778,11 @@ document.getElementById("classSelect").addEventListener("change", displayDummyAt
                     <div class="form-group mb-3">
                         <label class="form-label" for="editEmail">Email</label>
                         <input type="email" id="editEmail" class="form-input form-control" required>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="editClass">Class Code</label>
+                        <input type="text" id="editClass" class="form-input form-control" placeholder="e.g. CS101">
                     </div>
                     
                     <div class="form-group mb-3">
@@ -455,146 +824,158 @@ document.getElementById("classSelect").addEventListener("change", displayDummyAt
     
     <script type="module" src="src/student.js"></script>
     <script>
-        // function openEditProfileModal() {
-        //     document.getElementById("editProfileModal").classList.add("active");
-        // }
-        // Function to open the edit profile modal and populate with current user data
+        let currentUser = null; // logged-in user (from Supabase or backend session)
+
+        // --- 1️⃣ Get current student ---
+        async function getCurrentStudent() {
+            try {
+                const token = localStorage.getItem("access_token");
+                if (!token) throw new Error("Please log in first");
+
+                const userJson = localStorage.getItem("user");
+                if (!userJson) throw new Error("User data not found in storage. Please re-login.");
+
+                const userData = JSON.parse(userJson);
+                const studentId = userData.id;
+                if (!studentId) throw new Error("Student ID missing in storage");
+
+                const res = await fetch(`http://localhost:8080/api/students/${studentId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (res.status === 404) throw new Error("Student profile not found.");
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || "Failed to load student profile.");
+                }
+
+                const student = await res.json();
+                currentUser = student;
+                localStorage.setItem("student_id", student.id); 
+                return student;
+
+            } catch (err) {
+                console.error(err);
+                alert(err.message);
+                return null; 
+            }
+        }
+
+        // --- 2️⃣ Open Edit Profile Modal ---
+        async function openEditProfileModal() {
+            try {
+                const student = await getCurrentStudent();
+                if (!student) return;
+
+                // Prefill form fields
+                document.getElementById("editName").value = student.name || "";
+                document.getElementById("editEmail").value = student.email || "";
+                document.getElementById("editClass").value = student.class_name || "";
+
+                // Clear password fields
+                document.getElementById("currentPassword").value = "";
+                document.getElementById("editPassword").value = "";
+                document.getElementById("editConfirmPassword").value = "";
+
+                // Hide messages
+                document.getElementById("editPasswordError").style.display = "none";
+                document.getElementById("editSuccessMessage").style.display = "none";
+                document.getElementById("editErrorMessage").style.display = "none";
+
+                // Show modal
+                document.getElementById("editProfileModal").classList.add("active");
+            } catch (err) {
+                console.error("Error opening modal:", err);
+                alert("Error loading profile");
+            }
+        }
+
+        // --- 3️⃣ Close Modal ---
         function closeEditProfileModal() {
             document.getElementById("editProfileModal").classList.remove("active");
         }
-        async function openEditProfileModal() {
-        try {
-            // Hardcoded user data for testing
-            const user = {
-                name: "John Doe",
-                email: "john.doe@example.com"
-            };
-            
-            // Original API call (commented out)
-            // const response = await fetch('http://localhost:8080/api/user/profile');
-            // if (!response.ok) {
-            //     throw new Error('Failed to load user data');
-            // }
-            // const user = await response.json();
-            
-            // Populate form with current data
-            document.getElementById('editName').value = user.name || '';
-            document.getElementById('editEmail').value = user.email || '';
-            
-            // Clear password fields
-            document.getElementById('currentPassword').value = '';
-            document.getElementById('editPassword').value = '';
-            document.getElementById('editConfirmPassword').value = '';
-            
-            // Hide error/success messages
-            document.getElementById('editPasswordError').style.display = 'none';
-            document.getElementById('editSuccessMessage').style.display = 'none';
-            document.getElementById('editErrorMessage').style.display = 'none';
-            
-            document.getElementById("editProfileModal").classList.add("active");
-            
-        } catch (error) {
-            console.error('Error loading profile:', error);
-            alert('Error loading profile data');
-        }
-        }
 
-        // Function to save profile changes
+        // --- 4️⃣ Save Profile Changes ---
         async function saveProfileChanges() {
-        // Get form values
-        const name = document.getElementById('editName').value.trim();
-        const email = document.getElementById('editEmail').value.trim();
-        const currentPassword = document.getElementById('currentPassword').value;
-        const newPassword = document.getElementById('editPassword').value;
-        const confirmPassword = document.getElementById('editConfirmPassword').value;
-        
-        // Hide previous messages
-        document.getElementById('editPasswordError').style.display = 'none';
-        document.getElementById('editSuccessMessage').style.display = 'none';
-        document.getElementById('editErrorMessage').style.display = 'none';
-        
-        // Validate passwords if user is trying to change password
-        if (newPassword || confirmPassword) {
-            if (newPassword !== confirmPassword) {
-                document.getElementById('editPasswordError').style.display = 'block';
-                return;
-            }
-            
-            if (!currentPassword) {
-                alert('Please enter your current password to change it');
-                return;
-            }
-            
-            if (newPassword.length < 6) {
-                alert('New password must be at least 6 characters long');
-                return;
-            }
-        }
-        
-        // Prepare update data
-        const updateData = {
-            name: name,
-            email: email
-        };
-        
-        // Add password fields only if user wants to change password
-        if (newPassword) {
-            updateData.currentPassword = currentPassword;
-            updateData.newPassword = newPassword;
-        }
-        
-        try {
-            // Log the data that would be sent (for testing)
-            console.log('Update data:', updateData);
-            
-            // Simulate successful update with hardcoded response
-            const updatedUser = {
-                id: "123e4567-e89b-12d3-a456-426614174000",
-                name: name,
-                email: email,
-                updatedAt: new Date().toISOString()
-            };
-            
-            // Original API call (commented out)
-            // const response = await fetch('http://localhost:8080/api/user/profile', {
-            //     method: 'PUT',
-            //     headers: {
-            //         'Content-Type': 'application/json'
-            //     },
-            //     body: JSON.stringify(updateData)
-            // });
-            // 
-            // if (!response.ok) {
-            //     const errorData = await response.json();
-            //     throw new Error(errorData.message || 'Failed to update profile');
-            // }
-            // 
-            // const updatedUser = await response.json();
-            
-            // Show success message
-            document.getElementById('editSuccessMessage').style.display = 'block';
-            
-            // Update UI with new data if needed
-            console.log('Profile updated:', updatedUser);
-            
-            // Close modal after 1.5 seconds
-            setTimeout(() => {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
-                modal.hide();
-                
-                // Optionally refresh the page or update displayed user info
-                // location.reload();
-            }, 1500);
-            
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            document.getElementById('editErrorMessage').textContent = error.message;
-            document.getElementById('editErrorMessage').style.display = 'block';
-        }
-        }
+            try {
+                const studentId = localStorage.getItem("student_id");
+                if (!studentId) throw new Error("Student ID missing");
 
-        
+                const token = localStorage.getItem("access_token");
+                if (!token) throw new Error("Please log in first");
+
+                // Collect form values
+                const name = document.getElementById("editName").value.trim();
+                const email = document.getElementById("editEmail").value.trim();
+                const class_name = document.getElementById("editClass").value.trim();
+                const currentPassword = document.getElementById("currentPassword").value;
+                const newPassword = document.getElementById("editPassword").value;
+                const confirmPassword = document.getElementById("editConfirmPassword").value;
+
+                // Hide previous messages
+                document.getElementById("editPasswordError").style.display = "none";
+                document.getElementById("editSuccessMessage").style.display = "none";
+                document.getElementById("editErrorMessage").style.display = "none";
+
+                // Prepare update payload
+                const updateData = { name, email, class_name };
+
+                // Only handle password if user wants to change it
+                if (newPassword) {
+                    if (!currentPassword) {
+                        alert("Please enter your current password to change it");
+                        return;
+                    }
+                    if (newPassword !== confirmPassword) {
+                        document.getElementById("editPasswordError").textContent = "Passwords do not match";
+                        document.getElementById("editPasswordError").style.display = "block";
+                        return;
+                    }
+                    if (newPassword.length < 6) {
+                        alert("New password must be at least 6 characters");
+                        return;
+                    }
+                    updateData.currentPassword = currentPassword;
+                    updateData.newPassword = newPassword;
+                }
+
+                // Send PATCH request
+                const res = await fetch(`http://localhost:8080/api/students/${studentId}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || "Failed to update profile");
+                }
+
+                const updatedStudent = await res.json();
+                console.log("Profile updated:", updatedStudent);
+
+                // Update localStorage with new student info
+                localStorage.setItem("user", JSON.stringify(updatedStudent));
+                currentUser = updatedStudent;
+
+                // Show success message
+                document.getElementById("editSuccessMessage").style.display = "block";
+
+                // Close modal after 1.5s
+                setTimeout(() => closeEditProfileModal(), 1500);
+
+            } catch (err) {
+                console.error("Error updating profile:", err);
+                document.getElementById("editErrorMessage").textContent = err.message;
+                document.getElementById("editErrorMessage").style.display = "block";
+            }
+        }
     </script>
+
+
 </body>
 </html>
 

@@ -13,7 +13,7 @@ public class StudentService extends SupabaseService<Student> {
     public StudentService(WebClient webClient) {
         super(webClient, "students", Student[].class, Student.class);
     }
-       public Student update(String id, StudentUpdateDTO updatedDto) {
+    public Student update(String id, StudentUpdateDTO updatedDto) {
         // Calls the generic update method but with DTO object for patch
         return super.update(id, updatedDto);
     }

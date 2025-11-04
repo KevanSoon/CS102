@@ -61,16 +61,37 @@ status.textContent = "Ready";
 async function sendCanvasImageToAPI(canvas) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(async (blob) => {
-      if (!blob) return reject("Failed to get Blob from canvas");
+      if (!blob) {
+        console.error("Failed to get Blob from canvas");
+        return reject("Failed to get Blob from canvas");
+      }
+      
       const file = new File([blob], "detected.png", { type: "image/png" });
+      console.log("Sending image to API, file size:", file.size, "bytes");
+      
       try {
         const formData = new FormData();
         formData.append("image", file);
-        const response = await fetch("http://localhost:8080/api/face-batch/face-compare-all", { method: "POST", body: formData });
-        if (!response.ok) return reject(`Failed to send image: ${response.statusText}`);
+        
+        console.log("Sending POST request to: http://localhost:8080/api/face-batch/face-compare-all");
+        const response = await fetch("http://localhost:8080/api/face-batch/face-compare-all", { 
+          method: "POST", 
+          body: formData 
+        });
+        
+        console.log("Response status:", response.status, response.statusText);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API Error Response:", errorText);
+          return reject(`Failed to send image: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log("API Response:", result);
         resolve(result);
       } catch (err) {
+        console.error("Network or parsing error:", err);
         reject(err);
       }
     }, "image/png");
@@ -102,14 +123,20 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
     currentLabelElement = labelElement;
     if (!hasSent) {
         hasSent = true;
+        console.log("Starting face verification...");
         sendCanvasImageToAPI(canvas).then(response => {
+            console.log("Verification response received:", response);
             const { highestSimilarity, bestMatchName = "Unknown" } = response;
+            console.log("Parsed values - highestSimilarity:", highestSimilarity, "bestMatchName:", bestMatchName);
+            
             if (highestSimilarity && highestSimilarity > 0.80) {
                 color = "green";
                 text = `Verified! ${bestMatchName} (${(highestSimilarity * 100).toFixed(2)}%)`;
+                console.log("✓ Verification SUCCESS:", text);
             } else {
                 color = "red";
                 text = "Failed to verify";
+                console.log("✗ Verification FAILED - similarity too low or undefined");
             }
             if (currentLabelElement && currentBoxElement) {
                 currentLabelElement.textContent = text;

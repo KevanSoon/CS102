@@ -4,6 +4,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+
+### Python Virtual Environment ###
+python-face-verification/venv
+
 ### Environment Variables ###
 .env
 

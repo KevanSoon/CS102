@@ -31,7 +31,7 @@ recognition:
   confidence: 0.70
   cooldownMs: 10000
 face-service:
-  fastapi-url: https://kevansoon-java-facerecognition-endpoint.hf.space/face-recognition
+  deepface-url: http://localhost:8000/api/face_match
 
 # CORS configuration
 cors:

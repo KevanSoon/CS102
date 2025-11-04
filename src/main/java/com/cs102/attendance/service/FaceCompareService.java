@@ -3,6 +3,7 @@ package com.cs102.attendance.service;
 import java.io.File;
 import java.util.Objects;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,7 +20,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 public class FaceCompareService {
 
-    private static final String API_URL = "https://face.miniai.live/api/face_match";
+    @Value("${face-service.deepface-url}")
+    private String apiUrl;
 
     public JsonNode faceCompare(String frame1Path, String frame2Path) {
         try {
@@ -29,7 +31,7 @@ public class FaceCompareService {
             FileSystemResource image1 = new FileSystemResource(new File(frame1Path));
             FileSystemResource image2 = new FileSystemResource(new File(frame2Path));
 
-            // Use MultiValueMap instead of HashMap
+            // Use MultiValueMap for multipart form data
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("image1", image1);
             body.add("image2", image2);
@@ -39,26 +41,23 @@ public class FaceCompareService {
 
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(API_URL, requestEntity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
 
             ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readTree(Objects.requireNonNull(response.getBody()));
 
-            System.out.println(jsonNode);
+            System.out.println("DeepFace API Response: " + jsonNode);
 
-            // Extract similarity as a JsonNode
-            JsonNode matchArray = jsonNode.get("match");
-            if (matchArray != null && matchArray.isArray() && matchArray.size() > 0) {
-                JsonNode matchObj = matchArray.get(0);
-                if (matchObj.has("similarity")) {
-                    return matchObj.get("similarity"); // Return as JsonNode
-                }
+            // Extract confidence from DeepFace response
+            if (jsonNode.has("confidence")) {
+                return jsonNode.get("confidence"); // Return confidence as JsonNode
             }
-            System.err.println("Similarity field not found in response.");
+            
+            System.err.println("Confidence field not found in response.");
             return null;
-         
 
         } catch (Exception e) {
+            System.err.println("Error in faceCompare: " + e.getMessage());
             e.printStackTrace();
             return null;
         }

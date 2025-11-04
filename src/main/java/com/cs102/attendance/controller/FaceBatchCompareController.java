@@ -43,24 +43,35 @@ public class FaceBatchCompareController {
      */
     @PostMapping("/face-compare-all")
     public ResponseEntity<ObjectNode> compareUploadedFace(@RequestParam("image") MultipartFile image) throws IOException {
+        System.out.println("=== Face Batch Compare Request Received ===");
+        System.out.println("Image filename: " + image.getOriginalFilename());
+        System.out.println("Image size: " + image.getSize() + " bytes");
+        System.out.println("Content type: " + image.getContentType());
+        
         ObjectNode finalResponse = mapper.createObjectNode();
 
         if (image.isEmpty()) {
+            System.err.println("ERROR: No image file received");
             finalResponse.put("error", "No image file received");
             return ResponseEntity.badRequest().body(finalResponse);
         }
 
         // ✅ Convert uploaded file to Base64 string
         String base64Image = java.util.Base64.getEncoder().encodeToString(image.getBytes());
+        System.out.println("Base64 image length: " + base64Image.length());
 
         // ✅ Fetch all students from DB
         List<FaceData> students = faceDataService.getAll();
+        System.out.println("Fetched " + students.size() + " students from database");
+        
         List<JsonNode> results = new ArrayList<>();
         double highestScore = 0.0;
         String bestStudentId = null;
 
         for (FaceData student : students) {
             try {
+                System.out.println("Comparing with student: " + student.getStudentId());
+                
                 // Build request body for /api/face-compare-url
                 Map<String, String> requestBody = Map.of(
                         "imageBase64", base64Image,
@@ -73,7 +84,13 @@ public class FaceBatchCompareController {
                         JsonNode.class
                 );
 
+                if (response.getBody() == null) {
+                    System.err.println("WARNING: Received null response body for student " + student.getStudentId());
+                    continue;
+                }
+
                 double similarity = response.getBody().asDouble();
+                System.out.println("Student " + student.getStudentId() + " similarity: " + similarity);
 
                 ObjectNode resultNode = mapper.createObjectNode();
                 resultNode.put("studentId", student.getStudentId());
@@ -84,9 +101,12 @@ public class FaceBatchCompareController {
                 if (similarity > 0.80 && similarity > highestScore) {
                     highestScore = similarity;
                     bestStudentId = student.getStudentId();
+                    System.out.println("New best match: " + bestStudentId + " with score: " + highestScore);
                 }
 
             } catch (Exception e) {
+                System.err.println("Error comparing with student " + student.getStudentId() + ": " + e.getMessage());
+                e.printStackTrace();
                 ObjectNode errorNode = mapper.createObjectNode();
                 errorNode.put("studentId", student.getStudentId());
                 errorNode.put("error", e.getMessage());
@@ -133,12 +153,15 @@ public class FaceBatchCompareController {
                 finalResponse.put("bestMatchStudentId", bestStudentId);
                 finalResponse.put("error", "Error fetching student name: " + e.getMessage());
             }
-        } 
-        
-        // else {
-        //     finalResponse.put("message", "No match above 0.80 similarity threshold");
-        // }
+        } else {
+            System.out.println("No match found above 0.80 threshold. Highest score was: " + highestScore);
+            finalResponse.put("message", "No match above 0.80 similarity threshold");
+            finalResponse.put("highestSimilarity", highestScore);
+            finalResponse.put("totalStudentsCompared", students.size());
+        }
 
+        System.out.println("Final response: " + finalResponse);
+        System.out.println("=== Face Batch Compare Request Complete ===");
         return ResponseEntity.ok(finalResponse);
     }
 }

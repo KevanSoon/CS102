@@ -49,6 +49,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/groups/**").permitAll()
                 .requestMatchers("/api/classes/**").permitAll()
                 .requestMatchers("/api/professors/**").permitAll()
+                .requestMatchers("/api/face-data/").permitAll()
+                .requestMatchers("/api/face-compare-url").permitAll() // Fixed: removed trailing slash
+                .requestMatchers("/api/face-batch/**").permitAll()
 
                 // Professor-only endpoints
                 // .requestMatchers("/api/sessions/**").hasRole("PROFESSOR")

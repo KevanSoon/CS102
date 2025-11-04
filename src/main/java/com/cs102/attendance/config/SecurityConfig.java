@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/sessions/**").permitAll()
                 .requestMatchers("/api/attendance/**").permitAll()
                 .requestMatchers("/api/face-data/**").permitAll()
+                .requestMatchers("/api/face_data/**").permitAll() // Face data upload endpoint
                 .requestMatchers("/api/face-recognition/**").permitAll()
                 .requestMatchers("/api/groups/**").permitAll()
                 .requestMatchers("/api/classes/**").permitAll()

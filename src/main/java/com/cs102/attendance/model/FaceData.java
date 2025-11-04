@@ -1,9 +1,12 @@
 package com.cs102.attendance.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class FaceData {
 
+    @JsonProperty("face_id")
     private String id;
     @JsonProperty("student_id")
     private String studentId;

@@ -11,7 +11,7 @@ public class AttendanceRecord {
     private String status;          // e.g., "Present", "Absent"
     private Double confidence;      // e.g., 0.95
     private String method;          // e.g., "Facial Recognition"
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private LocalDateTime marked_at;
 
     public AttendanceRecord() {

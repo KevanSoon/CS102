@@ -957,45 +957,47 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function exportCSV() {
-  await exportReport("csv");
+    await exportReport("csv");
 }
 
 function exportPDF() {
-    const classSelect = document.querySelector("#generateReportModal select");
+    const classSelect = document.querySelector("#classSelect");
     const selectedClass = classSelect ? classSelect.value : "";
 
-    const url = `${API_BASE_URL}/reports/generate?format=pdf&className=${encodeURIComponent(selectedClass)}`;
-
+    const url = `${API_BASE_URL}/reports/generate?format=pdf${selectedClass ? `&className=${encodeURIComponent(selectedClass)}` : ""}`;
     window.open(url, "_blank");
 }
 
-
 async function exportReport(format) {
-  try {
-    const response = await authService.apiRequest(`/reports/generate?format=${format}`, {
-      method: "POST"
-    });
+    const classSelect = document.querySelector("#classSelect");
+    const selectedClass = classSelect ? classSelect.value : "";
 
-    if (!response.ok) {
-      alert("Failed to generate report.");
-      return;
+    try {
+        const response = await authService.apiRequest(
+            `/reports/generate?format=${format}${selectedClass ? `&className=${encodeURIComponent(selectedClass)}` : ""}`, 
+            { method: "POST" }
+        );
+
+        if (!response.ok) {
+            alert("Failed to generate report.");
+            return;
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `attendance_report.${format}`;
+        document.body.appendChild(a);
+        a.click();
+
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Error generating report:", error);
+        alert("Error generating report");
     }
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `students.${format}`;
-    document.body.appendChild(a);
-    a.click();
-
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Error generating report:", error);
-    alert("Error generating report");
-  }
 }
 
 // ===== MAKE FUNCTIONS GLOBALLY ACCESSIBLE FOR ONCLICK HANDLERS (UNCHANGED) =====

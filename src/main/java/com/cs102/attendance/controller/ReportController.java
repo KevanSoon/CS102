@@ -1,217 +1,230 @@
 package com.cs102.attendance.controller;
-
-import com.cs102.attendance.model.Student;
-import com.cs102.attendance.service.StudentService;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDDocumentInformation;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.*;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import com.cs102.attendance.model.*;
+import com.cs102.attendance.service.*;
 
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
 
-    @Autowired
-    private StudentService studentService;
+    private final SessionService sessionService;
+    private final GroupsService groupsService;
+    private final AttendanceRecordService attendanceService;
+    private final StudentService studentService;
 
-    @RequestMapping(value = "/generate", method = {RequestMethod.POST, RequestMethod.GET})
-    public void generateReport(@RequestParam String format, HttpServletResponse response) throws IOException {
+    public ReportController(SessionService sessionService, GroupsService groupsService,
+                            AttendanceRecordService attendanceService, StudentService studentService) {
+        this.sessionService = sessionService;
+        this.groupsService = groupsService;
+        this.attendanceService = attendanceService;
+        this.studentService = studentService;
+    }
+
+    @RequestMapping(value = "/generate", method = {RequestMethod.GET, RequestMethod.POST})
+    public void generateReport(
+        @RequestParam(defaultValue = "csv") String format,
+        @RequestParam(required = false) String className,
+        HttpServletResponse response) throws IOException {
+
+        List<Session> sessions = sessionService.getAll();
+
+        if (className != null && !className.isEmpty()) {
+        sessions = sessions.stream()
+                .filter(s -> className.equalsIgnoreCase(s.getClassCode()))
+                .toList();
+            }
+        List<Groups> groups = groupsService.getAll();
         List<Student> students = studentService.getAll();
+        List<AttendanceRecord> attendanceRecords = attendanceService.getAll();
 
-        switch (format.toLowerCase()) {
-            case "pdf":
-                response.setContentType("application/pdf");
-                response.setHeader("Content-Disposition", "inline; filename=students.pdf"); // open in browser
-                exportPdf(students, response);
-                break;
+        Map<String, Student> studentMap = students.stream()
+                .collect(Collectors.toMap(s -> s.getId().toString(), s -> s));
 
-            case "csv":
-                response.setContentType("text/csv");
-                response.setHeader("Content-Disposition", "attachment; filename=students.csv");
-                exportCsv(students, response.getWriter());
-                break;
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{"Name", "Status", "Confidence", "Method", "Date/Time",
+                "Session Name", "Class", "Group"});
 
-            default:
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid format: " + format);
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        for (Session session : sessions) {
+            Groups group = groups.stream()
+                    .filter(g -> g.getClassCode().equals(session.getClassCode())
+                            && g.getGroupNumber().equals(session.getGroupNumber()))
+                    .findFirst()
+                    .orElse(null);
+            if (group == null || group.getStudentList() == null) continue;
+
+            for (String studentId : group.getStudentList()) {
+                Student student = studentMap.get(studentId);
+                if (student == null) continue;
+
+                // Find record if student attended this session
+                AttendanceRecord record = attendanceRecords.stream()
+                        .filter(r -> r.getSession_id().toString().equals(session.getId().toString())
+                                && r.getStudent_id().toString().equals(studentId))
+                        .findFirst()
+                        .orElse(null);
+
+                String status = record != null ? record.getStatus() : "ABSENT";
+                String confidence = record != null && record.getConfidence() != null ? String.valueOf(record.getConfidence()) : "NULL";
+                String method = record != null ? record.getMethod() : "";
+                String timestamp = record != null && record.getMarked_at() != null
+                        ? dtf.format(record.getMarked_at())
+                        : "";
+
+                rows.add(new String[]{
+                        student.getName(),
+                        status,
+                        confidence,
+                        method,
+                        timestamp,
+                        session.getName(),
+                        session.getClassCode(),
+                        session.getGroupNumber()
+                });
+            }
+        }
+
+        if (format.equalsIgnoreCase("pdf")) {
+            exportPdf(rows, response, className);
+        } else {
+            exportCsv(rows, response);
         }
     }
 
-    private void exportCsv(List<Student> students, PrintWriter writer) {
-        writer.println("ID,Code,Name,ClassName,StudentGroup,Email,Phone");
-        for (Student s : students) {
-            writer.printf("%s,%s,%s,%s,%s,%s,%s%n",
-                    s.getId(), s.getCode(), s.getName(), s.getClass_name(),
-                    s.getStudent_group(), s.getEmail(), s.getPhone());
+    private void exportCsv(List<String[]> rows, HttpServletResponse response) throws IOException {
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=\"attendance_report.csv\"");
+        try (PrintWriter writer = response.getWriter()) {
+            for (String[] row : rows) {
+                writer.println(String.join(",", Arrays.stream(row)
+                        .map(cell -> "\"" + cell.replace("\"", "\"\"") + "\"")
+                        .toArray(String[]::new)));
+            }
         }
-        writer.flush();
     }
 
-    private void exportPdf(List<Student> students, HttpServletResponse response) throws IOException {
+    private void exportPdf(List<String[]> rows, HttpServletResponse response, String classCode) throws IOException {
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "inline; filename=\"attendance_report.pdf\"");
+
         try (PDDocument document = new PDDocument()) {
-            PDPage page = new PDPage(PDRectangle.LETTER);
+            PDPage page = new PDPage(PDRectangle.A4);
             document.addPage(page);
 
             PDDocumentInformation documentInformation = new PDDocumentInformation();
-            documentInformation.setTitle("Students Report");
+            documentInformation.setTitle("Attendance Report");
             document.setDocumentInformation(documentInformation);
+
+            ClassPathResource fontResource = new ClassPathResource("fonts/NotoSans-Regular.ttf");
+            PDType0Font font = PDType0Font.load(document, fontResource.getInputStream(), true);
+
+            // float marginX = 50;
+            float marginY = 50;
+            float y = PDRectangle.A4.getHeight() - marginY;
 
             PDPageContentStream content = new PDPageContentStream(document, page);
 
-            ClassPathResource fontResource = new ClassPathResource("fonts/NotoSans-Regular.ttf");
-            try (InputStream fontStream = fontResource.getInputStream()) {
-                PDType0Font font = PDType0Font.load(document, fontStream, true);
+            int fontSize = 10;
 
-                float pageWidth = PDRectangle.LETTER.getWidth();
-                float marginTop = 750;
-                float y = marginTop;
-                float marginX = 50;
-                float availableWidth = pageWidth - 2 * marginX;
+            String title = "Attendance Report" + (classCode != null && !classCode.isEmpty() ? " - " + classCode : "");
+            float titleWidth = getStringWidth(font, 14, title);
+            content.beginText();
+            content.setFont(font, 14);
+            content.newLineAtOffset((PDRectangle.A4.getWidth() - titleWidth) / 2, y);
+            content.showText(title);
+            content.endText();
+            y -= 30;
 
-                String[] headers = {"ID", "Code", "Name", "Class", "Group", "Email"};
-
-                String[][] data = new String[students.size()][headers.length];
-                for (int i = 0; i < students.size(); i++) {
-                    Student s = students.get(i);
-                    data[i] = new String[]{
-                            truncate(s.getId().toString(), 8),
-                            sanitize(s.getCode()),
-                            sanitize(s.getName()),
-                            sanitize(s.getClass_name()),
-                            sanitize(s.getStudent_group()),
-                            sanitize(s.getEmail())
-                    };
+            // Calculate max column widths based on header and first N rows
+            int cols = rows.get(0).length;
+            float[] colWidths = new float[cols];
+            for (int c = 0; c < cols; c++) {
+                float maxWidth = getStringWidth(font, fontSize, rows.get(0)[c]); // header width
+                for (int r = 1; r < rows.size(); r++) {
+                    float w = getStringWidth(font, fontSize, rows.get(r)[c]);
+                    if (w > maxWidth) maxWidth = w;
                 }
-
-                // Define max allowable width per column in points
-                float[] maxColWidths = new float[]{60, 60, 140, 60, 60, 140};
-
-                // Calculate natural column widths (max text width per column + padding)
-                float[] colWidths = new float[headers.length];
-                for (int col = 0; col < headers.length; col++) {
-                    float maxWidth = getStringWidth(font, 12, headers[col]);
-                    for (int row = 0; row < data.length; row++) {
-                        maxWidth = Math.max(maxWidth, getStringWidth(font, 12, data[row][col]));
-                    }
-                    colWidths[col] = maxWidth + 10; // padding
-                    // Clamp width by max allowed width
-                    colWidths[col] = Math.min(colWidths[col], maxColWidths[col]);
-                }
-
-                // Sum total column widths
-                float totalWidth = 0;
-                for (float w : colWidths) totalWidth += w;
-
-                // If total width exceeds available width, scale all columns down proportionally
-                if (totalWidth > availableWidth) {
-                    float scale = availableWidth / totalWidth;
-                    for (int i = 0; i < colWidths.length; i++) {
-                        colWidths[i] *= scale;
-                    }
-                    totalWidth = availableWidth;
-                }
-
-                float startX = (pageWidth - totalWidth) / 2;
-
-                // Title
-                content.beginText();
-                content.setFont(font, 16);
-                content.newLineAtOffset(startX, y);
-                content.showText("Students Report");
-                content.endText();
-                y -= 30;
-
-                // Draw headers with wrapping
-                y = drawRowWithBorders(content, font, y, headers, colWidths, startX, true);
-
-                // Draw each row's content, wrap or truncate as fits column width
-                for (String[] row : data) {
-                    y = drawRowWithBorders(content, font, y, row, colWidths, startX, false);
-                    // Add new page if near bottom
-                    if (y < 50) {
-                        content.close();
-                        page = new PDPage(PDRectangle.LETTER);
-                        document.addPage(page);
-                        content = new PDPageContentStream(document, page);
-                        y = marginTop;
-                    }
-                }
-
-                content.close();
-                document.save(response.getOutputStream());
+                colWidths[c] = Math.min(maxWidth + 10, 150); // padding + clamp max width
             }
+
+            float totalWidth = 0;
+            for (float w : colWidths) totalWidth += w;
+            float startX = (PDRectangle.A4.getWidth() - totalWidth) / 2;
+
+            // Draw rows
+            for (String[] row : rows) {
+                // Calculate row height
+                int maxLines = 1;
+                String[][] wrappedText = new String[cols][];
+                for (int c = 0; c < cols; c++) {
+                    wrappedText[c] = wrapTextWithTruncation(font, fontSize, row[c], colWidths[c] - 4);
+                    if (wrappedText[c].length > maxLines) maxLines = wrappedText[c].length;
+                }
+                float rowHeight = (fontSize + 4) * maxLines + 4;
+
+                // Check for new page
+                if (y - rowHeight < marginY) {
+                    content.close();
+                    page = new PDPage(PDRectangle.A4);
+                    document.addPage(page);
+                    content = new PDPageContentStream(document, page);
+                    y = PDRectangle.A4.getHeight() - marginY;
+                }
+
+                // Draw cell borders
+                float x = startX;
+                for (int c = 0; c < cols; c++) {
+                    content.addRect(x, y - rowHeight + 4, colWidths[c], rowHeight);
+                    x += colWidths[c];
+                }
+                content.stroke();
+
+                // Draw text inside cells
+                for (int line = 0; line < maxLines; line++) {
+                    x = startX;
+                    for (int c = 0; c < cols; c++) {
+                        String txt = line < wrappedText[c].length ? wrappedText[c][line] : "";
+                        content.beginText();
+                        content.setFont(font, fontSize);
+                        content.newLineAtOffset(x + 2, y - (fontSize + 4) * line - fontSize);
+                        content.showText(txt);
+                        content.endText();
+                        x += colWidths[c];
+                    }
+                }
+
+                y -= rowHeight;
+            }
+
+            content.close();
+            document.save(response.getOutputStream());
         }
     }
 
-    private float drawRowWithBorders(PDPageContentStream content, PDType0Font font, float y,
-    String[] texts, float[] colWidths, float startX, boolean isHeader) throws IOException {
-        float x = startX;
-        int fontSize = isHeader ? 12 : 10;
-
-        // Wrap or truncate text per cell to fit col width with padding
-        String[][] wrappedText = new String[texts.length][];
-        int maxLines = 1;
-        for (int i = 0; i < texts.length; i++) {
-            // Use wrapText with max width = colWidth - padding (4 pts)
-            wrappedText[i] = wrapTextWithTruncation(font, fontSize, texts[i], colWidths[i] - 4);
-            maxLines = Math.max(maxLines, wrappedText[i].length);
-        }
-
-        float rowHeight = (fontSize + 4) * maxLines + 4;
-
-        // Draw cell borders
-        x = startX;
-        float cellY = y;
-        for (int i = 0; i < texts.length; i++) {
-            content.addRect(x, cellY - rowHeight + 4, colWidths[i], rowHeight);
-            x += colWidths[i];
-        }
-        content.stroke();
-
-        // Draw text in each cell line by line
-        for (int line = 0; line < maxLines; line++) {
-            x = startX;
-            for (int col = 0; col < texts.length; col++) {
-                String txt = line < wrappedText[col].length ? wrappedText[col][line] : "";
-                content.beginText();
-                content.setFont(font, fontSize);
-                content.newLineAtOffset(x + 2, y - (fontSize + 4) * line - fontSize);
-                content.showText(txt);
-                content.endText();
-                x += colWidths[col];
-            }
-        }
-
-        return y - rowHeight;
-    }
-
+    // Wrap text with truncation for cell width
     private String[] wrapTextWithTruncation(PDType0Font font, int fontSize, String text, float maxWidth) throws IOException {
         if (text == null) return new String[]{""};
-
         List<String> lines = new ArrayList<>();
         String[] words = text.split(" ");
         StringBuilder line = new StringBuilder();
-
         for (String word : words) {
             String temp = line.length() == 0 ? word : line + " " + word;
             if (getStringWidth(font, fontSize, temp) > maxWidth) {
                 if (line.length() > 0) lines.add(line.toString());
                 line = new StringBuilder(word);
-                // If single word too long, truncate with ellipsis
                 if (getStringWidth(font, fontSize, word) > maxWidth) {
-                    String truncated = truncateWordToWidth(font, fontSize, word, maxWidth);
-                    lines.add(truncated);
+                    lines.add(truncateWordToWidth(font, fontSize, word, maxWidth));
                     line = new StringBuilder();
                 }
             } else {
@@ -219,34 +232,22 @@ public class ReportController {
             }
         }
         if (line.length() > 0) lines.add(line.toString());
-
         return lines.toArray(new String[0]);
     }
 
+    // Truncate word with ellipsis
     private String truncateWordToWidth(PDType0Font font, int fontSize, String word, float maxWidth) throws IOException {
         String ellipsis = "…";
         for (int i = 1; i <= word.length(); i++) {
             String substr = word.substring(0, i) + ellipsis;
-            if (getStringWidth(font, fontSize, substr) > maxWidth) {
-                return word.substring(0, i - 1) + ellipsis;
-            }
+            if (getStringWidth(font, fontSize, substr) > maxWidth) return word.substring(0, i - 1) + ellipsis;
         }
         return word;
     }
 
+    // Get string width in points
     private float getStringWidth(PDType0Font font, int fontSize, String text) throws IOException {
-        return font.getStringWidth(text) / 1000f * fontSize;
+        return font.getStringWidth(text != null ? text : "") / 1000f * fontSize;
     }
-
-    private String sanitize(String text) {
-        if (text == null) return "";
-        return text.replace("\n", " ").replace("\r", " ");
-    }
-
-    private String truncate(String text, int maxLength) {
-        if (text == null) return "";
-        return text.length() <= maxLength ? text : text.substring(0, maxLength - 1) + "…";
-    }
-
 
 }

@@ -65,46 +65,75 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">Create Class/Session</h3>
-                <button onclick="closeCreateClass()" class="close-btn">&times;</button>
+                <button class="close-btn" onclick="closeCreateClass()">&times;</button>
             </div>
             <form id="createClassForm">
+                
+                <!-- Class Dropdown -->
                 <div class="form-group">
-                    <label class="form-label">Class Name</label>
+                    <label class="form-label">Class</label>
+                    <select 
+                        class="form-input" 
+                        id="classCodeSelect" 
+                        required>
+                        <option value="">Loading classes...</option>
+                    </select>
+                </div>
+                
+                <!-- Group Dropdown -->
+                <div class="form-group">
+                    <label class="form-label">Group</label>
+                    <select 
+                        class="form-input" 
+                        id="groupNumberSelect" 
+                        required 
+                        disabled>
+                        <option value="">Select a class first</option>
+                    </select>
+                </div>
+                
+                <!-- Session Name -->
+                <div class="form-group">
+                    <label class="form-label">Session Name</label>
                     <input 
                         type="text" 
                         class="form-input" 
                         id="className"
-                        name="name"
-                        placeholder="e.g., CS101 - Introduction to Programming" 
+                        placeholder="e.g., Tutorial 5 - Data Structures" 
                         required>
                 </div>
                 
+                <!-- Date -->
                 <div class="form-group">
                     <label class="form-label">Session Date</label>
                     <input 
                         type="date" 
                         class="form-input" 
                         id="sessionDate"
-                        name="date"
                         required>
                 </div>
                 
+                <!-- Start Time -->
                 <div class="form-group">
                     <label class="form-label">Start Time</label>
                     <input 
                         type="time" 
                         class="form-input" 
                         id="startTime"
-                        name="startTime"
                         required>
                 </div>
-
+                
+                <!-- Duration -->
                 <div class="form-group">
-                    <label class="form-label">Duration (mins)</label>
-                    <select class="form-input" name="duration" id="duration" required>
-                        <option value="90">90</option>
-                        <option value="195">195</option>
-                    </select>
+                    <label class="form-label">Duration (minutes)</label>
+                    <input 
+                        type="number" 
+                        class="form-input" 
+                        id="duration"
+                        value="90"
+                        min="15"
+                        max="180"
+                        required>
                 </div>
 
                 <div style="display: flex; gap: 1rem;">
@@ -114,8 +143,9 @@
                         style="flex: 1;">Create Session</button>
                     <button 
                         type="button" 
-                        class="btn btn-secondary" onclick="closeCreateClass()" 
-                        style="flex: 1;" >Cancel</button>
+                        class="btn btn-secondary" 
+                        style="flex: 1;" 
+                        onclick="closeCreateClass()">Cancel</button>
                 </div>
             </form>
         </div>

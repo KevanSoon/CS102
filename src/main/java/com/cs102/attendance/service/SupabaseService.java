@@ -17,6 +17,7 @@ import com.cs102.attendance.model.FaceData;
 import com.cs102.attendance.model.Session;
 import com.cs102.attendance.model.Student;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public abstract class SupabaseService<T> {
 
@@ -25,12 +26,14 @@ public abstract class SupabaseService<T> {
     private final Class<T[]> arrayType;
     private final Class<T> singleType;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    
 
     protected SupabaseService(WebClient webClient, String tableName, Class<T[]> arrayType, Class<T> singleType) {
         this.webClient = webClient;
         this.tableName = tableName;
         this.arrayType = arrayType;
         this.singleType = singleType;
+        this.objectMapper.findAndRegisterModules();
     }
 
     public T create(T entity) {

@@ -91,4 +91,12 @@ public class Session {
         this.createdBy = createdBy;
     }
 
+    public String getClassCode() {
+        return classCode;
+    }
+
+    public String getGroupNumber() {
+        return groupNumber;
+    }
+
 }

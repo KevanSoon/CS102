@@ -1,7 +1,10 @@
 package com.cs102.attendance.controller;
 
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -43,6 +46,16 @@ public class SessionController {
     @GetMapping("/active/{profId}")
     public Session getActiveSession(@PathVariable String profId) {
         return sessionService.getActiveSession(profId);
+    }
+
+    @GetMapping("/{sessionId}/students")
+    public ResponseEntity<List<Map<String, Object>>> getSessionStudents(@PathVariable String sessionId) {
+        try {
+            List<Map<String, Object>> students = sessionService.getSessionStudents(sessionId);
+            return ResponseEntity.ok(students);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     // Implement update and delete as needed, example:

@@ -1,6 +1,9 @@
 package com.cs102.attendance.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -49,5 +52,113 @@ public class SessionService extends SupabaseService<Session> {
     public Session getById(String id) {
         return super.getById(id);
     }
+
+    public List<Map<String, Object>> getSessionStudents(String sessionId) {
+        try {
+            // First, get the session to find class_code and group_number
+            Session session = getById(sessionId);
+            
+            if (session == null) {
+                throw new RuntimeException("Session not found");
+            }
+            
+            String classCode = session.getClassCode();
+            String groupNumber = session.getGroupNumber();
+            
+            System.out.println("Searching for group with:");
+            System.out.println("  class_code: " + classCode);
+            System.out.println("  group_number: " + groupNumber);
+            
+            // Get the group to access student_list
+            List<Map> groupsResponse = webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("groups")
+                    .queryParam("class_code", "eq." + classCode)
+                    .queryParam("group_number", "eq." + groupNumber)
+                    .queryParam("select", "student_list")
+                    .build())
+                .retrieve()
+                .bodyToMono(List.class)
+                .block();
+
+            if (groupsResponse == null || groupsResponse.isEmpty()) {
+                System.out.println("No group found for this class/group combination");
+                return new ArrayList<>();
+            }
+
+            // Get the student_list from the group
+            Map groupData = groupsResponse.get(0);
+            List<String> studentIds = (List<String>) groupData.get("student_list");
+            
+            if (studentIds == null || studentIds.isEmpty()) {
+                System.out.println("No students in this group");
+                return new ArrayList<>();
+            }
+            
+            System.out.println("Found " + studentIds.size() + " students in group");
+
+            // Fetch student details for each student ID
+            List<Map<String, Object>> result = new ArrayList<>();
+            
+            for (String studentId : studentIds) {
+                List<Map> studentResponse = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                        .path("students")
+                        .queryParam("id", "eq." + studentId)
+                        .queryParam("select", "id,name,email")
+                        .build())
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .block();
+                
+                if (studentResponse != null && !studentResponse.isEmpty()) {
+                    Map studentMap = studentResponse.get(0);
+                    
+                    Map<String, Object> studentInfo = new HashMap<>();
+                    studentInfo.put("id", studentMap.get("id"));
+                    studentInfo.put("name", studentMap.get("name"));
+                    studentInfo.put("email", studentMap.get("email"));
+                    studentInfo.put("status", "absent"); // Default status
+                    
+                    result.add(studentInfo);
+                }
+            }
+
+            // Get attendance records for this session
+            List<Map> attendanceResponse = webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("attendance_records")
+                    .queryParam("session_id", "eq." + sessionId)
+                    .queryParam("select", "*")
+                    .build())
+                .retrieve()
+                .bodyToMono(List.class)
+                .block();
+
+            // Update attendance status
+            if (attendanceResponse != null) {
+                Map<String, String> attendanceMap = new HashMap<>();
+                for (Map record : attendanceResponse) {
+                    String studentId = (String) record.get("student_id");
+                    String status = (String) record.get("status");
+                    attendanceMap.put(studentId, status);
+                }
+                
+                for (Map<String, Object> student : result) {
+                    String studentId = (String) student.get("id");
+                    student.put("status", attendanceMap.getOrDefault(studentId, "absent"));
+                }
+            }
+
+            return result;
+
+        } catch (Exception e) {
+            System.err.println("Error fetching session students: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to fetch students for session", e);
+        }
+    }
+    
+
     
 }

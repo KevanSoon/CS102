@@ -40,7 +40,7 @@ public class SessionScheduler {
                         // Combine date + startTime to get session start DateTime
                         LocalDateTime sessionStartTime = LocalDateTime.of(
                             session.getDate(),      // LocalDate
-                            session.getStartTime()  // LocalTime (camelCase!)
+                            session.getStartTime()  // LocalTime
                         );
                         
                         // Calculate minutes since session started

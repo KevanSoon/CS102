@@ -35,6 +35,11 @@ public class SessionController {
         return sessionService.getAll();
     }
 
+    @GetMapping("/{id}")
+    public Session getSessionById(@PathVariable String id) {
+        return sessionService.getById(id);
+    }
+
     @GetMapping("/active/{profId}")
     public Session getActiveSession(@PathVariable String profId) {
         return sessionService.getActiveSession(profId);

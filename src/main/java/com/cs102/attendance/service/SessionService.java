@@ -46,6 +46,8 @@ public class SessionService extends SupabaseService<Session> {
         return activeSessions.get(0);  // Return first active session
     }
 
-
+    public Session getById(String id) {
+        return super.getById(id);
+    }
     
 }

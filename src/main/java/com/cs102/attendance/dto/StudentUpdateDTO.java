@@ -10,6 +10,9 @@ public class StudentUpdateDTO {
     private String class_name;
     private String student_group;
 
+    private String currentPassword;
+    private String newPassword;
+
     public StudentUpdateDTO() {}
 
     // Getters and setters for all fields
@@ -30,4 +33,10 @@ public class StudentUpdateDTO {
 
     public String getStudent_group() { return student_group; }
     public void setStudent_group(String student_group) { this.student_group = student_group; }
+
+    public String getCurrentPassword() { return currentPassword; }
+    public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
+
+    public String getNewPassword() { return newPassword; }
+    public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
 }

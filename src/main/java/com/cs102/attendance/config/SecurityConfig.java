@@ -37,6 +37,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/reports/**").permitAll() // Reports endpoints
                 .requestMatchers("/actuator/**").permitAll() // Actuator endpoints
                 .requestMatchers("/error").permitAll() // Error page
+                .requestMatchers("/api/attendance_records/**").permitAll() 
                 
                 //FOR TESTING ENDPOINTS PURPOSES
                 .requestMatchers("/api/students/**").permitAll()

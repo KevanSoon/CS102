@@ -330,47 +330,47 @@ async function displayActiveSession(session) {
     studentListContainer.className = 'student-list';
     
     students.forEach(student => {
-      const studentItem = document.createElement('div');
-      studentItem.className = 'student-item';
-      
-      // Student name and email
-      const studentInfo = document.createElement('span');
-      studentInfo.textContent = `${student.name} (${student.email})`;
-      
-      // Attendance controls
-      const controls = document.createElement('div');
-      controls.className = 'attendance-controls';
-      
-      const presentBtn = document.createElement('button');
-      presentBtn.className = 'btn btn-success btn-sm';
-      presentBtn.textContent = 'Present';
-      presentBtn.onclick = () => markStudentManually(session.id, student.id, 'present');
-      
-      // Highlight if already marked present
-      if (student.status === 'present') {
-        presentBtn.style.fontWeight = 'bold';
-        presentBtn.style.backgroundColor = '#059669';
-      }
-      
-      const absentBtn = document.createElement('button');
-      absentBtn.className = 'btn btn-danger btn-sm';
-      absentBtn.textContent = 'Absent';
-      absentBtn.onclick = () => markStudentManually(session.id, student.id, 'absent');
-      
-      // Highlight if already marked absent
-      if (student.status === 'absent') {
-        absentBtn.style.fontWeight = 'bold';
-        absentBtn.style.backgroundColor = '#dc2626';
-      }
-      
-      controls.appendChild(presentBtn);
-      controls.appendChild(absentBtn);
-      
-      studentItem.appendChild(studentInfo);
-      studentItem.appendChild(controls);
-      
-      studentListContainer.appendChild(studentItem);
-    });
+    const studentItem = document.createElement('div');
+    studentItem.className = 'student-item';
+    
+    // Student name and email
+    const studentInfo = document.createElement('span');
+    studentInfo.textContent = `${student.name} (${student.email})`;
+    
+    // Attendance controls
+    const controls = document.createElement('div');
+    controls.className = 'attendance-controls';
+    
+    const presentBtn = document.createElement('button');
+    presentBtn.className = 'btn btn-success btn-sm';
+    presentBtn.textContent = 'Present';
+    presentBtn.onclick = () => markStudentManually(session.id, student.id, 'present');
+    
+    // Highlight if already marked present - compare uppercase
+    if (student.status && student.status.toUpperCase() === 'PRESENT') {
+      presentBtn.style.fontWeight = 'bold';
+      presentBtn.style.backgroundColor = '#059669';
+    }
+    
+    const absentBtn = document.createElement('button');
+    absentBtn.className = 'btn btn-danger btn-sm';
+    absentBtn.textContent = 'Absent';
+    absentBtn.onclick = () => markStudentManually(session.id, student.id, 'absent');
+    
+    // Highlight if already marked absent - compare uppercase
+    if (student.status && student.status.toUpperCase() === 'ABSENT') {
+      absentBtn.style.fontWeight = 'bold';
+      absentBtn.style.backgroundColor = '#dc2626';
+    }
+    
+    controls.appendChild(presentBtn);
+    controls.appendChild(absentBtn);
+    
+    studentItem.appendChild(studentInfo);
+    studentItem.appendChild(controls);
+    
+    studentListContainer.appendChild(studentItem);
+  });
     
     activeSessions.appendChild(studentListContainer);
   } else {
@@ -413,7 +413,8 @@ async function closeActiveSession(sessionId) {
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
     }
     
     const closedSession = await response.json();
@@ -493,11 +494,19 @@ function markAttendance() {
 }
 
 // ===== SHARED ATTENDANCE LOGIC =====
-async function saveAttendanceRecord(sessionId, studentId, status, method = 'manual') {
+async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANUAL') {
   try {
+    const upperStatus = status.toUpperCase();
+    const upperMethod = method.toUpperCase();
+    
+    // CRITICAL: Ensure we get the full ISO string with Z
+    const markedAt = new Date().toISOString(); // Should be "2025-11-04T18:28:49.359Z"
+    
+    console.log('Timestamp being sent:', markedAt); // DEBUG: Check what's actually being sent
+    
     // Check if record exists
     const checkResponse = await fetch(
-      `${API_BASE_URL}/attendance-records?session_id=${sessionId}&student_id=${studentId}`
+      `${API_BASE_URL}/attendance_records?session_id=${sessionId}&student_id=${studentId}`
     );
     
     let response;
@@ -508,33 +517,63 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'manu
       if (existingRecords && existingRecords.length > 0) {
         // Update existing record
         const recordId = existingRecords[0].id;
-        response = await fetch(`${API_BASE_URL}/attendance-records/${recordId}`, {
+        
+        const updateBody = {
+          status: upperStatus,
+          method: upperMethod,
+          marked_at: markedAt
+        };
+        
+        console.log('Update body:', JSON.stringify(updateBody)); // Check the full payload
+        
+        response = await fetch(`${API_BASE_URL}/attendance_records/${recordId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            status: status,
-            method: method,
-            marked_at: new Date().toISOString()
-          })
+          body: JSON.stringify(updateBody)
         });
       } else {
         // Create new record
-        response = await fetch(`${API_BASE_URL}/attendance-records`, {
+        const createBody = {
+          session_id: sessionId,
+          student_id: studentId,
+          status: upperStatus,
+          method: upperMethod,
+          marked_at: markedAt
+        };
+        
+        console.log('Create body:', JSON.stringify(createBody)); // Check the full payload
+        
+        response = await fetch(`${API_BASE_URL}/attendance_records`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: sessionId,
-            student_id: studentId,
-            status: status,
-            method: method,
-            marked_at: new Date().toISOString()
-          })
+          body: JSON.stringify(createBody)
         });
       }
+    } else {
+      // If check fails, try to create new record anyway
+      console.warn('Failed to check existing records, creating new one');
+      
+      const createBody = {
+        session_id: sessionId,
+        student_id: studentId,
+        status: upperStatus,
+        method: upperMethod,
+        marked_at: markedAt
+      };
+      
+      console.log('Create body:', JSON.stringify(createBody));
+      
+      response = await fetch(`${API_BASE_URL}/attendance_records`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createBody)
+      });
     }
     
     if (!response || !response.ok) {
-      throw new Error('Failed to save attendance');
+      const errorText = await response.text();
+      console.error('Server error:', errorText);
+      throw new Error('Failed to save attendance: ' + errorText);
     }
     
     return await response.json();
@@ -550,7 +589,8 @@ async function markStudentManually(sessionId, studentId, status) {
   try {
     console.log(`Marking student ${studentId} as ${status}`);
     
-    await saveAttendanceRecord(sessionId, studentId, status, 'manual');
+    // Pass 'MANUAL' in uppercase
+    await saveAttendanceRecord(sessionId, studentId, status, 'MANUAL');
     
     console.log('Attendance marked successfully');
     

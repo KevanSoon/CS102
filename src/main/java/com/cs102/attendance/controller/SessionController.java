@@ -58,9 +58,28 @@ public class SessionController {
         }
     }
 
+    @PatchMapping("/{id}/close")
+    public ResponseEntity<Session> closeSession(@PathVariable String id) {
+        try {
+            SessionUpdateDTO updateDTO = new SessionUpdateDTO();
+            updateDTO.setActive(false);
+            
+            Session closedSession = sessionService.update(id, updateDTO);
+            
+            if (closedSession == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            return ResponseEntity.ok(closedSession);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     // Implement update and delete as needed, example:
   
-    @PatchMapping("/{id}")
+    @PatchMapping("/{sessionId}")
     public Session updateSession(@PathVariable String id, @RequestBody SessionUpdateDTO updateDTO) {
         return sessionService.update(id, updateDTO);
     }

@@ -46,11 +46,16 @@ public class FaceCompareService {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readTree(Objects.requireNonNull(response.getBody()));
 
-            System.out.println("DeepFace API Response: " + jsonNode);
+            System.out.println("=== DeepFace API Full Response ===");
+            System.out.println(jsonNode.toPrettyString());
+            System.out.println("===================================");
 
             // Extract confidence from DeepFace response
             if (jsonNode.has("confidence")) {
-                return jsonNode.get("confidence"); // Return confidence as JsonNode
+                JsonNode confidenceNode = jsonNode.get("confidence");
+                System.out.println("Confidence value from API: " + confidenceNode);
+                System.out.println("Confidence as double: " + confidenceNode.asDouble());
+                return confidenceNode; // Return confidence as JsonNode
             }
             
             System.err.println("Confidence field not found in response.");

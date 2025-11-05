@@ -65,7 +65,7 @@ async def face_match(
         result = DeepFace.verify(
             img1_path=temp_file1.name,
             img2_path=temp_file2.name,
-            model_name="VGG-Face",
+            model_name="Facenet",
             detector_backend="opencv",
             distance_metric="cosine",
             enforce_detection=False  # Don't fail if face is not detected
@@ -87,6 +87,9 @@ async def face_match(
         
         # Add confidence to the result
         result["confidence"] = round(confidence, 2)
+        
+        print(f"Calculated confidence: {confidence}%")
+        print(f"Final result being returned: {result}")
         
         # Add processing time
         result["time"] = round(time.time() - start_time, 2)

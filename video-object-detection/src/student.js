@@ -523,38 +523,6 @@ console.log(currentUser.id);
 const class_code_array = []
 
 
-fetch('http://localhost:8080/api/groups')
-  .then(response => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok ' + response.statusText);
-    }
-    return response.json(); // if you expect JSON
-  })
-  .then(data => {
-    console.log(data);
-    console.log(currentUser.id);
-    for (let group of data) {
-      console.log(group.student_list);
-      if (group.student_list.includes(currentUser.id)) {
-          class_code_array.push(group.class_code)
-      }
-    }
-
-    const classSelectDropDown = document.getElementById("classSelect");
-    console.log(class_code_array);
-    for (let class_code of class_code_array) {
-      const option = document.createElement("option");
-      option.value = class_code;
-      option.innerText = class_code;
-      classSelectDropDown.appendChild(option);
-    }
-
-    
-  })
-  .catch(error => {
-    console.error('There was a problem with the fetch operation:', error);
-  });
-
 
 // fetch('http://localhost:8080/api/classes')
 //   .then(response => {

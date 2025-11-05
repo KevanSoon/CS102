@@ -51,14 +51,31 @@ public class FaceCompareController {
                 fos.write(decodedBytes);
             }
             System.out.println("Created temp file 1: " + file1.getAbsolutePath());
+            System.out.println("Temp file 1 size: " + file1.length() + " bytes");
 
             // Download student image to temp file
-            File file2 = File.createTempFile("img2_", ".jpg");
+            File file2 = File.createTempFile("img2_", ".png"); // Changed to .png
             System.out.println("Downloading student image from: " + imageUrl2);
             try (InputStream in = new URL(imageUrl2).openStream()) {
-                Files.copy(in, file2.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                long bytesCopied = Files.copy(in, file2.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("Downloaded " + bytesCopied + " bytes");
             }
             System.out.println("Created temp file 2: " + file2.getAbsolutePath());
+            System.out.println("Temp file 2 size: " + file2.length() + " bytes");
+            
+            // Verify both files are not empty
+            if (file1.length() == 0) {
+                System.err.println("ERROR: Temp file 1 is empty!");
+                file1.delete();
+                file2.delete();
+                return ResponseEntity.badRequest().build();
+            }
+            if (file2.length() == 0) {
+                System.err.println("ERROR: Temp file 2 is empty!");
+                file1.delete();
+                file2.delete();
+                return ResponseEntity.badRequest().build();
+            }
 
             // Compare faces
             System.out.println("Calling faceCompareService...");

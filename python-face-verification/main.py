@@ -57,11 +57,21 @@ async def face_match(
         temp_file1.close()
         temp_file2.close()
         
+        print(f"Processing face verification...")
+        print(f"Image 1: {temp_file1.name} ({len(content1)} bytes)")
+        print(f"Image 2: {temp_file2.name} ({len(content2)} bytes)")
+        
         # Perform face verification using DeepFace
         result = DeepFace.verify(
             img1_path=temp_file1.name,
             img2_path=temp_file2.name,
+            model_name="VGG-Face",
+            detector_backend="opencv",
+            distance_metric="cosine",
+            enforce_detection=False  # Don't fail if face is not detected
         )
+        
+        print(f"DeepFace result: {result}")
         
         # Calculate confidence as a percentage (0-100)
         # For cosine distance: lower is better, threshold is typically around 0.68
@@ -85,11 +95,15 @@ async def face_match(
         
     except ValueError as e:
         # Handle face detection failures
+        print(f"ValueError during face verification: {str(e)}")
         raise HTTPException(
             status_code=400,
             detail=f"Face detection failed: {str(e)}"
         )
     except Exception as e:
+        print(f"Exception during face verification: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Error processing images: {str(e)}"

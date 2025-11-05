@@ -98,7 +98,7 @@ async function sendCanvasImageToAPI(canvas) {
           return;
         }
 
-        const result = await response.text(); // or JSON if backend returns JSON
+        const result = await response.text();
         resolve(result);
       } catch (err) {
         reject(err);
@@ -107,22 +107,19 @@ async function sendCanvasImageToAPI(canvas) {
   });
 }
 
-
 // Variables to store current bounding box and label elements
 let currentBoxElement = null;
 let currentLabelElement = null;
 
-let hasSent = false; // Flag to send API request only once per detection
+let hasSent = false;
 
 var color = "yellow";
 var text = "Verifying..."
+
 // Render a bounding box and label on the image
 function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
-  if (score < threshold) return; // Skip boxes with low confidence
+  if (score < threshold) return;
 
-
-
-  // Create bounding box div
   let boxElement = document.createElement("div");
   boxElement.className = "bounding-box";
   Object.assign(boxElement.style, {
@@ -133,7 +130,6 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
     height: (100 * (ymax - ymin)) / h + "%",
   });
 
-  // Create label span
   let labelElement = document.createElement("span");
   labelElement.textContent = text;
   labelElement.className = "bounding-box-label";
@@ -143,58 +139,38 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
   boxElement.appendChild(labelElement);
   overlay.appendChild(boxElement);
 
-  // Store references globally for updating after API response
   currentBoxElement = boxElement;
   currentLabelElement = labelElement;
 
-  // Send image to the API on first detection
   if (!hasSent) {
     hasSent = true;
     sendCanvasImageToAPI(canvas)
       .then((response) => {
-        
         const responseObj = JSON.parse(response); 
-        const confidenceStr = responseObj.result; // "0.982708"
-
-        // Extract decimal part only:
-        // const decimalPart = confidenceStr.slice(confidenceStr.indexOf('.') + 1);
-        // console.log(decimalPart);  // e.g., "982708"
-
-        // Convert to float for comparison
+        const confidenceStr = responseObj.result;
         const decimalNumber = parseFloat(confidenceStr);
         console.log(decimalNumber);
-        
 
         if (decimalNumber !== null && decimalNumber > 0.80) {
-          // --- MODIFICATION START ---
-          // Instead of removing and recreating the box, just update its style.
           color = "green";
           text = "Verified Successfully! " + decimalNumber;
-          currentLabelElement.style.color = "black"; // Or "white" if it looks better
-
+          currentLabelElement.style.color = "black";
           console.log("Updated box to green");
-          // --- MODIFICATION END ---
-          
         } else if (decimalNumber !== null) {
-          // Not identified case - update existing box and label to red
           color = "red";
           text = "Failed to verify"
-          currentLabelElement.style.color = "black"; // Or "white" if it looks better
-
+          currentLabelElement.style.color = "black";
           console.log("Updated box to red");
         } else {
-          // Fallback yellow verifying state
           currentLabelElement.textContent = "Verifying...";
           currentLabelElement.style.backgroundColor = "yellow";
           currentLabelElement.style.color = "black";
           currentBoxElement.style.borderColor = "yellow";
-
           console.log("Fallback to yellow");
         }
       })
       .catch((err) => {
         console.error("Error sending image to API:", err);
-        // On error, fallback to yellow verifying
         if (currentLabelElement && currentBoxElement) {
           currentLabelElement.textContent = "Verifying...";
           currentLabelElement.style.backgroundColor = "yellow";
@@ -239,15 +215,366 @@ function updateCanvas() {
   window.requestAnimationFrame(updateCanvas);
 }
 
-
-//ORIGINAL STUDENT
+// ===== ATTENDANCE MANAGEMENT =====
 console.log("student.js loaded");
 
 let selectedClass = ""
 let attendanceStream = null
 let faceScanned = false
 
+// Global variable for attendance records
+let globalAllAttendanceRecords = [];
+let enrolledClasses = [];
 
+const currentUser = authService.getUser();
+console.log(currentUser.id);
+
+// Fetch student's enrolled classes from the groups table
+async function fetchStudentClasses() {
+    try {
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Please log in first");
+
+        const userJson = localStorage.getItem("user");
+        if (!userJson) throw new Error("User data not found in storage. Please re-login.");
+
+        const userData = JSON.parse(userJson);
+        const studentId = userData.id;
+        if (!studentId) throw new Error("Student ID missing in storage");
+
+        const res = await fetch(`http://localhost:8080/api/groups`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+            throw new Error("Failed to load groups");
+        }
+
+        const allGroups = await res.json();
+        
+        const studentGroups = allGroups.filter(group => {
+            if (!group.student_list) return false;
+            
+            let studentList = group.student_list;
+            if (typeof studentList === 'string') {
+                try {
+                    studentList = JSON.parse(studentList);
+                } catch (e) {
+                    studentList = studentList.split(',').map(s => s.trim());
+                }
+            }
+            
+            return studentList.includes(studentId) || 
+                studentList.includes(userData.email) ||
+                studentList.includes(userData.code);
+        });
+
+        const uniqueClassCodes = [...new Set(studentGroups.map(g => g.class_code).filter(Boolean))];
+        
+        const classesRes = await fetch(`http://localhost:8080/api/classes`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        let allClasses = [];
+        if (classesRes.ok) {
+            allClasses = await classesRes.json();
+        }
+        
+        const classMap = new Map();
+        
+        for (const classCode of uniqueClassCodes) {
+            const classData = allClasses.find(c => c.class_code === classCode);
+            
+            if (classData) {
+                classMap.set(classCode, {
+                    class_code: classData.class_code,
+                    class_name: classData.class_name,
+                    professor_list: classData.professor_list || ''
+                });
+            } else {
+                console.warn(`Class ${classCode} not found in classes table`);
+                classMap.set(classCode, {
+                    class_code: classCode,
+                    class_name: `Class ${classCode}`,
+                    professor_list: ''
+                });
+            }
+        }
+
+        const classes = Array.from(classMap.values());
+        
+        if (classes.length === 0) {
+            console.warn("No classes found for this student");
+        }
+
+        enrolledClasses = classes;
+        populateClassDropdown(classes);
+        return classes;
+
+    } catch (err) {
+        console.error("Error fetching classes:", err);
+        alert("Error loading classes: " + err.message);
+        
+        enrolledClasses = [];
+        populateClassDropdown([]);
+        return [];
+    }
+}
+
+// Populate the class dropdown with enrolled classes
+function populateClassDropdown(classes) {
+    const classSelect = document.getElementById("classSelect");
+    
+    if (!classSelect) {
+        console.error("classSelect element not found in DOM");
+        return;
+    }
+    
+    while (classSelect.firstChild) {
+        classSelect.removeChild(classSelect.firstChild);
+    }
+    
+    const defaultOption = document.createElement('option');
+    defaultOption.value = "";
+    defaultOption.textContent = "Select a class";
+    classSelect.appendChild(defaultOption);
+    
+    if (classes && classes.length > 0) {
+        classes.forEach(cls => {
+            const option = document.createElement('option');
+            option.value = cls.class_code.toLowerCase();
+            option.textContent = `${cls.class_code} - ${cls.class_name}`;
+            option.dataset.classCode = cls.class_code;
+            option.dataset.className = cls.class_name;
+            classSelect.appendChild(option);
+        });
+    } else {
+        const option = document.createElement('option');
+        option.value = "";
+        option.textContent = "No classes enrolled";
+        option.disabled = true;
+        classSelect.appendChild(option);
+    }
+}
+
+// Fetch attendance records for a specific class
+async function fetchAttendanceRecordsForClass(classCode, studentId) {
+    try {
+        const token = localStorage.getItem("access_token");
+
+        const res = await fetch(
+            `http://localhost:8080/api/attendance_records`,
+            {
+                headers: { Authorization: `Bearer ${token}` }
+            }
+        );
+
+        if (!res.ok) {
+            console.log("No attendance records found");
+            return [];
+        }
+
+        const allRecords = await res.json();
+        
+        const sessions = await fetchSessionsForClass(classCode);
+        const sessionIds = sessions.map(s => s.id);
+        
+        console.log("Session IDs for class", classCode, ":", sessionIds);
+        
+        const studentRecords = allRecords.filter(record => {
+            const matchesStudent = record.student_id === studentId;
+            const matchesSession = sessionIds.includes(record.session_id);
+            console.log(`Record ${record.id}: student match=${matchesStudent}, session match=${matchesSession}`);
+            return matchesStudent && matchesSession;
+        });
+        
+        console.log("Filtered attendance records:", studentRecords);
+        
+        return studentRecords;
+    } catch (err) {
+        console.error("Error fetching attendance records:", err);
+        return [];
+    }
+}
+
+// Fetch sessions for a class
+async function fetchSessionsForClass(classCode) {
+    try {
+        const token = localStorage.getItem("access_token");
+        
+        const res = await fetch(`http://localhost:8080/api/sessions`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+            return [];
+        }
+
+        const allSessions = await res.json();
+        
+        console.log("All sessions:", allSessions);
+        console.log("Looking for class_code:", classCode);
+        
+        const filteredSessions = allSessions.filter(s => {
+            console.log(`Session ${s.name}: class_code = ${s.class_code}`);
+            return s.class_code === classCode;
+        });
+        
+        console.log("Filtered sessions:", filteredSessions);
+        return filteredSessions;
+    } catch (err) {
+        console.error("Error fetching sessions:", err);
+        return [];
+    }
+}
+
+// Helper functions
+function clearContainer(container) {
+    while (container.firstChild) {
+        container.removeChild(container.firstChild);
+    }
+}
+
+function createMessage(text, className = 'welcome-subtitle') {
+    const p = document.createElement('p');
+    p.className = className;
+    p.textContent = text;
+    return p;
+}
+
+// Display attendance table
+async function displayDummyAttendance() {
+    const classSelect = document.getElementById("classSelect");
+    const mainContainer = document.getElementById("attendanceTableContainer");
+    const selectedClass = classSelect.value;
+
+    clearContainer(mainContainer);
+
+    if (!selectedClass) {
+        mainContainer.appendChild(createMessage("Please select a class to view attendance records"));
+        return;
+    }
+
+    const selectedOption = classSelect.options[classSelect.selectedIndex];
+    const classCode = selectedOption.dataset.classCode;
+    const className = selectedOption.dataset.className;
+
+    const userJson = localStorage.getItem("user");
+    const userData = JSON.parse(userJson);
+    const studentId = userData.id;
+
+    let sessions = await fetchSessionsForClass(classCode);
+    const allAttendanceRecords = await fetchAttendanceRecordsForClass(classCode, studentId);
+
+    if (sessions.length === 0) {
+        const header = document.createElement('h3');
+        header.className = 'attendance-header';
+        header.textContent = `Attendance for ${classCode} - ${className}`;
+        mainContainer.appendChild(header);
+        mainContainer.appendChild(createMessage("No sessions found for this class yet"));
+        return;
+    }
+
+    const attendanceMap = new Map();
+    allAttendanceRecords.forEach(record => {
+        attendanceMap.set(record.session_id, record);
+    });
+
+    sessions = sessions.filter(s => attendanceMap.has(s.id));
+    
+    if (sessions.length === 0) {
+        const header = document.createElement('h3');
+        header.className = 'attendance-header';
+        header.textContent = `Attendance for ${classCode} - ${className}`;
+        mainContainer.appendChild(header);
+        mainContainer.appendChild(createMessage("No attendance records found for this class"));
+        return;
+    }
+
+    const header = document.createElement('h3');
+    header.className = 'attendance-header';
+    header.textContent = `Attendance for ${classCode} - ${className}`;
+    mainContainer.appendChild(header);
+
+    const table = document.createElement('table');
+    table.className = 'attendance-table';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    ['Session', 'Date', 'Status', 'Method', 'Marked At'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    console.log(`Creating table with ${sessions.length} sessions`);
+    console.log(`Attendance map has ${attendanceMap.size} records`);
+
+    sessions.forEach(session => {
+        const row = document.createElement('tr');
+        
+        const sessionDate = new Date(session.date);
+        const formattedDate = sessionDate.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit'
+        });
+        
+        const attendance = attendanceMap.get(session.id);
+        const status = attendance ? attendance.status : 'Absent';
+        const method = attendance ? (attendance.method || 'N/A') : 'N/A';
+        
+        let markedAt = 'N/A';
+        if (attendance && attendance.marked_at) {
+            const markedDate = new Date(attendance.marked_at);
+            markedAt = markedDate.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit'
+            }) + ' ' + markedDate.toLocaleTimeString('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        const sessionCell = document.createElement('td');
+        const sessionStrong = document.createElement('strong');
+        sessionStrong.textContent = session.name || 'Session';
+        sessionCell.appendChild(sessionStrong);
+        row.appendChild(sessionCell);
+        
+        const dateCell = document.createElement('td');
+        dateCell.textContent = formattedDate;
+        row.appendChild(dateCell);
+        
+        const statusCell = document.createElement('td');
+        const statusBadge = document.createElement('span');
+        statusBadge.className = `status-badge ${status.toLowerCase()}`;
+        statusBadge.textContent = status;
+        statusCell.appendChild(statusBadge);
+        row.appendChild(statusCell);
+        
+        const methodCell = document.createElement('td');
+        methodCell.textContent = method;
+        row.appendChild(methodCell);
+        
+        const markedAtCell = document.createElement('td');
+        markedAtCell.textContent = markedAt;
+        row.appendChild(markedAtCell);
+        
+        tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    mainContainer.appendChild(table);
+}
+
+// Face scanning functions
 function enableFaceScanning() {
   const classSelect = document.getElementById("classSelect")
   const scanBtn = document.getElementById("scanFaceBtn")
@@ -308,7 +635,6 @@ async function openFaceScanning() {
   }
 }
 
-
 function closeFaceScanning() {
   document.getElementById("faceScanModal").classList.remove("active")
 
@@ -317,7 +643,6 @@ function closeFaceScanning() {
     attendanceStream = null
   }
 
-  // Reset scan state
   faceScanned = false
   document.getElementById("scanResult").style.display = "none"
   document.getElementById("scanBtn").style.display = "block"
@@ -333,7 +658,6 @@ function scanFace() {
   canvas.height = video.videoHeight
   ctx.drawImage(video, 0, 0)
 
-  // Simulate face verification processing
   setTimeout(() => {
     faceScanned = true
     document.getElementById("scanResult").style.display = "block"
@@ -342,214 +666,196 @@ function scanFace() {
   }, 1500)
 }
 
-// Function to open the edit profile modal and populate with current user data
-async function openEditProfileModal() {
-  try {
-    // Hardcoded user data for testing
-    const user = {
-        name: "John Doe",
-        email: "john.doe@example.com"
-    };
-    
-    // Original API call (commented out)
-    // const response = await fetch('http://localhost:8080/api/user/profile');
-    // if (!response.ok) {
-    //     throw new Error('Failed to load user data');
-    // }
-    // const user = await response.json();
-    
-    // Populate form with current data
-    document.getElementById('editName').value = user.name || '';
-    document.getElementById('editEmail').value = user.email || '';
-    
-    // Clear password fields
-    document.getElementById('currentPassword').value = '';
-    document.getElementById('editPassword').value = '';
-    document.getElementById('editConfirmPassword').value = '';
-    
-    // Hide error/success messages
-    document.getElementById('editPasswordError').style.display = 'none';
-    document.getElementById('editSuccessMessage').style.display = 'none';
-    document.getElementById('editErrorMessage').style.display = 'none';
-    
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
-    modal.show();
-      
-  } catch (error) {
-    console.error('Error loading profile:', error);
-    alert('Error loading profile data');
-  }
+function markAttendance() {
+  // Implement attendance marking logic
+  alert("Attendance marked!");
+  closeFaceScanning();
 }
 
-// Function to save profile changes
-async function saveProfileChanges() {
-  // Get form values
-  const name = document.getElementById('editName').value.trim();
-  const email = document.getElementById('editEmail').value.trim();
-  const currentPassword = document.getElementById('currentPassword').value;
-  const newPassword = document.getElementById('editPassword').value;
-  const confirmPassword = document.getElementById('editConfirmPassword').value;
-  
-  // Hide previous messages
-  document.getElementById('editPasswordError').style.display = 'none';
-  document.getElementById('editSuccessMessage').style.display = 'none';
-  document.getElementById('editErrorMessage').style.display = 'none';
-  
-  // Validate passwords if user is trying to change password
-  if (newPassword || confirmPassword) {
-      if (newPassword !== confirmPassword) {
-          document.getElementById('editPasswordError').style.display = 'block';
-          return;
-      }
-      
-      if (!currentPassword) {
-          alert('Please enter your current password to change it');
-          return;
-      }
-      
-      if (newPassword.length < 6) {
-          alert('New password must be at least 6 characters long');
-          return;
-      }
-  }
-  
-  // Prepare update data
-  const updateData = {
-      name: name,
-      email: email
-  };
-  
-  // Add password fields only if user wants to change password
-  if (newPassword) {
-    updateData.currentPassword = currentPassword;
-    updateData.newPassword = newPassword;
-  }
-  
-  try {
-    // Log the data that would be sent (for testing)
-    console.log('Update data:', updateData);
-    
-    // Simulate successful update with hardcoded response
-    const updatedUser = {
-        id: "123e4567-e89b-12d3-a456-426614174000",
-        name: name,
-        email: email,
-        updatedAt: new Date().toISOString()
-    };
-    
-    // Original API call (commented out)
-    // const response = await fetch('http://localhost:8080/api/user/profile', {
-    //     method: 'PUT',
-    //     headers: {
-    //         'Content-Type': 'application/json'
-    //     },
-    //     body: JSON.stringify(updateData)
-    // });
-    // 
-    // if (!response.ok) {
-    //     const errorData = await response.json();
-    //     throw new Error(errorData.message || 'Failed to update profile');
-    // }
-    // 
-    // const updatedUser = await response.json();
-    
-    // Show success message
-    document.getElementById('editSuccessMessage').style.display = 'block';
-    
-    // Update UI with new data if needed
-    console.log('Profile updated:', updatedUser);
-    
-    // Close modal after 1.5 seconds
-    setTimeout(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
-        modal.hide();
-        
-        // Optionally refresh the page or update displayed user info
-        // location.reload();
-    }, 1500);
-      
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    document.getElementById('editErrorMessage').textContent = error.message;
-    document.getElementById('editErrorMessage').style.display = 'block';
-  }
-}
+// Profile editing functions
+let currentUserProfile = null;
 
-// Add real-time password match validation
-// document.addEventListener('DOMContentLoaded', () => {
-//   const newPassword = document.getElementById('editPassword');
-//   const confirmPassword = document.getElementById('editConfirmPassword');
-//   const errorDiv = document.getElementById('editPasswordError');
-//   const editProfileBtn = document.getElementById('editProfileBtn');
+async function getCurrentStudent() {
+    try {
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Please log in first");
 
-//   console.log('DOM loaded');
-//   console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
-//   console.log('Modal element exists:', document.getElementById('editProfileModal') !== null);
+        const userJson = localStorage.getItem("user");
+        if (!userJson) throw new Error("User data not found in storage. Please re-login.");
 
-//   if (editProfileBtn) {
-//     editProfileBtn.addEventListener('click', openEditProfileModal);
-//   }
+        const userData = JSON.parse(userJson);
+        const studentId = userData.id;
+        if (!studentId) throw new Error("Student ID missing in storage");
 
-//   function checkPasswordMatch() {
-//     if (confirmPassword.value && newPassword.value !== confirmPassword.value) {
-//       errorDiv.style.display = 'block';
-//     } else {
-//       errorDiv.style.display = 'none';
-//     }
-//   }
-    
-//   if (newPassword && confirmPassword) {
-//     newPassword.addEventListener('input', checkPasswordMatch);
-//     confirmPassword.addEventListener('input', checkPasswordMatch);
-//   }
-  
-//   function checkPasswordMatch() {
-//     if (confirmPassword.value && newPassword.value !== confirmPassword.value) {
-//       errorDiv.style.display = 'block';
-//     } else {
-//       errorDiv.style.display = 'none';
-//     }
-//   }
-  
-//   if (newPassword && confirmPassword) {
-//     newPassword.addEventListener('input', checkPasswordMatch);
-//     confirmPassword.addEventListener('input', checkPasswordMatch);
-//   }
-// });
+        const res = await fetch(`http://localhost:8080/api/students/${studentId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
 
-const currentUser = authService.getUser();
-console.log(currentUser.id);
-const class_code_array = []
+        if (res.status === 404) throw new Error("Student profile not found.");
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.message || "Failed to load student profile.");
+        }
 
+        const student = await res.json();
+        currentUserProfile = student;
+        localStorage.setItem("student_id", student.id); 
+        return student;
 
-
-// fetch('http://localhost:8080/api/classes')
-//   .then(response => {
-//     if (!response.ok) {
-//       throw new Error('Network response was not ok ' + response.statusText);
-//     }
-//     return response.json(); // if you expect JSON
-//   })
-//   .then(data => {
-//     console.log(data); // will log your groups array/object to console
-//   })
-//   .catch(error => {
-//     console.error('There was a problem with the fetch operation:', error);
-//   });
-
-
-// Close modal on escape key
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
-    if (modal) {
-      modal.hide();
+    } catch (err) {
+        console.error(err);
+        alert(err.message);
+        return null; 
     }
-  }
-});
+}
 
-//so inline in html can be used
+async function openEditProfileModal() {
+    try {
+        const student = await getCurrentStudent();
+        if (!student) return;
+
+        document.getElementById("editName").value = student.name || "";
+        document.getElementById("editEmail").value = student.email || "";
+        document.getElementById("editClass").value = student.class_name || "";
+
+        document.getElementById("currentPassword").value = "";
+        document.getElementById("editPassword").value = "";
+        document.getElementById("editConfirmPassword").value = "";
+
+        document.getElementById("editPasswordError").style.display = "none";
+        document.getElementById("editSuccessMessage").style.display = "none";
+        document.getElementById("editErrorMessage").style.display = "none";
+
+        document.getElementById("editProfileModal").classList.add("active");
+    } catch (err) {
+        console.error("Error opening modal:", err);
+        alert("Error loading profile");
+    }
+}
+
+function closeEditProfileModal() {
+    document.getElementById("editProfileModal").classList.remove("active");
+}
+
+async function saveProfileChanges() {
+    try {
+        // Get student ID from user data instead of separate storage
+        const userJson = localStorage.getItem("user");
+        if (!userJson) throw new Error("User data not found. Please log in again.");
+        
+        const userData = JSON.parse(userJson);
+        const studentId = userData.id;
+        
+        console.log("Updating profile for student ID:", studentId);
+        
+        if (!studentId) throw new Error("Student ID missing");
+
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Please log in first");
+
+        const name = document.getElementById("editName").value.trim();
+        const email = document.getElementById("editEmail").value.trim();
+        const class_name = document.getElementById("editClass").value.trim();
+        const currentPassword = document.getElementById("currentPassword").value;
+        const newPassword = document.getElementById("editPassword").value;
+        const confirmPassword = document.getElementById("editConfirmPassword").value;
+
+        document.getElementById("editPasswordError").style.display = "none";
+        document.getElementById("editSuccessMessage").style.display = "none";
+        document.getElementById("editErrorMessage").style.display = "none";
+
+        const updateData = { name, email, class_name };
+
+        if (newPassword) {
+            if (!currentPassword) {
+                alert("Please enter your current password to change it");
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                document.getElementById("editPasswordError").textContent = "Passwords do not match";
+                document.getElementById("editPasswordError").style.display = "block";
+                return;
+            }
+            if (newPassword.length < 6) {
+                alert("New password must be at least 6 characters");
+                return;
+            }
+            updateData.currentPassword = currentPassword;
+            updateData.newPassword = newPassword;
+        }
+
+        console.log("Sending update request:", updateData);
+        console.log("URL:", `http://localhost:8080/api/students/${studentId}`);
+
+        const res = await fetch(`http://localhost:8080/api/students/${studentId}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(updateData)
+        });
+
+        console.log("Response status:", res.status);
+
+        if (!res.ok) {
+            let errorMessage = "Failed to update profile";
+            try {
+                const errorData = await res.json();
+                errorMessage = errorData.message || errorMessage;
+                console.error("Error response:", errorData);
+            } catch (e) {
+                const errorText = await res.text();
+                console.error("Error response (text):", errorText);
+            }
+            throw new Error(errorMessage);
+        }
+
+        const updatedStudent = await res.json();
+        console.log("Profile updated:", updatedStudent);
+
+        localStorage.setItem("user", JSON.stringify(updatedStudent));
+        currentUserProfile = updatedStudent;
+
+        document.getElementById("editSuccessMessage").style.display = "block";
+
+        setTimeout(() => closeEditProfileModal(), 1500);
+
+    } catch (err) {
+        console.error("Error updating profile:", err);
+        document.getElementById("editErrorMessage").textContent = err.message;
+        document.getElementById("editErrorMessage").style.display = "block";
+    }
+}
+
+// Initialize immediately when module loads
+(async function initialize() {
+    console.log('Initializing student dashboard...');
+    
+    // Wait a bit for DOM to be ready if needed
+    if (document.readyState === 'loading') {
+        await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+    }
+    
+    console.log('DOM ready, fetching classes...');
+    
+    // Fetch and populate classes
+    await fetchStudentClasses();
+    
+    // Display initial state
+    displayDummyAttendance();
+    
+    // Add event listener for class selection
+    const classSelect = document.getElementById("classSelect");
+    if (classSelect) {
+        classSelect.addEventListener("change", displayDummyAttendance);
+        console.log('Event listener added to classSelect');
+    } else {
+        console.error('classSelect element not found!');
+    }
+})();
+
+// Make functions available globally for onclick handlers
 window.enableFaceScanning = enableFaceScanning;
 window.openFaceScanning = openFaceScanning;
 window.closeFaceScanning = closeFaceScanning;

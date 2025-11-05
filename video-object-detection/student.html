@@ -42,7 +42,6 @@
                 <p class="section-subtitle">Available Classes</p>
             </div>
             <div class="section-content">
-                <!-- REMOVED inline onchange attribute -->
                 <select class="form-select" id="classSelect"> 
                     <option value="">Select a class</option>
                 </select>
@@ -51,488 +50,92 @@
                 <p class="welcome-subtitle">Your attendance records for the semester will appear here</p>
             </div>
         </div>
-
-        <!-- REMOVED Recent Attendance section entirely -->
     </div>
 
-<style>
-    /* Modern table styling that matches dashboard aesthetic */
-    .attendance-header {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #e2e8f0;
-    }
-
-    table.attendance-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin-top: 1rem;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    table.attendance-table thead tr {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-    table.attendance-table th {
-        padding: 16px 20px;
-        text-align: left;
-        font-weight: 600;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        border: none;
-    }
-
-    table.attendance-table td {
-        padding: 14px 20px;
-        border-bottom: 1px solid #f1f5f9;
-        color: #334155;
-        font-size: 0.9375rem;
-    }
-
-    table.attendance-table tbody tr {
-        transition: all 0.2s ease;
-    }
-
-    table.attendance-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    table.attendance-table tbody tr:hover {
-        background-color: #f8fafc;
-        transform: scale(1.01);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-
-    /* Status badges with modern design */
-    .status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 0.8125rem;
-        text-transform: capitalize;
-    }
-
-    .present {
-        background-color: #d1fae5;
-        color: #065f46;
-    }
-
-    .absent {
-        background-color: #fee2e2;
-        color: #991b1b;
-    }
-
-    .late {
-        background-color: #fef3c7;
-        color: #92400e;
-    }
-</style>
-
-<script>
-    // Global variable for attendance records to allow sharing between tables
-    let globalAllAttendanceRecords = [];
-    let enrolledClasses = []; // Store student's enrolled classes
-
-    // Fetch student's enrolled classes from the groups table
-    async function fetchStudentClasses() {
-        try {
-            const token = localStorage.getItem("access_token");
-            if (!token) throw new Error("Please log in first");
-
-            const userJson = localStorage.getItem("user");
-            if (!userJson) throw new Error("User data not found in storage. Please re-login.");
-
-            const userData = JSON.parse(userJson);
-            const studentId = userData.id;
-            if (!studentId) throw new Error("Student ID missing in storage");
-
-            // Fetch groups where this student is enrolled
-            const res = await fetch(`http://localhost:8080/api/groups`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            if (!res.ok) {
-                throw new Error("Failed to load groups");
-            }
-
-            const allGroups = await res.json();
-            
-            // Filter groups where student is in the student_list
-            const studentGroups = allGroups.filter(group => {
-                if (!group.student_list) return false;
-                
-                // Parse student_list if it's a string (JSON array format)
-                let studentList = group.student_list;
-                if (typeof studentList === 'string') {
-                    try {
-                        studentList = JSON.parse(studentList);
-                    } catch (e) {
-                        // If not JSON, try splitting by comma
-                        studentList = studentList.split(',').map(s => s.trim());
-                    }
-                }
-                
-                // Check if student ID or email is in the list
-                return studentList.includes(studentId) || 
-                    studentList.includes(userData.email) ||
-                    studentList.includes(userData.code);
-            });
-
-            // Extract unique class codes from the student's groups
-            const uniqueClassCodes = [...new Set(studentGroups.map(g => g.class_code).filter(Boolean))];
-            
-            // Fetch all classes from the classes table
-            const classesRes = await fetch(`http://localhost:8080/api/classes`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            
-            let allClasses = [];
-            if (classesRes.ok) {
-                allClasses = await classesRes.json();
-            }
-            
-            // Map class codes to class details
-            const classMap = new Map();
-            
-            for (const classCode of uniqueClassCodes) {
-                // Find the class in the fetched classes
-                const classData = allClasses.find(c => c.class_code === classCode);
-                
-                if (classData) {
-                    classMap.set(classCode, {
-                        class_code: classData.class_code,
-                        class_name: classData.class_name,
-                        professor_list: classData.professor_list || ''
-                    });
-                } else {
-                    // Fallback if class not found
-                    console.warn(`Class ${classCode} not found in classes table`);
-                    classMap.set(classCode, {
-                        class_code: classCode,
-                        class_name: `Class ${classCode}`,
-                        professor_list: ''
-                    });
-                }
-            }
-
-            const classes = Array.from(classMap.values());
-            
-            if (classes.length === 0) {
-                console.warn("No classes found for this student");
-            }
-
-            enrolledClasses = classes;
-            populateClassDropdown(classes);
-            return classes;
-
-        } catch (err) {
-            console.error("Error fetching classes:", err);
-            alert("Error loading classes: " + err.message);
-            
-            // Show empty dropdown
-            enrolledClasses = [];
-            populateClassDropdown([]);
-            return [];
-        }
-    }
-
-    // Populate the class dropdown with enrolled classes
-    function populateClassDropdown(classes) {
-        const classSelect = document.getElementById("classSelect");
-        
-        // Clear existing options
-        while (classSelect.firstChild) {
-            classSelect.removeChild(classSelect.firstChild);
-        }
-        
-        // Add default option
-        const defaultOption = document.createElement('option');
-        defaultOption.value = "";
-        defaultOption.textContent = "Select a class";
-        classSelect.appendChild(defaultOption);
-        
-        // Add classes to dropdown
-        if (classes && classes.length > 0) {
-            classes.forEach(cls => {
-                const option = document.createElement('option');
-                option.value = cls.class_code.toLowerCase();
-                option.textContent = `${cls.class_code} - ${cls.class_name}`;
-                option.dataset.classCode = cls.class_code;
-                option.dataset.className = cls.class_name;
-                classSelect.appendChild(option);
-            });
-        } else {
-            // Show message if no classes found
-            const option = document.createElement('option');
-            option.value = "";
-            option.textContent = "No classes enrolled";
-            option.disabled = true;
-            classSelect.appendChild(option);
-        }
-    }
-
-    // Fetch attendance records for a specific class from attendance_records table
-    async function fetchAttendanceRecordsForClass(classCode, studentId) {
-        try {
-            const token = localStorage.getItem("access_token");
-
-            // Fetch all attendance records
-            const res = await fetch(
-                `http://localhost:8080/api/attendance_records`,
-                {
-                    headers: { Authorization: `Bearer ${token}` }
-                }
-            );
-
-            if (!res.ok) {
-                console.log("No attendance records found");
-                return [];
-            }
-
-            const allRecords = await res.json();
-            
-            // First get all sessions for this class
-            const sessions = await fetchSessionsForClass(classCode);
-            const sessionIds = sessions.map(s => s.id);
-            
-            console.log("Session IDs for class", classCode, ":", sessionIds);
-            
-            // Filter for this specific student AND sessions that belong to this class
-            const studentRecords = allRecords.filter(record => {
-                const matchesStudent = record.student_id === studentId;
-                const matchesSession = sessionIds.includes(record.session_id);
-                console.log(`Record ${record.id}: student match=${matchesStudent}, session match=${matchesSession}`);
-                return matchesStudent && matchesSession;
-            });
-            
-            console.log("Filtered attendance records:", studentRecords);
-            
-            return studentRecords;
-        } catch (err) {
-            console.error("Error fetching attendance records:", err);
-            return [];
-        }
-    }
-
-    // Fetch sessions for a class to build attendance table
-    async function fetchSessionsForClass(classCode) {
-        try {
-            const token = localStorage.getItem("access_token");
-            
-            const res = await fetch(`http://localhost:8080/api/sessions`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            if (!res.ok) {
-                return [];
-            }
-
-            const allSessions = await res.json();
-            
-            // Debug: Log all sessions to see their structure
-            console.log("All sessions:", allSessions);
-            console.log("Looking for class_code:", classCode);
-            
-            // Filter sessions for this specific class
-            const filteredSessions = allSessions.filter(s => {
-                console.log(`Session ${s.name}: class_code = ${s.class_code}`);
-                return s.class_code === classCode;
-            });
-            
-            console.log("Filtered sessions:", filteredSessions);
-            return filteredSessions;
-        } catch (err) {
-            console.error("Error fetching sessions:", err);
-            return [];
-        }
-    }
-
-    // Helper function to clear container
-    function clearContainer(container) {
-        while (container.firstChild) {
-            container.removeChild(container.firstChild);
-        }
-    }
-
-    // Helper function to create message element
-    function createMessage(text, className = 'welcome-subtitle') {
-        const p = document.createElement('p');
-        p.className = className;
-        p.textContent = text;
-        return p;
-    }
-
-    // Updated displayDummyAttendance to use attendance_records table
-    async function displayDummyAttendance() {
-        const classSelect = document.getElementById("classSelect");
-        const mainContainer = document.getElementById("attendanceTableContainer");
-        const selectedClass = classSelect.value;
-
-        // Clear container
-        clearContainer(mainContainer);
-
-        if (!selectedClass) {
-            // Show message when no class is selected
-            mainContainer.appendChild(createMessage("Please select a class to view attendance records"));
-            return;
+    <style>
+        /* Modern table styling that matches dashboard aesthetic */
+        .attendance-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
         }
 
-        // Get selected class data
-        const selectedOption = classSelect.options[classSelect.selectedIndex];
-        const classCode = selectedOption.dataset.classCode;
-        const className = selectedOption.dataset.className;
-
-        const userJson = localStorage.getItem("user");
-        const userData = JSON.parse(userJson);
-        const studentId = userData.id;
-
-        // Fetch sessions and attendance records for the selected class
-        let sessions = await fetchSessionsForClass(classCode);
-        const allAttendanceRecords = await fetchAttendanceRecordsForClass(classCode, studentId);
-
-        if (sessions.length === 0) {
-            const header = document.createElement('h3');
-            header.className = 'attendance-header';
-            header.textContent = `Attendance for ${classCode} - ${className}`;
-            mainContainer.appendChild(header);
-            mainContainer.appendChild(createMessage("No sessions found for this class yet"));
-            return;
+        table.attendance-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        // Build attendance map by session_id
-        const attendanceMap = new Map();
-        allAttendanceRecords.forEach(record => {
-            attendanceMap.set(record.session_id, record);
-        });
-
-        // Only show sessions where student has attendance records
-        sessions = sessions.filter(s => attendanceMap.has(s.id));
-        
-        if (sessions.length === 0) {
-            const header = document.createElement('h3');
-            header.className = 'attendance-header';
-            header.textContent = `Attendance for ${classCode} - ${className}`;
-            mainContainer.appendChild(header);
-            mainContainer.appendChild(createMessage("No attendance records found for this class"));
-            return;
+        table.attendance-table thead tr {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
 
-        // Create header
-        const header = document.createElement('h3');
-        header.className = 'attendance-header';
-        header.textContent = `Attendance for ${classCode} - ${className}`;
-        mainContainer.appendChild(header);
+        table.attendance-table th {
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: none;
+        }
 
-        // Create table
-        const table = document.createElement('table');
-        table.className = 'attendance-table';
+        table.attendance-table td {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            font-size: 0.9375rem;
+        }
 
-        // Create thead
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-        ['Session', 'Date', 'Status', 'Method', 'Marked At'].forEach(text => {
-            const th = document.createElement('th');
-            th.textContent = text;
-            headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
+        table.attendance-table tbody tr {
+            transition: all 0.2s ease;
+        }
 
-        // Create tbody
-        const tbody = document.createElement('tbody');
-        sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+        table.attendance-table tbody tr:last-child td {
+            border-bottom: none;
+        }
 
-        console.log(`Creating table with ${sessions.length} sessions`);
-        console.log(`Attendance map has ${attendanceMap.size} records`);
+        table.attendance-table tbody tr:hover {
+            background-color: #f8fafc;
+            transform: scale(1.01);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
 
-        sessions.forEach(session => {
-            const row = document.createElement('tr');
-            
-            const sessionDate = new Date(session.date);
-            const formattedDate = sessionDate.toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: '2-digit',
-                year: '2-digit'
-            });
-            
-            const attendance = attendanceMap.get(session.id);
-            const status = attendance ? attendance.status : 'Absent';
-            const method = attendance ? (attendance.method || 'N/A') : 'N/A';
-            
-            let markedAt = 'N/A';
-            if (attendance && attendance.marked_at) {
-                const markedDate = new Date(attendance.marked_at);
-                markedAt = markedDate.toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: '2-digit'
-                }) + ' ' + markedDate.toLocaleTimeString('en-GB', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            }
-            
-            // Session name cell
-            const sessionCell = document.createElement('td');
-            const sessionStrong = document.createElement('strong');
-            sessionStrong.textContent = session.name || 'Session';
-            sessionCell.appendChild(sessionStrong);
-            row.appendChild(sessionCell);
-            
-            // Date cell
-            const dateCell = document.createElement('td');
-            dateCell.textContent = formattedDate;
-            row.appendChild(dateCell);
-            
-            // Status cell
-            const statusCell = document.createElement('td');
-            const statusBadge = document.createElement('span');
-            statusBadge.className = `status-badge ${status.toLowerCase()}`;
-            statusBadge.textContent = status;
-            statusCell.appendChild(statusBadge);
-            row.appendChild(statusCell);
-            
-            // Method cell
-            const methodCell = document.createElement('td');
-            methodCell.textContent = method;
-            row.appendChild(methodCell);
-            
-            // Marked At cell
-            const markedAtCell = document.createElement('td');
-            markedAtCell.textContent = markedAt;
-            row.appendChild(markedAtCell);
-            
-            tbody.appendChild(row);
-        });
+        /* Status badges with modern design */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.8125rem;
+            text-transform: capitalize;
+        }
 
-        table.appendChild(tbody);
-        mainContainer.appendChild(table);
-    }
+        .present {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
 
-    // Initialize on page load
-    window.onload = async function () {
-        // Fetch and populate classes from groups table
-        await fetchStudentClasses();
-        
-        // Display initial state (empty message)
-        displayDummyAttendance();
-    };
+        .absent {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
 
-    // Add SINGLE event listener for class selection
-    document.getElementById("classSelect").addEventListener("change", displayDummyAttendance);
-</script>
+        .late {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+    </style>
 
     <div id="faceScanModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
@@ -549,49 +152,49 @@
                     <canvas id="canvas" width="360" height="240"></canvas>
                     <div id="overlay"></div>
                 </div>
-                 <div id="controls">
-                <div>
-                    <label>Image size</label>
-                    (<label id="size-value">96</label>)
-                    <br />
-                    <input
-                    id="size"
-                    type="range"
-                    min="64"
-                    max="256"
-                    step="32"
-                    value="96"
-                    disabled
-                    />
-                </div>
-                <div>
-                    <label>Threshold</label>
-                    (<label id="threshold-value">0.85</label>)
-                    <br />
-                    <input
-                    id="threshold"
-                    type="range"
-                    min="0.01"
-                    max="1"
-                    step="0.01"
-                    value="0.85"
-                    disabled
-                    />
-                </div>
-                <div>
-                    <label>Scale</label>
-                    (<label id="scale-value">0.5</label>)
-                    <br />
-                    <input
-                    id="scale"
-                    type="range"
-                    min="0.01"
-                    max="1"
-                    step="0.01"
-                    value="0.5"
-                    disabled
-                    />
-                </div>
+                <div id="controls">
+                    <div>
+                        <label>Image size</label>
+                        (<label id="size-value">96</label>)
+                        <br />
+                        <input
+                            id="size"
+                            type="range"
+                            min="64"
+                            max="256"
+                            step="32"
+                            value="96"
+                            disabled
+                        />
+                    </div>
+                    <div>
+                        <label>Threshold</label>
+                        (<label id="threshold-value">0.85</label>)
+                        <br />
+                        <input
+                            id="threshold"
+                            type="range"
+                            min="0.01"
+                            max="1"
+                            step="0.01"
+                            value="0.85"
+                            disabled
+                        />
+                    </div>
+                    <div>
+                        <label>Scale</label>
+                        (<label id="scale-value">0.5</label>)
+                        <br />
+                        <input
+                            id="scale"
+                            type="range"
+                            min="0.01"
+                            max="1"
+                            step="0.01"
+                            value="0.5"
+                            disabled
+                        />
+                    </div>
                 </div>
                 <label id="status"></label>
                 <div id="scanResult" style="text-align: center; margin-bottom: 1rem; display: none;">
@@ -609,199 +212,64 @@
     <div class="modal px-5" id="editProfileModal">
         <div class="modal-dialog px-5" style="width: 500px;">
             <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closeEditProfileModal()"></button>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closeEditProfileModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProfileForm">
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="editName">Full Name</label>
+                            <input type="text" id="editName" class="form-input form-control" required>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="editEmail">Email</label>
+                            <input type="email" id="editEmail" class="form-input form-control" required>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="editClass">Class Code</label>
+                            <input type="text" id="editClass" class="form-input form-control" placeholder="e.g. CS101">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="currentPassword">Current Password</label>
+                            <input type="password" id="currentPassword" class="form-input form-control" placeholder="Leave blank to keep current password">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="editPassword">New Password</label>
+                            <input type="password" id="editPassword" class="form-input form-control" placeholder="Leave blank to keep current password">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="editConfirmPassword">Confirm New Password</label>
+                            <input type="password" id="editConfirmPassword" class="form-input form-control" placeholder="Confirm new password">
+                        </div>
+                        
+                        <div id="editPasswordError" style="color: #ef4444; font-size: 0.875rem; margin-bottom: 1rem; display: none;">
+                            Passwords do not match
+                        </div>
+                        
+                        <div id="editSuccessMessage" class="alert alert-success" style="display: none;">
+                            Profile updated successfully!
+                        </div>
+                        
+                        <div id="editErrorMessage" class="alert alert-danger" style="display: none;">
+                            Error updating profile. Please try again.
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="modal-footer row">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditProfileModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProfileChanges()">Save Changes</button>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="editProfileForm">
-                    <div class="form-group mb-3">
-                        <label class="form-label" for="editName">Full Name</label>
-                        <input type="text" id="editName" class="form-input form-control" required>
-                    </div>
-                    
-                    <div class="form-group mb-3">
-                        <label class="form-label" for="editEmail">Email</label>
-                        <input type="email" id="editEmail" class="form-input form-control" required>
-                    </div>
-                    
-                    <div class="form-group mb-3">
-                        <label class="form-label" for="editClass">Class Code</label>
-                        <input type="text" id="editClass" class="form-input form-control" placeholder="e.g. CS101">
-                    </div>
-                    
-                    <div class="form-group mb-3">
-                        <label class="form-label" for="currentPassword">Current Password</label>
-                        <input type="password" id="currentPassword" class="form-input form-control" placeholder="Leave blank to keep current password">
-                    </div>
-                    
-                    <div class="form-group mb-3">
-                        <label class="form-label" for="editPassword">New Password</label>
-                        <input type="password" id="editPassword" class="form-input form-control" placeholder="Leave blank to keep current password">
-                    </div>
-                    
-                    <div class="form-group mb-3">
-                        <label class="form-label" for="editConfirmPassword">Confirm New Password</label>
-                        <input type="password" id="editConfirmPassword" class="form-input form-control" placeholder="Confirm new password">
-                    </div>
-                    
-                    <div id="editPasswordError" style="color: #ef4444; font-size: 0.875rem; margin-bottom: 1rem; display: none;">
-                        Passwords do not match
-                    </div>
-                    
-                    <div id="editSuccessMessage" class="alert alert-success" style="display: none;">
-                        Profile updated successfully!
-                    </div>
-                    
-                    <div id="editErrorMessage" class="alert alert-danger" style="display: none;">
-                        Error updating profile. Please try again.
-                    </div>
-                </form>
-            </div>
-            
-            <div class="modal-footer row">
-                <button type="button" class="btn btn-secondary" onclick="closeEditProfileModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveProfileChanges()">Save Changes</button>
-            </div>
-            
         </div>
     </div>
     
     <script type="module" src="src/student.js"></script>
-    <script>
-        let currentUser = null;
-
-        async function getCurrentStudent() {
-            try {
-                const token = localStorage.getItem("access_token");
-                if (!token) throw new Error("Please log in first");
-
-                const userJson = localStorage.getItem("user");
-                if (!userJson) throw new Error("User data not found in storage. Please re-login.");
-
-                const userData = JSON.parse(userJson);
-                const studentId = userData.id;
-                if (!studentId) throw new Error("Student ID missing in storage");
-
-                const res = await fetch(`http://localhost:8080/api/students/${studentId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                if (res.status === 404) throw new Error("Student profile not found.");
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.message || "Failed to load student profile.");
-                }
-
-                const student = await res.json();
-                currentUser = student;
-                localStorage.setItem("student_id", student.id); 
-                return student;
-
-            } catch (err) {
-                console.error(err);
-                alert(err.message);
-                return null; 
-            }
-        }
-
-        async function openEditProfileModal() {
-            try {
-                const student = await getCurrentStudent();
-                if (!student) return;
-
-                document.getElementById("editName").value = student.name || "";
-                document.getElementById("editEmail").value = student.email || "";
-                document.getElementById("editClass").value = student.class_name || "";
-
-                document.getElementById("currentPassword").value = "";
-                document.getElementById("editPassword").value = "";
-                document.getElementById("editConfirmPassword").value = "";
-
-                document.getElementById("editPasswordError").style.display = "none";
-                document.getElementById("editSuccessMessage").style.display = "none";
-                document.getElementById("editErrorMessage").style.display = "none";
-
-                document.getElementById("editProfileModal").classList.add("active");
-            } catch (err) {
-                console.error("Error opening modal:", err);
-                alert("Error loading profile");
-            }
-        }
-
-        function closeEditProfileModal() {
-            document.getElementById("editProfileModal").classList.remove("active");
-        }
-
-        async function saveProfileChanges() {
-            try {
-                const studentId = localStorage.getItem("student_id");
-                if (!studentId) throw new Error("Student ID missing");
-
-                const token = localStorage.getItem("access_token");
-                if (!token) throw new Error("Please log in first");
-
-                const name = document.getElementById("editName").value.trim();
-                const email = document.getElementById("editEmail").value.trim();
-                const class_name = document.getElementById("editClass").value.trim();
-                const currentPassword = document.getElementById("currentPassword").value;
-                const newPassword = document.getElementById("editPassword").value;
-                const confirmPassword = document.getElementById("editConfirmPassword").value;
-
-                document.getElementById("editPasswordError").style.display = "none";
-                document.getElementById("editSuccessMessage").style.display = "none";
-                document.getElementById("editErrorMessage").style.display = "none";
-
-                const updateData = { name, email, class_name };
-
-                if (newPassword) {
-                    if (!currentPassword) {
-                        alert("Please enter your current password to change it");
-                        return;
-                    }
-                    if (newPassword !== confirmPassword) {
-                        document.getElementById("editPasswordError").textContent = "Passwords do not match";
-                        document.getElementById("editPasswordError").style.display = "block";
-                        return;
-                    }
-                    if (newPassword.length < 6) {
-                        alert("New password must be at least 6 characters");
-                        return;
-                    }
-                    updateData.currentPassword = currentPassword;
-                    updateData.newPassword = newPassword;
-                }
-
-                const res = await fetch(`http://localhost:8080/api/students/${studentId}`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    body: JSON.stringify(updateData)
-                });
-
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.message || "Failed to update profile");
-                }
-
-                const updatedStudent = await res.json();
-                console.log("Profile updated:", updatedStudent);
-
-                localStorage.setItem("user", JSON.stringify(updatedStudent));
-                currentUser = updatedStudent;
-
-                document.getElementById("editSuccessMessage").style.display = "block";
-
-                setTimeout(() => closeEditProfileModal(), 1500);
-
-            } catch (err) {
-                console.error("Error updating profile:", err);
-                document.getElementById("editErrorMessage").textContent = err.message;
-                document.getElementById("editErrorMessage").style.display = "block";
-            }
-        }
-    </script>
 </body>
 </html>

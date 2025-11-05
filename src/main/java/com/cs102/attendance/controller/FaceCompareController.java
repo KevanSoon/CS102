@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cs102.attendance.dto.FaceVerificationResult;
 import com.cs102.attendance.service.FaceCompareService;
-import com.fasterxml.jackson.databind.JsonNode;
 
 @RestController
 @RequestMapping("/api")
@@ -27,9 +27,10 @@ public class FaceCompareController {
 
     /**
      * Accepts a Base64 image and a student image URL for comparison
+     * @return FaceVerificationResult with verified status and confidence score
      */
     @PostMapping("/face-compare-url")
-    public ResponseEntity<JsonNode> compareFaces(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<FaceVerificationResult> compareFaces(@RequestBody Map<String, String> payload) {
         System.out.println("=== Face Compare URL Request Received ===");
         
         String imageBase64 = payload.get("imageBase64"); // uploaded image
@@ -79,7 +80,7 @@ public class FaceCompareController {
 
             // Compare faces
             System.out.println("Calling faceCompareService...");
-            JsonNode result = faceCompareService.faceCompare(
+            FaceVerificationResult result = faceCompareService.faceCompare(
                     file1.getAbsolutePath(),
                     file2.getAbsolutePath()
             );

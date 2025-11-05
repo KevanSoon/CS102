@@ -4,7 +4,7 @@ from deepface import DeepFace
 import tempfile
 import os
 import time
-from typing import Dict, Any
+from typing import Dict
 
 app = FastAPI(title="Face Verification API", version="1.0.0")
 
@@ -27,16 +27,16 @@ async def root():
 async def face_match(
     image1: UploadFile = File(..., description="First image for comparison"),
     image2: UploadFile = File(..., description="Second image for comparison")
-) -> Dict[str, Any]:
+):
     """
-    Compare two face images and return verification results with confidence score.
+    Compare two face images and return verification result and confidence score.
     
     Parameters:
     - image1: First image file (uploaded image)
     - image2: Second image file (student image)
     
     Returns:
-    - Dictionary containing verification results including confidence score
+    - Dictionary containing verified (boolean) and confidence score (0-100)
     """
     temp_file1 = None
     temp_file2 = None
@@ -71,30 +71,22 @@ async def face_match(
             enforce_detection=False  # Don't fail if face is not detected
         )
         
-        print(f"DeepFace result: {result}")
+        print(f"DeepFace raw result: {result}")
         
-        # Calculate confidence as a percentage (0-100)
-        # For cosine distance: lower is better, threshold is typically around 0.68
-        # Confidence = (1 - (distance / threshold)) * 100, capped at 100
-        distance = result.get("distance", 1.0)
-        threshold = result.get("threshold", 0.68)
+        # Extract only verified and confidence from DeepFace result
+        verified = result.get("verified", False)
+        confidence = result.get("confidence",0.00)
         
-        if distance <= threshold:
-            confidence = min(100.0, ((threshold - distance) / threshold) * 100)
-        else:
-            # If not verified, confidence is lower
-            confidence = max(0.0, (1 - (distance / threshold)) * 100)
+        confidence = round(confidence, 2)
         
-        # Add confidence to the result
-        result["confidence"] = round(confidence, 2)
+        print(f"Verified: {verified}")
+        print(f"Confidence: {confidence}%")
+        print("=" * 60)
+        print(f"RETURNING: verified={verified}, confidence={confidence}")
+        print("=" * 60)
         
-        print(f"Calculated confidence: {confidence}%")
-        print(f"Final result being returned: {result}")
-        
-        # Add processing time
-        result["time"] = round(time.time() - start_time, 2)
-        
-        return result
+        # Return only verified and confidence
+        return {"verified": verified, "confidence": confidence}
         
     except ValueError as e:
         # Handle face detection failures

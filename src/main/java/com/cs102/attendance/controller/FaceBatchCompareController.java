@@ -15,6 +15,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cs102.attendance.dto.AttendanceRecordUpdateDTO;
+import com.cs102.attendance.dto.FaceVerificationResult;
 import com.cs102.attendance.model.AttendanceRecord;
 import com.cs102.attendance.model.FaceData;
 import com.cs102.attendance.service.AttendanceRecordService;
@@ -78,10 +79,10 @@ public class FaceBatchCompareController {
                         "imageUrl2", student.getImageUrl()
                 );
 
-                ResponseEntity<JsonNode> response = restTemplate.postForEntity(
+                ResponseEntity<FaceVerificationResult> response = restTemplate.postForEntity(
                         "http://localhost:8080/api/face-compare-url",
                         requestBody,
-                        JsonNode.class
+                        FaceVerificationResult.class
                 );
 
                 if (response.getBody() == null) {
@@ -89,19 +90,26 @@ public class FaceBatchCompareController {
                     continue;
                 }
 
-                double similarity = response.getBody().asDouble();
-                System.out.println("Student " + student.getStudentId() + " similarity: " + similarity);
+                FaceVerificationResult verificationResult = response.getBody();
+                boolean verified = verificationResult.isVerified();
+                double confidence = verificationResult.getConfidence();
+                
+                System.out.println("Student " + student.getStudentId() + 
+                                 " - Verified: " + verified + 
+                                 ", Confidence: " + confidence);
 
                 ObjectNode resultNode = mapper.createObjectNode();
                 resultNode.put("studentId", student.getStudentId());
                 resultNode.put("studentUrl", student.getImageUrl());
-                resultNode.put("comparisonResult", similarity);
+                resultNode.put("verified", verified);
+                resultNode.put("confidence", confidence);
                 results.add(resultNode);
 
-                if (similarity > 0.80 && similarity > highestScore) {
-                    highestScore = similarity;
+                // Use DeepFace's verified flag instead of manual threshold
+                if (verified && confidence > highestScore) {
+                    highestScore = confidence;
                     bestStudentId = student.getStudentId();
-                    System.out.println("New best match: " + bestStudentId + " with score: " + highestScore);
+                    System.out.println("New best match: " + bestStudentId + " with confidence: " + highestScore);
                 }
 
             } catch (Exception e) {
@@ -130,7 +138,8 @@ public class FaceBatchCompareController {
 
                 finalResponse.put("bestMatchStudentId", bestStudentId);
                 finalResponse.put("bestMatchName", studentName);
-                finalResponse.put("highestSimilarity", highestScore);
+                finalResponse.put("highestConfidence", highestScore);
+                finalResponse.put("verified", true);
 
                 //Auto marker method
                 String sessionId = "129a7eeb-c163-428e-b639-ab0107358114";  // Hardcoded for now 
@@ -154,9 +163,9 @@ public class FaceBatchCompareController {
                 finalResponse.put("error", "Error fetching student name: " + e.getMessage());
             }
         } else {
-            System.out.println("No match found above 0.80 threshold. Highest score was: " + highestScore);
-            finalResponse.put("message", "No match above 0.80 similarity threshold");
-            finalResponse.put("highestSimilarity", highestScore);
+            System.out.println("No verified match found. Highest confidence was: " + highestScore);
+            finalResponse.put("message", "No verified face match found");
+            finalResponse.put("highestConfidence", highestScore);
             finalResponse.put("totalStudentsCompared", students.size());
         }
 

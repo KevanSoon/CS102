@@ -126,17 +126,17 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
         console.log("Starting face verification...");
         sendCanvasImageToAPI(canvas).then(response => {
             console.log("Verification response received:", response);
-            const { highestSimilarity, bestMatchName = "Unknown" } = response;
-            console.log("Parsed values - highestSimilarity:", highestSimilarity, "bestMatchName:", bestMatchName);
+            const { verified, highestConfidence, bestMatchName = "Unknown" } = response;
+            console.log("Parsed values - verified:", verified, "highestConfidence:", highestConfidence, "bestMatchName:", bestMatchName);
             
-            if (highestSimilarity && highestSimilarity > 0.80) {
+            if (verified) {
                 color = "green";
-                text = `Verified! ${bestMatchName} (${(highestSimilarity * 100).toFixed(2)}%)`;
+                text = `Verified! ${bestMatchName} (${(highestConfidence * 100).toFixed(2)}%)`;
                 console.log("✓ Verification SUCCESS:", text);
             } else {
                 color = "red";
                 text = "Failed to verify";
-                console.log("✗ Verification FAILED - similarity too low or undefined");
+                console.log("✗ Verification FAILED - not verified by DeepFace");
             }
             if (currentLabelElement && currentBoxElement) {
                 currentLabelElement.textContent = text;

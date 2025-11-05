@@ -14,6 +14,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.cs102.attendance.dto.FaceVerificationResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -23,7 +24,13 @@ public class FaceCompareService {
     @Value("${face-service.deepface-url}")
     private String apiUrl;
 
-    public JsonNode faceCompare(String frame1Path, String frame2Path) {
+    /**
+     * Compare two face images and return verification result
+     * @param frame1Path Path to first image
+     * @param frame2Path Path to second image
+     * @return FaceVerificationResult containing verified status and confidence, or null if comparison fails
+     */
+    public FaceVerificationResult faceCompare(String frame1Path, String frame2Path) {
         try {
             RestTemplate restTemplate = new RestTemplate();
 
@@ -50,15 +57,19 @@ public class FaceCompareService {
             System.out.println(jsonNode.toPrettyString());
             System.out.println("===================================");
 
-            // Extract confidence from DeepFace response
-            if (jsonNode.has("confidence")) {
-                JsonNode confidenceNode = jsonNode.get("confidence");
-                System.out.println("Confidence value from API: " + confidenceNode);
-                System.out.println("Confidence as double: " + confidenceNode.asDouble());
-                return confidenceNode; // Return confidence as JsonNode
+            // Extract verified and confidence from DeepFace response
+            if (jsonNode.has("verified") && jsonNode.has("confidence")) {
+                boolean verified = jsonNode.get("verified").asBoolean();
+                double confidencePercentage = jsonNode.get("confidence").asDouble();
+                double confidenceDecimal = confidencePercentage / 100.0;
+                
+                System.out.println("Verified: " + verified);
+                System.out.println("Confidence: " + confidencePercentage + "% -> " + confidenceDecimal + " (decimal)");
+                
+                return new FaceVerificationResult(verified, confidenceDecimal);
             }
             
-            System.err.println("Confidence field not found in response.");
+            System.err.println("Verified or Confidence field not found in response.");
             return null;
 
         } catch (Exception e) {

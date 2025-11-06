@@ -1,6 +1,7 @@
 package com.cs102.attendance.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,8 +33,27 @@ public class AttendanceRecordController {
     }
 
     @GetMapping
-    public List<AttendanceRecord> getAllSessions() {
-        return attendanceRecordService.getAll();
+    public List<AttendanceRecord> getAttendanceRecords(
+            @RequestParam(required = false) String session_id,
+            @RequestParam(required = false) String student_id) {
+        
+        List<AttendanceRecord> allRecords = attendanceRecordService.getAll();
+        
+        // Filter by session_id if provided
+        if (session_id != null) {
+            allRecords = allRecords.stream()
+                    .filter(r -> session_id.equals(r.getSession_id()))
+                    .collect(Collectors.toList());
+        }
+        
+        // Filter by student_id if provided
+        if (student_id != null) {
+            allRecords = allRecords.stream()
+                    .filter(r -> student_id.equals(r.getStudent_id()))
+                    .collect(Collectors.toList());
+        }
+        
+        return allRecords;
     }
 
 
@@ -51,10 +71,18 @@ public class AttendanceRecordController {
 
     @PatchMapping("/auto_manual_marker")
     public AttendanceRecord updateBySessionAndStudent(
-            @RequestParam String sessionId,
-            @RequestParam String studentId,
-            @RequestBody AttendanceRecordUpdateDTO updateDTO) {
-        return attendanceRecordService.updateBySessionAndStudent(sessionId, studentId, updateDTO);
+        @RequestParam String sessionId,
+        @RequestParam String studentId,
+        @RequestBody AttendanceRecordUpdateDTO updateDTO) {
+        try {
+            AttendanceRecord record = attendanceRecordService.updateBySessionAndStudent(sessionId, studentId, updateDTO);
+            if (record == null) {
+                throw new RuntimeException("No attendance record found for session: " + sessionId + " and student: " + studentId);
+            }
+            return record;
+        } catch (Exception e) {
+            throw new RuntimeException("Error updating attendance: " + e.getMessage(), e);
+        }
     }
 
     

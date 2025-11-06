@@ -8,16 +8,19 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.cs102.attendance.dto.SessionUpdateDTO;
+import com.cs102.attendance.model.AttendanceRecord;
 import com.cs102.attendance.model.Session;
+import com.cs102.attendance.service.AttendanceRecordService;
 import com.cs102.attendance.service.SessionService;
 
 @Component
 public class SessionScheduler {
-    
+    private final AttendanceRecordService attendanceRecordService;
     private final SessionService sessionService;
     
-    public SessionScheduler(SessionService sessionService) {
+    public SessionScheduler(SessionService sessionService, AttendanceRecordService attendanceRecordService) {
         this.sessionService = sessionService;
+        this.attendanceRecordService = attendanceRecordService;
     }
     
     @Scheduled(fixedRate = 60000) // Every 1 minute
@@ -62,6 +65,8 @@ public class SessionScheduler {
                                 sessionStartTime + ", " + minutesSinceStart + 
                                 " minutes ago. Deactivating...");
                             
+                            markAbsentStudents(session);
+
                             SessionUpdateDTO updateDTO = new SessionUpdateDTO();
                             updateDTO.setActive(false);
                             
@@ -90,6 +95,63 @@ public class SessionScheduler {
             
         } catch (Exception e) {
             System.err.println("[SCHEDULER] Error checking sessions: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Marks all students who haven't been marked yet as ABSENT for the given session
+     */
+    private void markAbsentStudents(Session session) {
+        try {
+            System.out.println("[SCHEDULER] Marking absent students for session " + session.getId());
+            
+            // Get all attendance records for this session
+            List<AttendanceRecord> existingRecords = attendanceRecordService.getBySession(session.getId().toString());
+            
+            // Get the list of students who should be in this session
+            List<String> expectedStudents = sessionService.getSessionStudentIds(session.getId().toString());
+            
+            if (expectedStudents == null || expectedStudents.isEmpty()) {
+                System.out.println("[SCHEDULER] No student list found for session " + session.getId());
+                return;
+            }
+            
+            System.out.println("[SCHEDULER] Expected students: " + expectedStudents.size());
+            System.out.println("[SCHEDULER] Existing attendance records: " + existingRecords.size());
+            
+            // Track which students already have attendance records
+            List<String> markedStudents = existingRecords.stream()
+                .map(AttendanceRecord::getStudent_id)
+                .toList();
+            
+            // Mark remaining students as absent
+            int absentCount = 0;
+            for (String studentId : expectedStudents) {
+                if (!markedStudents.contains(studentId)) {
+                    try {
+                        AttendanceRecord absentRecord = new AttendanceRecord();
+                        absentRecord.setSession_id(session.getId().toString());
+                        absentRecord.setStudent_id(studentId);
+                        absentRecord.setStatus("ABSENT");
+                        absentRecord.setMethod("AUTO");
+                        absentRecord.setMarked_at(LocalDateTime.now());
+                        absentRecord.setConfidence(null);
+                        
+                        attendanceRecordService.create(absentRecord);
+                        absentCount++;
+                        
+                        System.out.println("[SCHEDULER] Marked student " + studentId + " as ABSENT");
+                    } catch (Exception e) {
+                        System.err.println("[SCHEDULER] Error marking student " + studentId + " as absent: " + e.getMessage());
+                    }
+                }
+            }
+            
+            System.out.println("[SCHEDULER] Marked " + absentCount + " student(s) as ABSENT for session " + session.getId());
+            
+        } catch (Exception e) {
+            System.err.println("[SCHEDULER] Error marking absent students: " + e.getMessage());
             e.printStackTrace();
         }
     }

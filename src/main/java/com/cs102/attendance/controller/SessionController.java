@@ -61,6 +61,9 @@ public class SessionController {
     @PatchMapping("/{id}/close")
     public ResponseEntity<Session> closeSession(@PathVariable String id) {
         try {
+            // First, mark absent students before closing
+            sessionService.markAbsentStudentsForSession(id);
+            
             SessionUpdateDTO updateDTO = new SessionUpdateDTO();
             updateDTO.setActive(false);
             

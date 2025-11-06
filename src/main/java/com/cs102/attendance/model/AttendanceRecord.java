@@ -1,11 +1,16 @@
 package com.cs102.attendance.model;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 
 public class AttendanceRecord {
+    
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private UUID id;
     private String student_id;
     private String session_id;
     private String status;          // e.g., "Present", "Absent"
@@ -64,4 +69,8 @@ public class AttendanceRecord {
     public void setMarked_at(LocalDateTime marked_at) { 
         this.marked_at = marked_at; 
     }
+    public UUID getId() {
+        return id;
+    }
+
 }

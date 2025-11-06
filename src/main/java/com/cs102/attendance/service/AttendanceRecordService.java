@@ -1,6 +1,8 @@
 package com.cs102.attendance.service;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -27,6 +29,21 @@ public class AttendanceRecordService extends SupabaseService<AttendanceRecord> {
             "student_id", studentId
         );
         return updateWithFilters(filters, updateDTO);
+    }
+
+    public List<AttendanceRecord> getBySession(String sessionId) {
+        List<AttendanceRecord> allRecords = getAll();
+        return allRecords.stream()
+                .filter(r -> sessionId.equals(r.getSession_id()))
+                .collect(Collectors.toList());
+    }
+
+    public List<AttendanceRecord> getBySessionAndStudent(String sessionId, String studentId) {
+        List<AttendanceRecord> allRecords = getAll();
+        return allRecords.stream()
+                .filter(r -> sessionId.equals(r.getSession_id()))
+                .filter(r -> studentId.equals(r.getStudent_id()))
+                .collect(Collectors.toList());
     }
     
 }

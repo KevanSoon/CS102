@@ -1,7 +1,8 @@
 package com.cs102.attendance.dto;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -9,7 +10,8 @@ public class AttendanceRecordUpdateDTO {
     private String status;          // e.g., "Present", "Absent"
     private Double confidence;      // e.g., 0.95
     private String method;          // e.g., "Facial Recognition"
-    private OffsetDateTime marked_at;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private LocalDateTime marked_at;
 
     public AttendanceRecordUpdateDTO() {}
 
@@ -34,10 +36,10 @@ public class AttendanceRecordUpdateDTO {
         this.method = method;
     }
 
-    public OffsetDateTime getMarked_at() {
+    public LocalDateTime getMarked_at() {
         return marked_at;
     }
-    public void setMarked_at(OffsetDateTime marked_at) {
+    public void setMarked_at(LocalDateTime marked_at) {
         this.marked_at = marked_at;
     }
 }

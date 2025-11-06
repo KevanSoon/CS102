@@ -1,5 +1,6 @@
 package com.cs102.attendance.service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,16 +9,21 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import com.cs102.attendance.service.AttendanceRecordService;
 
 import com.cs102.attendance.dto.SessionUpdateDTO;
+import com.cs102.attendance.model.AttendanceRecord;
 import com.cs102.attendance.model.Session;
 
 
 @Service
 public class SessionService extends SupabaseService<Session> {
 
-    public SessionService(WebClient webClient) {
+    private final AttendanceRecordService attendanceRecordService;
+
+    public SessionService(WebClient webClient, AttendanceRecordService attendanceRecordService) {
         super(webClient, "sessions", Session[].class, Session.class);
+        this.attendanceRecordService = attendanceRecordService;
     }
 
     public Session update(String id, SessionUpdateDTO updatedDto) {
@@ -51,6 +57,47 @@ public class SessionService extends SupabaseService<Session> {
 
     public Session getById(String id) {
         return super.getById(id);
+    }
+
+    /**
+     * Gets just the list of student IDs for a session (without full details)
+     */
+    public List<String> getSessionStudentIds(String sessionId) {
+        try {
+            Session session = getById(sessionId);
+            
+            if (session == null) {
+                return List.of();
+            }
+            
+            String classCode = session.getClassCode();
+            String groupNumber = session.getGroupNumber();
+            
+            // Get the group to access student_list
+            List<Map> groupsResponse = webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("groups")
+                    .queryParam("class_code", "eq." + classCode)
+                    .queryParam("group_number", "eq." + groupNumber)
+                    .queryParam("select", "student_list")
+                    .build())
+                .retrieve()
+                .bodyToMono(List.class)
+                .block();
+
+            if (groupsResponse == null || groupsResponse.isEmpty()) {
+                return List.of();
+            }
+
+            Map groupData = groupsResponse.get(0);
+            List<String> studentIds = (List<String>) groupData.get("student_list");
+            
+            return studentIds != null ? studentIds : List.of();
+            
+        } catch (Exception e) {
+            System.err.println("Error fetching student IDs: " + e.getMessage());
+            return List.of();
+        }
     }
 
     public List<Map<String, Object>> getSessionStudents(String sessionId) {
@@ -159,6 +206,62 @@ public class SessionService extends SupabaseService<Session> {
         }
     }
     
-
+    /**
+     * Marks all unmarked students as ABSENT for a given session
+     * Used by both manual close and auto-close
+     */
+    public void markAbsentStudentsForSession(String sessionId) {
+        try {
+            System.out.println("[SESSION] Marking absent students for session " + sessionId);
+            
+            // Get all attendance records for this session
+            List<AttendanceRecord> existingRecords = attendanceRecordService.getBySession(sessionId);
+            
+            // Get the list of students who should be in this session
+            List<String> expectedStudents = getSessionStudentIds(sessionId);
+            
+            if (expectedStudents == null || expectedStudents.isEmpty()) {
+                System.out.println("[SESSION] No student list found for session " + sessionId);
+                return;
+            }
+            
+            System.out.println("[SESSION] Expected students: " + expectedStudents.size());
+            System.out.println("[SESSION] Existing attendance records: " + existingRecords.size());
+            
+            // Track which students already have attendance records
+            List<String> markedStudents = existingRecords.stream()
+                .map(AttendanceRecord::getStudent_id)
+                .toList();
+            
+            // Mark remaining students as absent
+            int absentCount = 0;
+            for (String studentId : expectedStudents) {
+                if (!markedStudents.contains(studentId)) {
+                    try {
+                        AttendanceRecord absentRecord = new AttendanceRecord();
+                        absentRecord.setSession_id(sessionId);
+                        absentRecord.setStudent_id(studentId);
+                        absentRecord.setStatus("ABSENT");
+                        absentRecord.setMethod("AUTO");
+                        absentRecord.setMarked_at(LocalDateTime.now());
+                        absentRecord.setConfidence(null);
+                        
+                        attendanceRecordService.create(absentRecord);
+                        absentCount++;
+                        
+                        System.out.println("[SESSION] Marked student " + studentId + " as ABSENT");
+                    } catch (Exception e) {
+                        System.err.println("[SESSION] Error marking student " + studentId + " as absent: " + e.getMessage());
+                    }
+                }
+            }
+            
+            System.out.println("[SESSION] Marked " + absentCount + " student(s) as ABSENT for session " + sessionId);
+            
+        } catch (Exception e) {
+            System.err.println("[SESSION] Error marking absent students: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
     
 }

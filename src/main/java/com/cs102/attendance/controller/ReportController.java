@@ -52,7 +52,7 @@ public class ReportController {
 
         List<String[]> rows = new ArrayList<>();
         rows.add(new String[]{"Name", "Status", "Confidence", "Method", "Date/Time",
-                "Session Name", "Class", "Group"});
+                "Session Name", "Date", "Group"});
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -63,6 +63,8 @@ public class ReportController {
                     .findFirst()
                     .orElse(null);
             if (group == null || group.getStudentList() == null) continue;
+
+            String dateStr = session.getDate() != null ? session.getDate().format(DateTimeFormatter.ofPattern("dd/MMM/yyyy", Locale.ENGLISH)) : "";
 
             for (String studentId : group.getStudentList()) {
                 Student student = studentMap.get(studentId);
@@ -76,7 +78,7 @@ public class ReportController {
                         .orElse(null);
 
                 String status = record != null ? record.getStatus() : "ABSENT";
-                String confidence = record != null && record.getConfidence() != null ? String.valueOf(record.getConfidence()) : "NULL";
+                String confidence = record != null && record.getConfidence() != null ? String.valueOf(record.getConfidence()) : "";
                 String method = record != null ? record.getMethod() : "";
                 String timestamp = record != null && record.getMarked_at() != null
                         ? dtf.format(record.getMarked_at())
@@ -89,7 +91,7 @@ public class ReportController {
                         method,
                         timestamp,
                         session.getName(),
-                        session.getClassCode(),
+                        dateStr,
                         session.getGroupNumber()
                 });
             }
@@ -122,49 +124,62 @@ public class ReportController {
             PDPage page = new PDPage(PDRectangle.A4);
             document.addPage(page);
 
-            PDDocumentInformation documentInformation = new PDDocumentInformation();
-            documentInformation.setTitle("Attendance Report");
-            document.setDocumentInformation(documentInformation);
+            PDDocumentInformation info = new PDDocumentInformation();
+            info.setTitle("Attendance Report");
+            document.setDocumentInformation(info);
 
             ClassPathResource fontResource = new ClassPathResource("fonts/NotoSans-Regular.ttf");
             PDType0Font font = PDType0Font.load(document, fontResource.getInputStream(), true);
 
-            // float marginX = 50;
             float marginY = 50;
             float y = PDRectangle.A4.getHeight() - marginY;
 
             PDPageContentStream content = new PDPageContentStream(document, page);
-
             int fontSize = 10;
 
+            // ===== Title =====
             String title = "Attendance Report" + (classCode != null && !classCode.isEmpty() ? " - " + classCode : "");
             float titleWidth = getStringWidth(font, 14, title);
             content.beginText();
+            content.setNonStrokingColor(new java.awt.Color(44, 62, 80)); // dark gray-blue
             content.setFont(font, 14);
             content.newLineAtOffset((PDRectangle.A4.getWidth() - titleWidth) / 2, y);
             content.showText(title);
             content.endText();
-            y -= 30;
+            y -= 20;
 
-            // Calculate max column widths based on header and first N rows
+            // ===== Generated timestamp =====
+            String generated = "Generated on: " + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd MMMM uuuu - h:mm a"));
+            float genWidth = getStringWidth(font, 10, generated);
+            content.beginText();
+            content.setNonStrokingColor(new java.awt.Color(127, 140, 141)); // light gray
+            content.setFont(font, 10);
+            content.newLineAtOffset((PDRectangle.A4.getWidth() - genWidth) / 2, y);
+            content.showText(generated);
+            content.endText();
+            y -= 25;
+
+            // ===== Column width calculation =====
             int cols = rows.get(0).length;
             float[] colWidths = new float[cols];
             for (int c = 0; c < cols; c++) {
-                float maxWidth = getStringWidth(font, fontSize, rows.get(0)[c]); // header width
+                float maxWidth = getStringWidth(font, fontSize, rows.get(0)[c]);
                 for (int r = 1; r < rows.size(); r++) {
                     float w = getStringWidth(font, fontSize, rows.get(r)[c]);
                     if (w > maxWidth) maxWidth = w;
                 }
-                colWidths[c] = Math.min(maxWidth + 10, 150); // padding + clamp max width
+                colWidths[c] = Math.min(maxWidth + 10, 100);
             }
 
             float totalWidth = 0;
             for (float w : colWidths) totalWidth += w;
             float startX = (PDRectangle.A4.getWidth() - totalWidth) / 2;
 
-            // Draw rows
-            for (String[] row : rows) {
-                // Calculate row height
+            // ===== Draw rows =====
+            for (int r = 0; r < rows.size(); r++) {
+                String[] row = rows.get(r);
+
+                // Calculate wrapping
                 int maxLines = 1;
                 String[][] wrappedText = new String[cols][];
                 for (int c = 0; c < cols; c++) {
@@ -173,7 +188,7 @@ public class ReportController {
                 }
                 float rowHeight = (fontSize + 4) * maxLines + 4;
 
-                // Check for new page
+                // Page overflow check
                 if (y - rowHeight < marginY) {
                     content.close();
                     page = new PDPage(PDRectangle.A4);
@@ -182,7 +197,22 @@ public class ReportController {
                     y = PDRectangle.A4.getHeight() - marginY;
                 }
 
-                // Draw cell borders
+                // ===== Row backgrounds =====
+                if (r == 0) {
+                    // Header row - blue
+                    content.setNonStrokingColor(new java.awt.Color(52, 152, 219));
+                } else if (r % 2 == 0) {
+                    // Alternating light gray
+                    content.setNonStrokingColor(new java.awt.Color(245, 247, 250));
+                } else {
+                    // White
+                    content.setNonStrokingColor(java.awt.Color.WHITE);
+                }
+                content.addRect(startX, y - rowHeight + 4, totalWidth, rowHeight);
+                content.fill();
+
+                // ===== Borders =====
+                content.setStrokingColor(new java.awt.Color(189, 195, 199));
                 float x = startX;
                 for (int c = 0; c < cols; c++) {
                     content.addRect(x, y - rowHeight + 4, colWidths[c], rowHeight);
@@ -190,20 +220,35 @@ public class ReportController {
                 }
                 content.stroke();
 
-                // Draw text inside cells
-                for (int line = 0; line < maxLines; line++) {
-                    x = startX;
-                    for (int c = 0; c < cols; c++) {
-                        String txt = line < wrappedText[c].length ? wrappedText[c][line] : "";
-                        content.beginText();
-                        content.setFont(font, fontSize);
-                        content.newLineAtOffset(x + 2, y - (fontSize + 4) * line - fontSize);
-                        content.showText(txt);
-                        content.endText();
-                        x += colWidths[c];
-                    }
-                }
+                // ===== Text =====
+                x = startX;
+                for (int c = 0; c < cols; c++) {
+                    String[] lines = wrappedText[c];
+                    for (int line = 0; line < lines.length; line++) {
+                        float textWidth = getStringWidth(font, fontSize, lines[line]);
+                        float offsetX = (r == 0) ? x + (colWidths[c] - textWidth) / 2 : x + 2;
+                        java.awt.Color textColor;
+                        if (r == 0) {
+                            textColor = java.awt.Color.WHITE;
+                        } else if (c == 1) {
+                            String txt = lines[line].trim().toUpperCase();
+                            textColor = "PRESENT".equals(txt) ? java.awt.Color.GREEN
+                                    : "ABSENT".equals(txt) ? java.awt.Color.RED
+                                    : java.awt.Color.BLACK;
+                        } else {
+                            textColor = java.awt.Color.BLACK;
+                        }
 
+                        // Draw text
+                        content.beginText();
+                        content.setNonStrokingColor(textColor);
+                        content.setFont(font, fontSize);
+                        content.newLineAtOffset(offsetX, y - (fontSize + 4) * line - fontSize);
+                        content.showText(lines[line]);
+                        content.endText();
+                    }
+                    x += colWidths[c];
+                }
                 y -= rowHeight;
             }
 
@@ -211,6 +256,7 @@ public class ReportController {
             document.save(response.getOutputStream());
         }
     }
+
 
     // Wrap text with truncation for cell width
     private String[] wrapTextWithTruncation(PDType0Font font, int fontSize, String text, float maxWidth) throws IOException {

@@ -17,7 +17,6 @@ import com.cs102.attendance.model.FaceData;
 import com.cs102.attendance.model.Session;
 import com.cs102.attendance.model.Student;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public abstract class SupabaseService<T> {
 
@@ -107,21 +106,45 @@ public abstract class SupabaseService<T> {
 
     
     //Student Update
-    public Student update(String id, StudentUpdateDTO updateDTO) {
+    // public Student update(String id, StudentUpdateDTO updateDTO) {
     //debugging request body
-    try {
-        String json = objectMapper.writeValueAsString(updateDTO);
-        System.out.println("Update request body: " + json);
-    } 
-    catch (Exception e) {
-        e.printStackTrace();
-    }
-    return webClient.patch()
-            .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
-            .bodyValue(updateDTO)
-            .retrieve()
-            .bodyToMono(Student.class)
-            .block();
+    // try {
+    //     String json = objectMapper.writeValueAsString(updateDTO);
+    //     System.out.println("Update request body: " + json);
+    // } 
+    // catch (Exception e) {
+    //     e.printStackTrace();
+    // }
+    // return webClient.patch()
+    //         .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
+    //         .bodyValue(updateDTO)
+    //         .retrieve()
+    //         .bodyToMono(Student.class)
+    //         .block();
+    // }
+
+    //Student Update
+    public Student update(String id, StudentUpdateDTO updateDTO) {
+        try {
+            String json = objectMapper.writeValueAsString(updateDTO);
+            System.out.println("Update request body: " + json);
+        } 
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        Student[] results = (Student[]) webClient.patch()
+                .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
+                .bodyValue(updateDTO)
+                .retrieve()
+                .bodyToMono(arrayType)
+                .block();
+        
+        // Return first element or null
+        if (results != null && results.length > 0) {
+            return results[0];
+        }
+        return null;
     }
 
 
@@ -149,7 +172,24 @@ public abstract class SupabaseService<T> {
     }
 
     //Attendance Record Update
-      public AttendanceRecord update(String id, AttendanceRecordUpdateDTO updateDTO) {
+    //   public AttendanceRecord update(String id, AttendanceRecordUpdateDTO updateDTO) {
+    //     try {
+    //         String json = objectMapper.writeValueAsString(updateDTO);
+    //         System.out.println("Update request body: " + json);
+    //     } 
+    //     catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    //     return webClient.patch()
+    //             .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
+    //             .bodyValue(updateDTO)
+    //             .retrieve()
+    //             .bodyToMono(AttendanceRecord.class)
+    //             .block();
+    // }
+
+    //Attendance Record Update
+    public AttendanceRecord update(String id, AttendanceRecordUpdateDTO updateDTO) {
         try {
             String json = objectMapper.writeValueAsString(updateDTO);
             System.out.println("Update request body: " + json);
@@ -157,16 +197,23 @@ public abstract class SupabaseService<T> {
         catch (Exception e) {
             e.printStackTrace();
         }
-        return webClient.patch()
+        
+        AttendanceRecord[] results = (AttendanceRecord[]) webClient.patch()
                 .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
                 .bodyValue(updateDTO)
                 .retrieve()
-                .bodyToMono(AttendanceRecord.class)
+                .bodyToMono(arrayType) 
                 .block();
+        
+        // Return first element or null
+        if (results != null && results.length > 0) {
+            return results[0];
+        }
+        return null;
     }
 
     //Attendance Manual / Auto Marker
-      public T updateWithFilters(Map<String, String> filters, Object updateDTO) {
+    public T updateWithFilters(Map<String, String> filters, Object updateDTO) {
         try {
             String json = objectMapper.writeValueAsString(updateDTO);
             System.out.println("Update request body: " + json);
@@ -182,17 +229,40 @@ public abstract class SupabaseService<T> {
         // Compose URI with tableName and filter query parameters
         String uri = tableName + "?" + filterQuery;
         
-        return webClient.patch()
+        T[] results = webClient.patch()
                 .uri(uri)
                 .bodyValue(updateDTO)
                 .retrieve()
-                .bodyToMono(singleType)
+                .bodyToMono(arrayType)  // ✅ Changed to arrayType
                 .block();
+        
+        // Return first element or null
+        if (results != null && results.length > 0) {
+            return results[0];
+        }
+        return null;
     }
 
 
     //Face Data Update
-     public FaceData update(String id, FaceDataUpdateDTO updateDTO) {
+    //  public FaceData update(String id, FaceDataUpdateDTO updateDTO) {
+    //     try {
+    //         String json = objectMapper.writeValueAsString(updateDTO);
+    //         System.out.println("Update request body: " + json);
+    //     } 
+    //     catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    //     return webClient.patch()
+    //             .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
+    //             .bodyValue(updateDTO)
+    //             .retrieve()
+    //             .bodyToMono(FaceData.class)
+    //             .block();
+    // }
+    
+    //Face Data update
+    public FaceData update(String id, FaceDataUpdateDTO updateDTO) {
         try {
             String json = objectMapper.writeValueAsString(updateDTO);
             System.out.println("Update request body: " + json);
@@ -200,12 +270,19 @@ public abstract class SupabaseService<T> {
         catch (Exception e) {
             e.printStackTrace();
         }
-        return webClient.patch()
+        
+        FaceData[] results = (FaceData[]) webClient.patch()
                 .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
                 .bodyValue(updateDTO)
                 .retrieve()
-                .bodyToMono(FaceData.class)
+                .bodyToMono(arrayType) 
                 .block();
+        
+        // Return first element or null
+        if (results != null && results.length > 0) {
+            return results[0];
+        }
+        return null;
     }
 
 

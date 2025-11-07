@@ -369,14 +369,15 @@ async function init() {
 // Helper function to calculate end time
 function calculateEndTime(startTime, durationMinutes) {
   const [hours, minutes] = startTime.split(':').map(Number);
-  // const startDate = new Date();
-  const startDate = new Date().toLocaleDateString('en-US', { 
-    timeZone: 'Asia/Singapore' 
-  });
+  // ✅ Create a Date object in Singapore timezone
+  const now = new Date();
+  const singaporeOffset = 8 * 60; // Singapore is UTC+8
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const startDate = new Date(utc + singaporeOffset * 60000);
+
   startDate.setHours(hours, minutes, 0);
-  
   startDate.setMinutes(startDate.getMinutes() + durationMinutes);
-  
+
   const endHours = String(startDate.getHours()).padStart(2, '0');
   const endMinutes = String(startDate.getMinutes()).padStart(2, '0');
   

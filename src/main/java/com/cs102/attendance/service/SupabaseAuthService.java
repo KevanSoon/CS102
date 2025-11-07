@@ -1,16 +1,19 @@
 package com.cs102.attendance.service;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+
 import com.cs102.attendance.dto.AuthResponse;
 import com.cs102.attendance.dto.SignInRequest;
 import com.cs102.attendance.dto.SignUpRequest;
 import com.cs102.attendance.dto.SupabaseSignUpRequest;
 import com.cs102.attendance.model.User;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+
 import reactor.core.publisher.Mono;
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
 public class SupabaseAuthService {
@@ -139,6 +142,76 @@ public class SupabaseAuthService {
 
     public String getJwtSecret() {
         return jwtSecret;
+    }
+
+    // Update user email
+    public User updateEmail(String accessToken, String newEmail) {
+        System.out.println("Updating user email to: " + newEmail);
+        Map<String, String> request = new HashMap<>();
+        request.put("email", newEmail);
+        
+        return authWebClient.put()
+                .uri("user")
+                .header("Authorization", "Bearer " + accessToken)
+                .bodyValue(request)
+                .retrieve()
+                .onStatus(
+                    status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorBody -> {
+                            System.err.println("Supabase error: " + errorBody);
+                            return Mono.error(new RuntimeException("Failed to update email: " + errorBody));
+                        })
+                )
+                .bodyToMono(User.class)
+                .block();
+    }
+
+    // Update user password
+    public User updatePassword(String accessToken, String newPassword) {
+        System.out.println("Updating user password");
+        Map<String, String> request = new HashMap<>();
+        request.put("password", newPassword);
+        
+        return authWebClient.put()
+                .uri("user")
+                .header("Authorization", "Bearer " + accessToken)
+                .bodyValue(request)
+                .retrieve()
+                .onStatus(
+                    status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorBody -> {
+                            System.err.println("Supabase error: " + errorBody);
+                            return Mono.error(new RuntimeException("Failed to update password: " + errorBody));
+                        })
+                )
+                .bodyToMono(User.class)
+                .block();
+    }
+
+    // Update user email and password together
+    public User updateEmailAndPassword(String accessToken, String newEmail, String newPassword) {
+        System.out.println("Updating user email to: " + newEmail + " and password");
+        Map<String, String> request = new HashMap<>();
+        request.put("email", newEmail);
+        request.put("password", newPassword);
+        
+        return authWebClient.put()
+                .uri("user")
+                .header("Authorization", "Bearer " + accessToken)
+                .bodyValue(request)
+                .retrieve()
+                .onStatus(
+                    status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorBody -> {
+                            System.err.println("Supabase error: " + errorBody);
+                            return Mono.error(new RuntimeException("Failed to update user: " + errorBody));
+                        })
+                )
+                .bodyToMono(User.class)
+                .block();
     }
 
     private static class RefreshTokenRequest {

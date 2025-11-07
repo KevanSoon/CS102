@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -301,4 +302,123 @@ public class AuthController {
             return ResponseEntity.badRequest().body(error);
         }
     }
+
+    /**
+     * Update user email
+     * PUT /api/auth/update-email
+     * Header: Authorization: Bearer <access_token>
+     * Body: { "email": "newemail@example.com" }
+     */
+    @PutMapping("/update-email")
+    public ResponseEntity<?> updateEmail(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, String> request) {
+        try {
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            String newEmail = request.get("email");
+            
+            if (newEmail == null || newEmail.isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Email is required");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            User updatedUser = supabaseAuthService.updateEmail(token, newEmail);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            System.err.println("Update email error: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * Update user password
+     * PUT /api/auth/update-password
+     * Header: Authorization: Bearer <access_token>
+     * Body: { "password": "newpassword123" }
+     */
+    @PutMapping("/update-password")
+    public ResponseEntity<?> updatePassword(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, String> request) {
+        try {
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            String newPassword = request.get("password");
+            
+            if (newPassword == null || newPassword.isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Password is required");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            if (newPassword.length() < 6) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Password must be at least 6 characters");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            User updatedUser = supabaseAuthService.updatePassword(token, newPassword);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            System.err.println("Update password error: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * Update user email and password together
+     * PUT /api/auth/update-profile
+     * Header: Authorization: Bearer <access_token>
+     * Body: { "email": "newemail@example.com", "password": "newpassword123" }
+     */
+    @PutMapping("/update-profile")
+    public ResponseEntity<?> updateProfile(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, String> request) {
+        try {
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            String newEmail = request.get("email");
+            String newPassword = request.get("password");
+            
+            // Validate at least one field is provided
+            if ((newEmail == null || newEmail.isEmpty()) && (newPassword == null || newPassword.isEmpty())) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "At least email or password is required");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            // Validate password length if provided
+            if (newPassword != null && !newPassword.isEmpty() && newPassword.length() < 6) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Password must be at least 6 characters");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            User updatedUser;
+            
+            // If both email and password are provided, update them together
+            if (newEmail != null && !newEmail.isEmpty() && newPassword != null && !newPassword.isEmpty()) {
+                updatedUser = supabaseAuthService.updateEmailAndPassword(token, newEmail, newPassword);
+            } else if (newEmail != null && !newEmail.isEmpty()) {
+                // Only email
+                updatedUser = supabaseAuthService.updateEmail(token, newEmail);
+            } else {
+                // Only password
+                updatedUser = supabaseAuthService.updatePassword(token, newPassword);
+            }
+            
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            System.err.println("Update profile error: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 }
+
+

@@ -369,7 +369,10 @@ async function init() {
 // Helper function to calculate end time
 function calculateEndTime(startTime, durationMinutes) {
   const [hours, minutes] = startTime.split(':').map(Number);
-  const startDate = new Date();
+  // const startDate = new Date();
+  const startDate = new Date().toLocaleDateString('en-US', { 
+    timeZone: 'Asia/Singapore' 
+  });
   startDate.setHours(hours, minutes, 0);
   
   startDate.setMinutes(startDate.getMinutes() + durationMinutes);
@@ -390,7 +393,9 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
     const upperMethod = method.toUpperCase();
     
     // CRITICAL: Ensure we get the full ISO string with Z
-    const markedAt = new Date().toISOString(); // Should be "2025-11-04T18:28:49.359Z"
+    const now = new Date();
+    const singaporeTime = now.toLocaleString('sv-SE', { timeZone: 'Asia/Singapore' }).replace(' ', 'T');
+    const markedAt = singaporeTime; // Should be "2025-11-04T18:28:49.359Z"
     
     console.log('Timestamp being sent:', markedAt); // DEBUG: Check what's actually being sent
     
@@ -502,7 +507,10 @@ function updateStudentStats() {
     statNumbers[0].textContent = `${attendanceRate}%`;
     statNumbers[1].textContent = totalClasses;
 
-    const today = new Date().toISOString().split("T")[0];
+    // const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toLocaleDateString('en-CA', { 
+      timeZone: 'Asia/Singapore' 
+    });
     const classesToday = attendanceRecords.filter((record) => record.date === today).length;
     statNumbers[2].textContent = classesToday;
   }

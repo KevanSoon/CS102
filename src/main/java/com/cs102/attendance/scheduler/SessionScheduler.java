@@ -2,6 +2,7 @@ package com.cs102.attendance.scheduler;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.springframework.scheduling.annotation.Scheduled;
@@ -135,7 +136,7 @@ public class SessionScheduler {
                         absentRecord.setStudent_id(studentId);
                         absentRecord.setStatus("ABSENT");
                         absentRecord.setMethod("AUTO");
-                        absentRecord.setMarked_at(LocalDateTime.now());
+                        absentRecord.setMarked_at(LocalDateTime.now(ZoneId.of("Asia/Singapore")));
                         absentRecord.setConfidence(null);
                         
                         attendanceRecordService.create(absentRecord);

@@ -1,6 +1,7 @@
 package com.cs102.attendance.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,7 +10,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import com.cs102.attendance.service.AttendanceRecordService;
 
 import com.cs102.attendance.dto.SessionUpdateDTO;
 import com.cs102.attendance.model.AttendanceRecord;
@@ -243,7 +243,7 @@ public class SessionService extends SupabaseService<Session> {
                         absentRecord.setStudent_id(studentId);
                         absentRecord.setStatus("ABSENT");
                         absentRecord.setMethod("AUTO");
-                        absentRecord.setMarked_at(LocalDateTime.now());
+                        absentRecord.setMarked_at(LocalDateTime.now(ZoneId.of("Asia/Singapore")));
                         absentRecord.setConfidence(null);
                         
                         attendanceRecordService.create(absentRecord);

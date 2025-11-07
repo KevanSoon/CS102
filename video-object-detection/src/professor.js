@@ -404,44 +404,6 @@ function calculateEndTime(startTime, durationMinutes) {
 
 // ===== ATTENDANCE FUNCTIONS (UNCHANGED) =====
 
-function markAttendance() {
-  if (!selectedClass || !faceScanned) {
-    alert("Please scan your face first");
-    return;
-  }
-
-  const now = new Date();
-  const dateStr = now.toISOString().split("T")[0];
-  const timeStr = now.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-
-  const classSelect = document.getElementById("classSelect");
-  const className = classSelect.options[classSelect.selectedIndex].text.split(" - ")[0];
-
-  const newRecord = {
-    date: dateStr,
-    class: className,
-    status: "Present",
-    time: timeStr,
-  };
-
-  attendanceRecords = attendanceRecords.filter(
-    (record) => !(record.date === dateStr && record.class === className)
-  );
-
-  attendanceRecords.unshift(newRecord);
-  updateStudentStats();
-
-  alert(`Attendance marked successfully for ${className}!`);
-  closeFaceScanning();
-
-  document.getElementById("classSelect").value = "";
-  document.getElementById("scanFaceBtn").style.display = "none";
-  selectedClass = "";
-}
 
 // ===== SHARED ATTENDANCE LOGIC =====
 async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANUAL') {
@@ -925,3 +887,6 @@ window.openGenerateReport = openGenerateReport;
 window.openManualAttendance = openManualAttendance;
 window.openStudentManagement = openStudentManagement;
 window.logout = logout;
+
+// Export for use in other modules
+export { saveAttendanceRecord, API_BASE_URL };

@@ -2,6 +2,7 @@ console.log("face-detection-model loaded");
 
 import { AutoModel, AutoProcessor, RawImage } from "@huggingface/transformers";
 import { getActiveSessionId } from './sessionState.js';
+import { saveAttendanceRecord } from './professor.js';
 
 // Reference the elements that we will need
 const status = document.getElementById("status");
@@ -125,7 +126,7 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
     if (!hasSent) {
         hasSent = true;
         console.log("Starting face verification...");
-        sendCanvasImageToAPI(canvas).then(response => {
+        sendCanvasImageToAPI(canvas).then(async (response) => {
             console.log("Verification response received:", response);
             const { verified, highestConfidence, bestMatchName = "Unknown", bestMatchStudentId } = response;
             const sessionId = getActiveSessionId();
@@ -136,14 +137,30 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
             console.log("Session ID:", sessionId);
             console.log("==========================");
             
-            if (verified) {
+            if (verified && bestMatchStudentId && sessionId) {
                 color = "green";
                 text = `Verified! ${bestMatchName} (${(highestConfidence * 100).toFixed(2)}%)`;
                 console.log("✓ Verification SUCCESS:", text);
+                
+                // Save attendance record automatically
+                try {
+                    console.log("Saving attendance record...");
+                    await saveAttendanceRecord(sessionId, bestMatchStudentId, 'PRESENT', 'AUTO');
+                    console.log("✓ Attendance record saved successfully!");
+                } catch (error) {
+                    console.error("✗ Failed to save attendance record:", error);
+                }
             } else {
                 color = "red";
                 text = "Failed to verify";
                 console.log("✗ Verification FAILED - not verified by DeepFace");
+                
+                if (!sessionId) {
+                    console.warn("⚠ No active session ID found");
+                }
+                if (!bestMatchStudentId) {
+                    console.warn("⚠ No student ID in response");
+                }
             }
             if (currentLabelElement && currentBoxElement) {
                 currentLabelElement.textContent = text;

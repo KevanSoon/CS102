@@ -1,5 +1,16 @@
 package com.cs102.attendance.controller;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.cs102.attendance.dto.AuthResponse;
 import com.cs102.attendance.dto.SignInRequest;
 import com.cs102.attendance.dto.SignUpRequest;
@@ -9,11 +20,6 @@ import com.cs102.attendance.model.User;
 import com.cs102.attendance.service.ProfessorService;
 import com.cs102.attendance.service.StudentService;
 import com.cs102.attendance.service.SupabaseAuthService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -56,12 +62,7 @@ public class AuthController {
                     if (signUpRequest.getPhone() != null) {
                         userMetadata.put("phone", signUpRequest.getPhone());
                     }
-                    if (signUpRequest.getClassName() != null) {
-                        userMetadata.put("class_name", signUpRequest.getClassName());
-                    }
-                    if (signUpRequest.getStudentGroup() != null) {
-                        userMetadata.put("student_group", signUpRequest.getStudentGroup());
-                    }
+
                 }
 
                 signUpRequest.setUserMetadata(userMetadata);
@@ -97,9 +98,7 @@ public class AuthController {
                                 metadata.getName(),
                                 response.getUser().getEmail(),
                                 getMetadataField(metadata, "code", "STU" + System.currentTimeMillis()),
-                                getMetadataField(metadata, "phone", ""),
-                                getMetadataField(metadata, "class_name", ""),
-                                getMetadataField(metadata, "student_group", "")
+                                getMetadataField(metadata, "phone", "")
                             );
                             student.setId(userId);
 
@@ -173,9 +172,7 @@ public class AuthController {
                                 metadata.getName(),
                                 response.getUser().getEmail(),
                                 getMetadataField(metadata, "code", "STU" + System.currentTimeMillis()),
-                                getMetadataField(metadata, "phone", ""),
-                                getMetadataField(metadata, "class_name", ""),
-                                getMetadataField(metadata, "student_group", "")
+                                getMetadataField(metadata, "phone", "")
                             );
                             student.setId(userId);
 
@@ -218,10 +215,6 @@ public class AuthController {
                     return metadata.getCode() != null ? metadata.getCode() : defaultValue;
                 case "phone":
                     return metadata.getPhone() != null ? metadata.getPhone() : defaultValue;
-                case "class_name":
-                    return metadata.getClassName() != null ? metadata.getClassName() : defaultValue;
-                case "student_group":
-                    return metadata.getStudentGroup() != null ? metadata.getStudentGroup() : defaultValue;
                 default:
                     return defaultValue;
             }

@@ -82,8 +82,6 @@ class AuthService {
                 Object.assign(requestBody, {
                     code: additionalData.code,
                     phone: additionalData.phone || '',
-                    class_name: additionalData.class_name || '',
-                    student_group: additionalData.student_group || ''
                 });
             }
 

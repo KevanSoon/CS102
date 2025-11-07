@@ -1,7 +1,8 @@
 package com.cs102.attendance.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class SignUpRequest {
     private String email;
@@ -13,10 +14,7 @@ public class SignUpRequest {
     private String name;
     private String code;
     private String phone;
-    @JsonProperty("class_name")
-    private String className;
-    @JsonProperty("student_group")
-    private String studentGroup;
+
 
     public SignUpRequest() {
     }
@@ -75,19 +73,5 @@ public class SignUpRequest {
         this.phone = phone;
     }
 
-    public String getClassName() {
-        return className;
-    }
 
-    public void setClassName(String className) {
-        this.className = className;
-    }
-
-    public String getStudentGroup() {
-        return studentGroup;
-    }
-
-    public void setStudentGroup(String studentGroup) {
-        this.studentGroup = studentGroup;
-    }
 }

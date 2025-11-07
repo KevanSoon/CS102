@@ -74,11 +74,7 @@ public class User {
         private String code;
         private String phone;
 
-        @JsonProperty("class_name")
-        private String className;
 
-        @JsonProperty("student_group")
-        private String studentGroup;
 
         public UserMetadata() {
         }
@@ -120,20 +116,6 @@ public class User {
             this.phone = phone;
         }
 
-        public String getClassName() {
-            return className;
-        }
-
-        public void setClassName(String className) {
-            this.className = className;
-        }
-
-        public String getStudentGroup() {
-            return studentGroup;
-        }
-
-        public void setStudentGroup(String studentGroup) {
-            this.studentGroup = studentGroup;
-        }
+ 
     }
 }

@@ -38,26 +38,6 @@ window.showLoginForm = function() {
     if (loginTabs) loginTabs.style.display = 'flex';
 }
 
-// Toggle student fields based on role selection
-document.addEventListener('DOMContentLoaded', function() {
-    const roleSelect = document.getElementById('registerRole');
-    const studentFields = document.getElementById('studentFields');
-
-    if (roleSelect && studentFields) {
-        // Show student fields by default since student is the default option
-        if (roleSelect.value === 'student') {
-            studentFields.style.display = 'block';
-        }
-
-        roleSelect.addEventListener('change', function() {
-            if (this.value === 'student') {
-                studentFields.style.display = 'block';
-            } else {
-                studentFields.style.display = 'none';
-            }
-        });
-    }
-});
 
 window.showFaceRegister = async function() {
     document.getElementById('faceRegisterModal').classList.add('active');
@@ -508,7 +488,7 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     errorDiv.style.display = 'none';
 
     // Collect registration data
-    const role = document.getElementById('registerRole').value;
+    const role = "student";
     const name = document.getElementById('registerName').value;
     const email = document.getElementById('registerEmail').value;
 
@@ -525,8 +505,7 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
         registerData.additionalData = {
             code: document.getElementById('registerCode')?.value || `STU${Date.now()}`,
             phone: document.getElementById('registerPhone')?.value || '',
-            class_name: document.getElementById('registerClass')?.value || '',
-            student_group: document.getElementById('registerGroup')?.value || ''
+    
         };
     }
 

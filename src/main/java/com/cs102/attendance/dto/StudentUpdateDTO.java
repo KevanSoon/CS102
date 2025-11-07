@@ -7,9 +7,6 @@ public class StudentUpdateDTO {
     private String email;
     private String code;
     private String phone;
-    private String class_name;
-    private String student_group;
-
     private String currentPassword;
     private String newPassword;
 
@@ -27,12 +24,6 @@ public class StudentUpdateDTO {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
-
-    public String getClass_name() { return class_name; }
-    public void setClass_name(String class_name) { this.class_name = class_name; }
-
-    public String getStudent_group() { return student_group; }
-    public void setStudent_group(String student_group) { this.student_group = student_group; }
 
     public String getCurrentPassword() { return currentPassword; }
     public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }

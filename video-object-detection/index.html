@@ -92,20 +92,22 @@
 
             <!-- Enhanced registration form with role selection and removed toggle -->
             <form id="registerForm" style="display: none;">
-                <div class="form-group">
-                    <label class="form-label" for="registerRole">I am a</label>
-                    <select id="registerRole" class="form-input" required>
-                        <option value="student">Student</option>
-                        <option value="professor">Professor</option>
-                    </select>
-                </div>
+              
                 <div class="form-group">
                     <label class="form-label" for="registerName">Full Name</label>
                     <input type="text" id="registerName" class="form-input" required>
                 </div>
+                 <div class="form-group">
+                        <label class="form-label" for="registerCode">Student Code</label>
+                        <input type="text" id="registerCode" class="form-input" placeholder="e.g., 01234567" required>
+                    </div>
                 <div class="form-group">
                     <label class="form-label" for="registerEmail">Email</label>
                     <input type="email" id="registerEmail" class="form-input" required>
+                </div>
+                 <div class="form-group">
+                        <label class="form-label" for="registerPhone">Phone</label>
+                        <input type="tel" id="registerPhone" class="form-input" placeholder="e.g., +65 9123 4567">
                 </div>
 
                 <div class="form-group">
@@ -120,26 +122,7 @@
                     Passwords do not match
                 </div>
 
-                <!-- Student-specific fields (shown conditionally) -->
-                <div id="studentFields" style="display: none;">
-                    <div class="form-group">
-                        <label class="form-label" for="registerCode">Student Code</label>
-                        <input type="text" id="registerCode" class="form-input" placeholder="e.g., STU001">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="registerClass">Class</label>
-                        <input type="text" id="registerClass" class="form-input" placeholder="e.g., CS102">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="registerGroup">Group</label>
-                        <input type="text" id="registerGroup" class="form-input" placeholder="e.g., Group A">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="registerPhone">Phone</label>
-                        <input type="tel" id="registerPhone" class="form-input" placeholder="e.g., 123-456-7890">
-                    </div>
-                </div>
-
+    
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Register & Setup Face</button>
                 
                 <!-- Added back to login link -->

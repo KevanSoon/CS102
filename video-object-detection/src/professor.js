@@ -146,6 +146,35 @@ async function loadSessionStudents(sessionId) {
   }
 }
 
+/**
+ * Validates if a student is enrolled in the given session
+ * @param {string} sessionId - The session ID to check
+ * @param {string} studentId - The student ID to validate
+ * @returns {Promise<boolean>} - True if student is enrolled, false otherwise
+ */
+async function validateStudentInSession(sessionId, studentId) {
+  try {
+    console.log(`Validating student ${studentId} in session ${sessionId}`);
+    
+    const students = await loadSessionStudents(sessionId);
+    
+    if (!students || students.length === 0) {
+      console.warn('No students found in session');
+      return false;
+    }
+    
+    // Check if the studentId exists in the student list
+    const isEnrolled = students.some(student => student.id === studentId);
+    
+    console.log(`Student ${studentId} enrollment status:`, isEnrolled);
+    return isEnrolled;
+    
+  } catch (error) {
+    console.error('Error validating student enrollment:', error);
+    return false;
+  }
+}
+
 async function displayActiveSession(session) {
   console.log('Displaying session:', session);
   
@@ -838,4 +867,4 @@ window.openStudentManagement = openStudentManagement;
 window.logout = logout;
 
 // Export for use in other modules
-export { saveAttendanceRecord, API_BASE_URL };
+export { saveAttendanceRecord, validateStudentInSession, API_BASE_URL };

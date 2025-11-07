@@ -2,7 +2,7 @@ console.log("face-detection-model loaded");
 
 import { AutoModel, AutoProcessor, RawImage } from "@huggingface/transformers";
 import { getActiveSessionId } from './sessionState.js';
-import { saveAttendanceRecord } from './professor.js';
+import { saveAttendanceRecord, validateStudentInSession } from './professor.js';
 
 // Reference the elements that we will need
 const status = document.getElementById("status");
@@ -138,17 +138,28 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
             console.log("==========================");
             
             if (verified && bestMatchStudentId && sessionId) {
-                color = "green";
-                text = `Verified! ${bestMatchName} (${(highestConfidence * 100).toFixed(2)}%)`;
-                console.log("✓ Verification SUCCESS:", text);
+                // Validate that the student is enrolled in this session
+                console.log("Validating student enrollment in session...");
+                const isEnrolled = await validateStudentInSession(sessionId, bestMatchStudentId);
                 
-                // Save attendance record automatically
-                try {
-                    console.log("Saving attendance record...");
-                    await saveAttendanceRecord(sessionId, bestMatchStudentId, 'PRESENT', 'AUTO');
-                    console.log("✓ Attendance record saved successfully!");
-                } catch (error) {
-                    console.error("✗ Failed to save attendance record:", error);
+                if (isEnrolled) {
+                    color = "green";
+                    text = `Verified! ${bestMatchName} (${(highestConfidence * 100).toFixed(2)}%)`;
+                    console.log("✓ Verification SUCCESS:", text);
+                    
+                    // Save attendance record automatically
+                    try {
+                        console.log("Saving attendance record...");
+                        await saveAttendanceRecord(sessionId, bestMatchStudentId, 'PRESENT', 'AUTO');
+                        console.log("✓ Attendance record saved successfully!");
+                    } catch (error) {
+                        console.error("✗ Failed to save attendance record:", error);
+                    }
+                } else {
+                    // Student not enrolled in this session
+                    color = "red";
+                    text = "Failed to verify - Student not enrolled in this session";
+                    console.log("✗ Verification FAILED - Student not enrolled in session");
                 }
             } else {
                 color = "red";

@@ -25,7 +25,7 @@ let attendanceRecords = [
   { date: "2024-01-13", class: "PHY301", status: "Absent", time: "-" },
 ];
 
-let allSessions = [];
+
 // This will store flattened objects: { display_name: "CS102 Programming related - G3", class_code: "CS102", group_number: "G3" }
 let professorClasses = []; 
 
@@ -82,59 +82,8 @@ async function fetchProfessorClasses() {
     }
 }
 
-/**
- * Dynamically creates a <datalist> for class names based on fetched data.
- */
-function setupClassNameDatalist() {
-    const classNameInput = document.getElementById('className');
-    const datalistId = 'class-session-list';
-
-    // 1. Ensure the input is correctly configured to use the datalist
-    if (classNameInput) {
-        classNameInput.setAttribute('list', datalistId);
-    }
-    
-    // 2. Remove any existing datalist with the same ID
-    let datalist = document.getElementById(datalistId);
-    if (datalist) {
-        datalist.remove();
-    }
-
-    // 3. Create the new datalist element
-    datalist = document.createElement('datalist');
-    datalist.id = datalistId;
-    
-    // 4. Populate the datalist with <option> elements using the display_name
-    professorClasses.forEach(classItem => {
-        const option = document.createElement('option');
-        // The value attribute is what appears in the dropdown and in the input field.
-        option.value = classItem.display_name; 
-        datalist.appendChild(option);
-    });
-
-    // 5. Append the datalist to the form for proper scope
-    const createClassForm = document.getElementById("createClassForm");
-    if (createClassForm) {
-        createClassForm.appendChild(datalist);
-    } else {
-        document.body.appendChild(datalist);
-    }
-}
-
 
 // ===== SESSION MANAGEMENT (UNCHANGED) =====
-
-// Fetch all sessions from backend
-async function showSessions() {
-  try {
-    const response = await authService.apiRequest('/sessions');
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching sessions:', error);
-    return [];
-  }
-}
-
 
 async function loadActiveSessions() {
   try {

@@ -136,6 +136,43 @@
                         required>
                 </div>
 
+                <!-- Student Roster Section -->
+                <div id="studentRosterSection" style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #e2e8f0;">
+                    <div class="form-group">
+                        <label class="form-label" style="font-size: 1.1rem; font-weight: 600;">Group Roster</label>
+                        <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem;">
+                            Students enrolled in this group
+                        </p>
+                    </div>
+
+                    <!-- Current Students List -->
+                    <div id="currentStudentsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem;">
+                        <p style="text-align: center; color: #94a3b8; padding: 1rem;">
+                            Select a group to view roster
+                        </p>
+                    </div>
+
+                    <!-- Add Student Section -->
+                    <div class="form-group">
+                        <label class="form-label">Add Student to Group</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select 
+                                id="availableStudentsSelect" 
+                                class="form-input" 
+                                style="flex: 1;">
+                                <option value="">Select a student to add...</option>
+                            </select>
+                            <button 
+                                type="button" 
+                                class="btn btn-primary" 
+                                onclick="addStudentToGroup()"
+                                style="white-space: nowrap;">
+                                + Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 1rem;">
                     <button 
                         type="submit" 

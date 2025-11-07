@@ -10,10 +10,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.cs102.attendance.dto.AttendanceRecordUpdateDTO;
 import com.cs102.attendance.dto.FaceDataUpdateDTO;
+import com.cs102.attendance.dto.GroupUpdateDTO;
 import com.cs102.attendance.dto.SessionUpdateDTO;
 import com.cs102.attendance.dto.StudentUpdateDTO;
 import com.cs102.attendance.model.AttendanceRecord;
 import com.cs102.attendance.model.FaceData;
+import com.cs102.attendance.model.Groups;
 import com.cs102.attendance.model.Session;
 import com.cs102.attendance.model.Student;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -159,6 +161,40 @@ public abstract class SupabaseService<T> {
         
         Session[] results = (Session[]) webClient.patch()
                 .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
+                .bodyValue(updateDTO)
+                .retrieve()
+                .bodyToMono(arrayType) 
+                .block();
+        
+        // Return first element or null
+        if (results != null && results.length > 0) {
+            return results[0];
+        }
+        return null;
+    }
+
+    // Groups Update with composite key (classCode.groupNumber)
+    public Groups update(String compositeKey, GroupUpdateDTO updateDTO) {
+        try {
+            String json = objectMapper.writeValueAsString(updateDTO);
+            System.out.println("Update request body: " + json);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        // Split composite key
+        String[] parts = compositeKey.split("\\.");
+        if (parts.length != 2) {
+            throw new IllegalArgumentException("Invalid composite key format. Expected 'classCode.groupNumber'");
+        }
+        String classCode = parts[0];
+        String groupNumber = parts[1];
+        
+        Groups[] results = (Groups[]) webClient.patch()
+                .uri(uriBuilder -> uriBuilder.path(tableName)
+                    .queryParam("class_code", "eq." + classCode)
+                    .queryParam("group_number", "eq." + groupNumber)
+                    .build())
                 .bodyValue(updateDTO)
                 .retrieve()
                 .bodyToMono(arrayType) 

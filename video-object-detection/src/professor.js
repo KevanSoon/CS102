@@ -701,6 +701,240 @@ function loadClassGroups(classCode) {
   groupSelect.disabled = false;
 }
 
+// ===== STUDENT ROSTER MANAGEMENT =====
+
+// Store all students and current group's student list
+let allStudents = [];
+let currentGroupStudents = [];
+let currentSelectedClass = null;
+let currentSelectedGroup = null;
+
+// Fetch all students from the database
+async function fetchAllStudents() {
+  try {
+    const response = await authService.apiRequest('/students');
+    if (!response.ok) {
+      throw new Error('Failed to fetch students');
+    }
+    allStudents = await response.json();
+    console.log('All students loaded:', allStudents);
+    return allStudents;
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    return [];
+  }
+}
+
+// Load roster when a group is selected
+async function loadGroupRoster(classCode, groupNumber) {
+  if (!classCode || !groupNumber) {
+    document.getElementById('studentRosterSection').style.display = 'none';
+    return;
+  }
+
+  currentSelectedClass = classCode;
+  currentSelectedGroup = groupNumber;
+
+  // Show the roster section
+  document.getElementById('studentRosterSection').style.display = 'block';
+
+  // Find the selected group in our data
+  const selectedClass = professorClassesData.find(c => c.class_code === classCode);
+  if (!selectedClass) return;
+
+  const selectedGroup = selectedClass.groups.find(g => g.group_number === groupNumber);
+  if (!selectedGroup) return;
+
+  // Get student IDs in this group
+  const groupStudentIds = selectedGroup.student_list || [];
+  console.log('Group student IDs:', groupStudentIds);
+
+  // Fetch all students if not already loaded
+  if (allStudents.length === 0) {
+    await fetchAllStudents();
+  }
+
+  // Filter students who are in this group
+  currentGroupStudents = allStudents.filter(student => 
+    groupStudentIds.includes(student.id) || 
+    groupStudentIds.includes(student.email) ||
+    groupStudentIds.includes(student.code)
+  );
+
+  console.log('Current group students:', currentGroupStudents);
+
+  // Display the roster
+  displayCurrentStudents();
+
+  // Load available students for adding
+  loadAvailableStudents();
+}
+
+// Display current students in the group
+function displayCurrentStudents() {
+  const container = document.getElementById('currentStudentsList');
+  container.innerHTML = '';
+
+  if (currentGroupStudents.length === 0) {
+    container.innerHTML = `
+      <p style="text-align: center; color: #94a3b8; padding: 1rem;">
+        No students in this group yet
+      </p>
+    `;
+    return;
+  }
+
+  currentGroupStudents.forEach(student => {
+    const studentDiv = document.createElement('div');
+    studentDiv.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      border-bottom: 1px solid #e2e8f0;
+      background: white;
+    `;
+    studentDiv.innerHTML = `
+      <div style="flex: 1;">
+        <div style="font-weight: 500; color: #1e293b;">${student.name}</div>
+        <div style="font-size: 0.875rem; color: #64748b;">${student.email}</div>
+        <div style="font-size: 0.75rem; color: #94a3b8;">ID: ${student.code || student.id}</div>
+      </div>
+      <button 
+        type="button"
+        class="btn btn-danger btn-sm" 
+        onclick="removeStudentFromGroup('${student.id}')"
+        style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
+        Remove
+      </button>
+    `;
+    container.appendChild(studentDiv);
+  });
+}
+
+// Load students not in the current group
+function loadAvailableStudents() {
+  const select = document.getElementById('availableStudentsSelect');
+  select.innerHTML = '<option value="">Select a student to add...</option>';
+
+  // Filter out students already in the group
+  const currentGroupStudentIds = currentGroupStudents.map(s => s.id);
+  const availableStudents = allStudents.filter(student => 
+    !currentGroupStudentIds.includes(student.id)
+  );
+
+  availableStudents.forEach(student => {
+    const option = document.createElement('option');
+    option.value = student.id;
+    option.textContent = `${student.name} (${student.email})`;
+    select.appendChild(option);
+  });
+
+  if (availableStudents.length === 0) {
+    select.innerHTML = '<option value="">All students are in this group</option>';
+    select.disabled = true;
+  } else {
+    select.disabled = false;
+  }
+}
+
+// Add student to group
+async function addStudentToGroup() {
+  const select = document.getElementById('availableStudentsSelect');
+  const studentId = select.value;
+
+  if (!studentId) {
+    alert('Please select a student to add');
+    return;
+  }
+
+  if (!currentSelectedClass || !currentSelectedGroup) {
+    alert('Please select a class and group first');
+    return;
+  }
+
+  try {
+    // Find the student
+    const student = allStudents.find(s => s.id === studentId);
+    if (!student) {
+      throw new Error('Student not found');
+    }
+
+    // Get current group data
+    const selectedClass = professorClassesData.find(c => c.class_code === currentSelectedClass);
+    const selectedGroup = selectedClass.groups.find(g => g.group_number === currentSelectedGroup);
+
+    // Add student ID to the group's student list
+    const updatedStudentList = [...(selectedGroup.student_list || []), studentId];
+
+    // Update group via API
+    const response = await authService.apiRequest(`/groups/${currentSelectedClass}/${currentSelectedGroup}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        student_list: updatedStudentList
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to add student to group');
+    }
+
+    // Update local data
+    selectedGroup.student_list = updatedStudentList;
+    currentGroupStudents.push(student);
+
+    // Refresh displays
+    displayCurrentStudents();
+    loadAvailableStudents();
+
+    alert(`${student.name} added to the group successfully!`);
+  } catch (error) {
+    console.error('Error adding student:', error);
+    alert('Failed to add student: ' + error.message);
+  }
+}
+
+// Remove student from group
+async function removeStudentFromGroup(studentId) {
+  if (!confirm('Are you sure you want to remove this student from the group?')) {
+    return;
+  }
+
+  try {
+    // Get current group data
+    const selectedClass = professorClassesData.find(c => c.class_code === currentSelectedClass);
+    const selectedGroup = selectedClass.groups.find(g => g.group_number === currentSelectedGroup);
+
+    // Remove student ID from the group's student list
+    const updatedStudentList = selectedGroup.student_list.filter(id => id !== studentId);
+
+    // Update group via API
+    const response = await authService.apiRequest(`/groups/${currentSelectedClass}/${currentSelectedGroup}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        student_list: updatedStudentList
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to remove student from group');
+    }
+
+    // Update local data
+    selectedGroup.student_list = updatedStudentList;
+    currentGroupStudents = currentGroupStudents.filter(s => s.id !== studentId);
+
+    // Refresh displays
+    displayCurrentStudents();
+    loadAvailableStudents();
+
+    alert('Student removed from group successfully!');
+  } catch (error) {
+    console.error('Error removing student:', error);
+    alert('Failed to remove student: ' + error.message);
+  }
+}
+
 // Update openCreateClass to load classes
 // function openCreateClass() {
 //   document.getElementById("createClassModal").classList.add("active");
@@ -811,6 +1045,22 @@ document.addEventListener("DOMContentLoaded", () => {
     classSelect.addEventListener('change', (e) => {
       const selectedClass = e.target.value;
       loadClassGroups(selectedClass);
+      // Hide roster when class changes
+      document.getElementById('studentRosterSection').style.display = 'none';
+    });
+  }
+
+  // Listen for group selection changes
+  const groupSelect = document.getElementById('groupNumberSelect');
+  if (groupSelect) {
+    groupSelect.addEventListener('change', (e) => {
+      const selectedGroup = e.target.value;
+      const selectedClass = document.getElementById('classCodeSelect').value;
+      if (selectedClass && selectedGroup) {
+        loadGroupRoster(selectedClass, selectedGroup);
+      } else {
+        document.getElementById('studentRosterSection').style.display = 'none';
+      }
     });
   }
 });
@@ -874,6 +1124,8 @@ window.openGenerateReport = openGenerateReport;
 window.openManualAttendance = openManualAttendance;
 window.openStudentManagement = openStudentManagement;
 window.logout = logout;
+window.addStudentToGroup = addStudentToGroup;
+window.removeStudentFromGroup = removeStudentFromGroup;
 
 // Export for use in other modules
 export { saveAttendanceRecord, validateStudentInSession, API_BASE_URL };

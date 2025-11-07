@@ -2,6 +2,7 @@ console.log("professor.js loaded");
 
 // ===== AUTH CHECK =====
 import { displayUserInfo, logout, authService } from './authCheck.js';
+import { setActiveSessionId, clearActiveSessionId } from './sessionState.js';
 
 // Auth check and user info
 const userInfo = displayUserInfo();
@@ -134,63 +135,6 @@ async function showSessions() {
   }
 }
 
-// Load and display active sessions
-// async function loadActiveSessions() {
-//   try {
-//     const response = await authService.apiRequest('/sessions');
-//     if (!response.ok) {
-//       throw new Error('Failed to load sessions');
-//     }
-    
-//     const sessions = await response.json();
-//     const activeSessions = document.getElementById('activeSessions');
-    
-//     if (sessions.length === 0) {
-//       activeSessions.innerHTML = '<p class="welcome-subtitle">No active session at the moment</p>';
-//     } else {
-//       // Display the most recent session as "active"
-//       const latestSession = sessions[0];
-//       activeSessions.innerHTML = `
-//         <div class="stat-card">
-//           <div class="stat-content">
-//             <h4>${latestSession.name}</h4>
-//             <p>📅 ${latestSession.date} | ⏰ ${latestSession.startTime}</p>
-//           </div>
-//           <button class="btn btn-primary" onclick="openFaceScanning()">
-//             Scan Face for Attendance
-//           </button>
-//           <button class="btn btn-danger" onclick="closeActiveSession()">Close Active Session</button>
-//         </div>
-        
-//         <div class="student-list">
-//           <div class="student-item">
-//             <span>John Doe (john@example.com)</span>
-//             <div class="attendance-controls">
-//               <button class="btn btn-success btn-sm">Present</button>
-//               <button class="btn btn-danger btn-sm">Absent</button>
-//             </div>
-//           </div>
-//           <div class="student-item">
-//             <span>Jane Smith (jane@example.com)</span>
-//             <div class="attendance-controls">
-//               <button class="btn btn-success btn-sm">Present</button>
-//               <button class="btn btn-danger btn-sm">Absent</button>
-//             </div>
-//           </div>
-//           <div class="student-item">
-//             <span>Mike Johnson (mike@example.com)</span>
-//             <div class="attendance-controls">
-//               <button class="btn btn-success btn-sm">Present</button>
-//               <button class="btn btn-danger btn-sm">Absent</button>
-//             </div>
-//           </div>
-//         </div>
-//       `;
-//     }
-//   } catch (error) {
-//     console.error('Error loading sessions:', error);
-//   }
-// }
 
 async function loadActiveSessions() {
   try {
@@ -255,6 +199,9 @@ async function loadSessionStudents(sessionId) {
 
 async function displayActiveSession(session) {
   console.log('Displaying session:', session);
+  
+  // Store the active session ID globally
+  setActiveSessionId(session.id);
   
   const activeSessions = document.getElementById('activeSessions');
   
@@ -384,6 +331,9 @@ async function displayActiveSession(session) {
 
 // ===== DISPLAY NO SESSION MESSAGE =====
 function displayNoActiveSession() {
+  // Clear the active session ID
+  clearActiveSessionId();
+  
   const activeSessions = document.getElementById('activeSessions');
   
   while (activeSessions.firstChild) {
@@ -601,46 +551,6 @@ async function markStudentManually(sessionId, studentId, status) {
     alert('Failed to mark attendance: ' + error.message);
   }
 }
-
-// ===== STUDENT MARKS THEMSELVES (FACE SCAN) =====
-// function markAttendance() {
-//   if (!selectedClass || !faceScanned) {
-//     alert("Please scan your face first");
-//     return;
-//   }
-
-//   const now = new Date();
-//   const dateStr = now.toISOString().split("T")[0];
-//   const timeStr = now.toLocaleTimeString("en-US", {
-//     hour: "2-digit",
-//     minute: "2-digit",
-//     hour12: true,
-//   });
-
-//   const classSelect = document.getElementById("classSelect");
-//   const className = classSelect.options[classSelect.selectedIndex].text.split(" - ")[0];
-
-//   const newRecord = {
-//     date: dateStr,
-//     class: className,
-//     status: "Present",
-//     time: timeStr,
-//   };
-
-//   attendanceRecords = attendanceRecords.filter(
-//     (record) => !(record.date === dateStr && record.class === className)
-//   );
-
-//   attendanceRecords.unshift(newRecord);
-//   updateStudentStats();
-
-//   alert(`Attendance marked successfully for ${className}!`);
-//   closeFaceScanning();
-
-//   document.getElementById("classSelect").value = "";
-//   document.getElementById("scanFaceBtn").style.display = "none";
-//   selectedClass = "";
-// }
 
 function updateStudentStats() {
   const totalClasses = attendanceRecords.length;

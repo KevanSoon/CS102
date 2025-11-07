@@ -1,6 +1,7 @@
 console.log("face-detection-model loaded");
 
 import { AutoModel, AutoProcessor, RawImage } from "@huggingface/transformers";
+import { getActiveSessionId } from './sessionState.js';
 
 // Reference the elements that we will need
 const status = document.getElementById("status");
@@ -126,8 +127,14 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
         console.log("Starting face verification...");
         sendCanvasImageToAPI(canvas).then(response => {
             console.log("Verification response received:", response);
-            const { verified, highestConfidence, bestMatchName = "Unknown" } = response;
+            const { verified, highestConfidence, bestMatchName = "Unknown", bestMatchStudentId } = response;
+            const sessionId = getActiveSessionId();
+            
             console.log("Parsed values - verified:", verified, "highestConfidence:", highestConfidence, "bestMatchName:", bestMatchName);
+            console.log("===== ATTENDANCE DATA =====");
+            console.log("Student ID:", bestMatchStudentId);
+            console.log("Session ID:", sessionId);
+            console.log("==========================");
             
             if (verified) {
                 color = "green";

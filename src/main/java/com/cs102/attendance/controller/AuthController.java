@@ -295,10 +295,19 @@ public class AuthController {
             Map<String, String> response = new HashMap<>();
             response.put("message", "Verification email sent successfully");
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             System.err.println("Resend verification error: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
+            // Return 429 status for rate limit errors
+            if (e.getMessage() != null && e.getMessage().contains("wait a moment")) {
+                return ResponseEntity.status(429).body(error);
+            }
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            System.err.println("Resend verification error: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to send verification email. Please try again later.");
             return ResponseEntity.badRequest().body(error);
         }
     }

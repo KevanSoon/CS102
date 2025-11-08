@@ -131,14 +131,44 @@ public class SupabaseAuthService {
                 .retrieve()
                 .onStatus(
                     status -> status.is4xxClientError() || status.is5xxServerError(),
-                    clientResponse -> clientResponse.bodyToMono(String.class)
-                        .flatMap(errorBody -> {
-                            System.err.println("Supabase error response: " + errorBody);
-                            return Mono.error(new RuntimeException("Failed to resend verification email: " + errorBody));
-                        })
+                    clientResponse -> {
+                        if (clientResponse.statusCode().value() == 429) {
+                            return clientResponse.bodyToMono(String.class)
+                                .flatMap(errorBody -> {
+                                    System.err.println("Supabase rate limit error: " + errorBody);
+                                    return Mono.error(new RuntimeException("Please wait a moment before requesting another verification email. You can only request this once every 15 seconds."));
+                                });
+                        }
+                        return clientResponse.bodyToMono(String.class)
+                            .flatMap(errorBody -> {
+                                System.err.println("Supabase error response: " + errorBody);
+                                String friendlyMessage = extractUserFriendlyMessage(errorBody);
+                                return Mono.error(new RuntimeException(friendlyMessage));
+                            });
+                    }
                 )
                 .bodyToMono(Void.class)
                 .block();
+    }
+
+    private String extractUserFriendlyMessage(String errorBody) {
+        try {
+            if (errorBody.contains("over_email_send_rate_limit")) {
+                return "You can only request another verification email once every 15 seconds!";
+            }
+            if (errorBody.contains("email_not_confirmed")) {
+                return "Your email address has not been confirmed yet. Please check your inbox for the verification email.";
+            }
+            if (errorBody.contains("user_not_found")) {
+                return "No account found with this email address. Please check your email and try again.";
+            }
+            if (errorBody.contains("validation_failed")) {
+                return "Invalid request. Please check your email address and try again.";
+            }
+            return "Failed to send verification email. Please try again later.";
+        } catch (Exception e) {
+            return "Failed to send verification email. Please try again later.";
+        }
     }
 
     public String getJwtSecret() {

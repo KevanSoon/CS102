@@ -516,7 +516,6 @@ async function openEditProfileModal() {
         document.getElementById("editName").value = student.name || "";
         document.getElementById("editEmail").value = student.email || "";
 
-        document.getElementById("currentPassword").value = "";
         document.getElementById("editPassword").value = "";
         document.getElementById("editConfirmPassword").value = "";
 
@@ -543,7 +542,6 @@ async function saveProfileChanges() {
         
         const userData = JSON.parse(userJson);
         const studentId = userData.id;
-        const currentEmail = userData.email;
         
         console.log("Updating profile for student ID:", studentId);
         
@@ -553,8 +551,6 @@ async function saveProfileChanges() {
         if (!token) throw new Error("Please log in first");
 
         const name = document.getElementById("editName").value.trim();
-        const email = document.getElementById("editEmail").value.trim();
-        const currentPassword = document.getElementById("currentPassword").value;
         const newPassword = document.getElementById("editPassword").value;
         const confirmPassword = document.getElementById("editConfirmPassword").value;
 
@@ -575,42 +571,17 @@ async function saveProfileChanges() {
             }
         }
 
-        // Determine what needs to be updated
-        const emailChanged = email !== currentEmail;
-        const passwordChanged = newPassword && newPassword.length > 0;
-
-        let updatedAuthUser = null;
-
-        // If both email and password are changing, use the combined endpoint
-        if (emailChanged && passwordChanged) {
-            console.log("Updating email and password together in Supabase Auth...");
-            const profileResult = await authService.updateProfile(email, newPassword);
-            if (!profileResult.success) {
-                throw new Error(profileResult.error || "Failed to update profile");
-            }
-            updatedAuthUser = profileResult.user;
-            console.log("Email and password updated in Supabase Auth", profileResult.user);
-        } else if (emailChanged) {
-            // Only email is changing
-            console.log("Updating email in Supabase Auth...");
-            const emailResult = await authService.updateEmail(email);
-            if (!emailResult.success) {
-                throw new Error(emailResult.error || "Failed to update email");
-            }
-            updatedAuthUser = emailResult.user;
-            console.log("Email updated in Supabase Auth", emailResult.user);
-        } else if (passwordChanged) {
-            // Only password is changing
+        // Update password in Supabase Auth if provided
+        if (newPassword && newPassword.length > 0) {
             console.log("Updating password in Supabase Auth...");
             const passwordResult = await authService.updatePassword(newPassword);
             if (!passwordResult.success) {
                 throw new Error(passwordResult.error || "Failed to update password");
             }
-            updatedAuthUser = passwordResult.user;
             console.log("Password updated in Supabase Auth", passwordResult.user);
         }
 
-        // Update only name in student database (email is managed by Supabase Auth)
+        // Update only name in student database
         const updateData = { name };
         console.log("Updating student record (name only)...");
         console.log("URL:", `http://localhost:8080/api/students/${studentId}`);
@@ -641,11 +612,6 @@ async function saveProfileChanges() {
 
         const updatedStudent = await res.json();
         console.log("Profile updated:", updatedStudent);
-
-        // If email was updated in Supabase Auth, merge it with the student data
-        if (updatedAuthUser) {
-            updatedStudent.email = updatedAuthUser.email;
-        }
 
         localStorage.setItem("user", JSON.stringify(updatedStudent));
         currentUserProfile = updatedStudent;

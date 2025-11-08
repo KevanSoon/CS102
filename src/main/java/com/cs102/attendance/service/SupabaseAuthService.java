@@ -144,29 +144,6 @@ public class SupabaseAuthService {
         return jwtSecret;
     }
 
-    // Update user email
-    public User updateEmail(String accessToken, String newEmail) {
-        System.out.println("Updating user email to: " + newEmail);
-        Map<String, String> request = new HashMap<>();
-        request.put("email", newEmail);
-        
-        return authWebClient.put()
-                .uri("user")
-                .header("Authorization", "Bearer " + accessToken)
-                .bodyValue(request)
-                .retrieve()
-                .onStatus(
-                    status -> status.is4xxClientError() || status.is5xxServerError(),
-                    clientResponse -> clientResponse.bodyToMono(String.class)
-                        .flatMap(errorBody -> {
-                            System.err.println("Supabase error: " + errorBody);
-                            return Mono.error(new RuntimeException("Failed to update email: " + errorBody));
-                        })
-                )
-                .bodyToMono(User.class)
-                .block();
-    }
-
     // Update user password
     public User updatePassword(String accessToken, String newPassword) {
         System.out.println("Updating user password");
@@ -184,30 +161,6 @@ public class SupabaseAuthService {
                         .flatMap(errorBody -> {
                             System.err.println("Supabase error: " + errorBody);
                             return Mono.error(new RuntimeException("Failed to update password: " + errorBody));
-                        })
-                )
-                .bodyToMono(User.class)
-                .block();
-    }
-
-    // Update user email and password together
-    public User updateEmailAndPassword(String accessToken, String newEmail, String newPassword) {
-        System.out.println("Updating user email to: " + newEmail + " and password");
-        Map<String, String> request = new HashMap<>();
-        request.put("email", newEmail);
-        request.put("password", newPassword);
-        
-        return authWebClient.put()
-                .uri("user")
-                .header("Authorization", "Bearer " + accessToken)
-                .bodyValue(request)
-                .retrieve()
-                .onStatus(
-                    status -> status.is4xxClientError() || status.is5xxServerError(),
-                    clientResponse -> clientResponse.bodyToMono(String.class)
-                        .flatMap(errorBody -> {
-                            System.err.println("Supabase error: " + errorBody);
-                            return Mono.error(new RuntimeException("Failed to update user: " + errorBody));
                         })
                 )
                 .bodyToMono(User.class)

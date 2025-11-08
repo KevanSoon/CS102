@@ -168,12 +168,12 @@ body {
 
 .stat-card {
   background: white;
-  padding: 2rem;
+  padding: 1.5rem;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .stat-icon {
@@ -466,43 +466,10 @@ body {
   color: #374151;
 }
 
-.status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
 
-.status-present {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.status-absent {
-  background: #fee2e2;
-  color: #991b1b;
-}
 
 /* Lists */
-.student-list {
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  margin-top: 1rem;
-}
 
-.student-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.student-item:last-child {
-  border-bottom: none;
-}
 
 .attendance-controls {
   display: flex;
@@ -602,4 +569,293 @@ canvas {
   font-size: 12px;
   margin: -16px 0 0 -2px;
   padding: 1px;
+}
+
+/* Status Badge Base Style */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 2px solid;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Status Badge Icon */
+.status-badge-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Present Status - Green */
+.status-badge.status-present {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+/* Absent Status - Red */
+.status-badge.status-absent {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+/* Not Marked Status - Yellow */
+.status-badge.status-not-marked {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde047;
+}
+
+/* Student List Improvements */
+.student-list {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.student-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.25rem;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background 0.2s ease;
+}
+
+.student-item:hover {
+  background: #f8fafc;
+}
+
+.student-item:last-child {
+  border-bottom: none;
+}
+
+.student-info {
+  flex: 1;
+  min-width: 0;
+  margin-right: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.student-name {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.375rem;
+  font-size: 0.9375rem;
+}
+
+.student-email {
+  font-size: 0.8125rem;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+
+.student-controls {
+  display: flex;
+  gap: 0.625rem;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.student-controls .btn-sm {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Session Header Styles */
+.session-header {
+  margin-bottom: 1rem;
+}
+
+.session-class-info {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.session-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+  line-height: 1.2;
+}
+
+.session-details {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  color: #64748b;
+  font-size: 0.875rem;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.session-details span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.session-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+}
+
+/* Button Container */
+.session-button-container {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+  justify-content: flex-end;
+  padding-top: 0;
+  border-top: none;
+  flex-shrink: 0;
+}
+
+.session-button-container .btn {
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* Student Attendance Header Container */
+.student-attendance-header {
+  margin: 1.5rem 0 1rem 0;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e2e8f0;
+}
+
+/* Attendance Title */
+.attendance-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+/* Stats Row Container */
+.attendance-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Individual Stat Card */
+.attendance-stat-card {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  border: 2px solid #e2e8f0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.attendance-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Stat Label (top text) */
+.stat-label {
+  font-size: 0.8125rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Stat Value (big number) */
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+/* Present Card Styling */
+.stat-present-card {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.stat-present-value {
+  color: #166534;
+}
+
+/* Absent Card Styling */
+.stat-absent-card {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.stat-absent-value {
+  color: #991b1b;
+}
+
+
+/* Timer Container Style */
+.session-timer {
+  margin-top: 0;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(to right, #f8fafc, #f1f5f9);
+  border-radius: 8px;
+  border-left: 4px solid #0ea5e9;
+  font-size: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  flex: 1;
+  min-width: 250px;
+}
+
+/* Timer Text Variants */
+.timer-text {
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.timer-text.timer-normal {
+  color: #64748b;
+}
+
+.timer-text.timer-warning {
+  color: #f59e0b;
+}
+
+.timer-text.timer-urgent {
+  color: #ef4444;
 }

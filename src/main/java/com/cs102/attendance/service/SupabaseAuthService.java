@@ -123,6 +123,7 @@ public class SupabaseAuthService {
         System.out.println("Resending verification email to: " + email);
         Map<String, String> request = new HashMap<>();
         request.put("email", email);
+        request.put("type", "signup");
 
         authWebClient.post()
                 .uri("resend")

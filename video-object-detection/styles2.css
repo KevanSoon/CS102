@@ -859,3 +859,80 @@ canvas {
 .timer-text.timer-urgent {
   color: #ef4444;
 }
+.analytics-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 30px;
+  background-color: #f9fafc;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.analytics-header {
+  margin-bottom: 20px;
+}
+
+.analytics-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.analytics-subtitle {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.analytics-controls {
+  margin: 20px 0;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #444;
+}
+
+.form-select {
+  width: 250px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.analytics-status {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 20px;
+}
+
+.analytics-chart-wrapper {
+  width: 100%;
+  max-width: 500px;
+  height: 500px;
+  text-align: center;
+}
+
+.chart-title {
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  color: #444;
+  text-decoration: underline;
+}
+
+.analytics-charts canvas,
+#attendancePieChart {
+  width: 100% !important;
+  max-width: 500px;
+  height: 450px !important;
+  display: block;
+  margin: 0 auto;
+}

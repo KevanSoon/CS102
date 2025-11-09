@@ -215,8 +215,8 @@
             <div class="form-group">
                 <label class="form-label">Date Range</label>
                 <div style="display: flex; gap: 1rem;">
-                    <input type="date" class="form-input" style="flex: 1;">
-                    <input type="date" class="form-input" style="flex: 1;">
+                    <input type="date" id="startDate" class="form-input" style="flex: 1;">
+                    <input type="date" id="endDate" class="form-input" style="flex: 1;">
                 </div>
             </div>
             <table class="attendance-table">
@@ -228,19 +228,7 @@
                         <th>Attendance Rate</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>John Doe</td>
-                        <td>20</td>
-                        <td>18</td>
-                        <td><span class="status-badge status-present">90%</span></td>
-                    </tr>
-                    <tr>
-                        <td>Jane Smith</td>
-                        <td>20</td>
-                        <td>15</td>
-                        <td><span class="status-badge status-absent">75%</span></td>
-                    </tr>
+                <tbody id="attendanceSummaryBody">
                 </tbody>
             </table>
             <div class="export-buttons">

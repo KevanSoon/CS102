@@ -25,6 +25,9 @@ let attendanceRecords = [
   { date: "2024-01-13", class: "PHY301", status: "Absent", time: "-" },
 ];
 
+const startDateInput = document.querySelector("#startDate");
+const endDateInput = document.querySelector("#endDate");
+
 
 // This will store flattened objects: { display_name: "CS102 Programming related - G3", class_code: "CS102", group_number: "G3" }
 let professorClasses = []; 
@@ -364,6 +367,7 @@ async function init() {
   // 1. Load professor classes first
   await fetchProfessorClasses(); 
   loadActiveSessions(); 
+  loadAttendanceSummary();
 }
 
 // Helper function to calculate end time
@@ -822,8 +826,14 @@ async function exportCSV() {
 function exportPDF() {
     const classSelect = document.querySelector("#classSelect");
     const selectedClass = classSelect ? classSelect.value : "";
+    const startDate = startDateInput  ? startDateInput.value : "";
+    const endDate = endDateInput  ? endDateInput.value : "";
 
-    const url = `${API_BASE_URL}/reports/generate?format=pdf${selectedClass ? `&className=${encodeURIComponent(selectedClass)}` : ""}`;
+    let url = `${API_BASE_URL}/reports/generate?format=pdf`;
+    if (selectedClass) url += `&className=${encodeURIComponent(selectedClass)}`;
+    if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+
     window.open(url, "_blank");
 }
 
@@ -831,11 +841,16 @@ async function exportReport(format) {
     const classSelect = document.querySelector("#classSelect");
     const selectedClass = classSelect ? classSelect.value : "";
 
+    const startDate = startDateInput  ? startDateInput .value : "";
+    const endDate = endDateInput  ? endDateInput .value : "";
+
+    let url = `/reports/generate?format=${format}`;
+    if (selectedClass) url += `&className=${encodeURIComponent(selectedClass)}`;
+    if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+
     try {
-        const response = await authService.apiRequest(
-            `/reports/generate?format=${format}${selectedClass ? `&className=${encodeURIComponent(selectedClass)}` : ""}`, 
-            { method: "POST" }
-        );
+        const response = await authService.apiRequest(url, { method: "POST" });
 
         if (!response.ok) {
             alert("Failed to generate report.");
@@ -843,21 +858,83 @@ async function exportReport(format) {
         }
 
         const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
+        const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url;
+        a.href = downloadUrl;
         a.download = `attendance_report.${format}`;
         document.body.appendChild(a);
         a.click();
-
         a.remove();
-        window.URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
         console.error("Error generating report:", error);
         alert("Error generating report");
     }
 }
+
+async function loadAttendanceSummary() {
+    const classSelect = document.querySelector("#classSelect");
+    const selectedClass = classSelect ? classSelect.value : "";
+    const tbody = document.querySelector("#attendanceSummaryBody");
+
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:RoyalBlue">Loading data...</td></tr>`;
+
+    try {
+        const response = await authService.apiRequest(
+            `/reports/summary${selectedClass ? `?className=${encodeURIComponent(selectedClass)}` : ""}`,
+            { method: "GET" }
+        );
+
+        if (!response.ok) {
+            alert("Failed to fetch attendance summary.");
+            return;
+        }
+
+        const summaryList = await response.json();
+        const tbody = document.querySelector("#attendanceSummaryBody");
+        tbody.innerHTML = "";
+
+        if (summaryList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red">No data found for this class</td></tr>`;
+            return;
+        }
+
+        summaryList.forEach(entry => {
+            const tr = document.createElement("tr");
+            const attendanceRate = entry.attendanceRate || 0;
+            const statusClass = attendanceRate >= 75 ? "status-present" : "status-absent";
+
+            tr.innerHTML = `
+                <td>${entry.name}</td>
+                <td>${entry.totalClasses}</td>
+                <td>${entry.present}</td>
+                <td><span class="status-badge ${statusClass}">${attendanceRate}%</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (err) {
+        console.error("Error loading attendance summary:", err);
+    }
+}
+
+document.querySelector("#classSelect").addEventListener("change", loadAttendanceSummary);
+
+startDateInput.addEventListener("change", () => {
+    if (startDateInput.value) {
+        endDateInput.min = startDateInput.value;
+    } else {
+        endDateInput.min = "";
+    }
+});
+
+endDateInput.addEventListener("change", () => {
+    if (endDateInput.value) {
+        startDateInput.max = endDateInput.value;
+    } else {
+        startDateInput.max = "";
+    }
+});
 
 // ===== MAKE FUNCTIONS GLOBALLY ACCESSIBLE FOR ONCLICK HANDLERS (UNCHANGED) =====
 window.closeActiveSession = closeActiveSession;

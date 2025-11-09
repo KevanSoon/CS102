@@ -90,7 +90,6 @@ window.closeEmailVerificationModal = function() {
 window.resendVerificationEmail = async function() {
     const btn = document.getElementById('resendVerificationBtn');
     const email = window.verificationEmail;
-    const messageDiv = document.getElementById('verificationMessage');
 
     if (!email) {
         alert('Email not found. Please try logging in again.');
@@ -99,34 +98,23 @@ window.resendVerificationEmail = async function() {
 
     btn.disabled = true;
     btn.textContent = 'Sending...';
-    
-    // Clear previous messages
-    if (messageDiv) {
-        messageDiv.textContent = '';
-        messageDiv.style.color = '';
-    }
 
     try {
         const result = await authService.resendVerificationEmail(email);
 
         if (result.success) {
+            alert('Verification email sent! Please check your inbox.');
+            // Show success message in the modal
+            const messageDiv = document.getElementById('verificationMessage');
             if (messageDiv) {
                 messageDiv.textContent = 'Verification email sent! Please check your inbox.';
                 messageDiv.style.color = '#22c55e';
             }
-            alert('Verification email sent! Please check your inbox.');
         } else {
             throw new Error(result.error);
         }
     } catch (error) {
-        const errorMessage = error.message || 'Failed to send verification email. Please try again later.';
-        
-        if (messageDiv) {
-            messageDiv.textContent = errorMessage;
-            messageDiv.style.color = '#ef4444';
-        }
-        
-        alert(errorMessage);
+        alert('Failed to send verification email: ' + error.message);
     } finally {
         btn.disabled = false;
         btn.textContent = 'Resend Verification Email';

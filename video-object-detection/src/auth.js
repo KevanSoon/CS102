@@ -242,6 +242,39 @@ class AuthService {
         return response;
     }
 
+    // Update user email
+    async updateEmail(newEmail) {
+        try {
+            if (!this.token) {
+                throw new Error('No auth token');
+            }
+
+            const response = await fetch(`${API_BASE_URL}/auth/update-email`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.token}`
+                },
+                body: JSON.stringify({ email: newEmail })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to update email');
+            }
+
+            // Update stored user data
+            this.user = data;
+            localStorage.setItem('user', JSON.stringify(data));
+
+            return { success: true, user: data };
+        } catch (error) {
+            console.error('Update email error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
     // Update user password
     async updatePassword(newPassword) {
         try {
@@ -271,6 +304,43 @@ class AuthService {
             return { success: true, user: data };
         } catch (error) {
             console.error('Update password error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Update user profile (email and/or password together)
+    async updateProfile(email, password) {
+        try {
+            if (!this.token) {
+                throw new Error('No auth token');
+            }
+
+            const requestBody = {};
+            if (email) requestBody.email = email;
+            if (password) requestBody.password = password;
+
+            const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.token}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to update profile');
+            }
+
+            // Update stored user data
+            this.user = data;
+            localStorage.setItem('user', JSON.stringify(data));
+
+            return { success: true, user: data };
+        } catch (error) {
+            console.error('Update profile error:', error);
             return { success: false, error: error.message };
         }
     }

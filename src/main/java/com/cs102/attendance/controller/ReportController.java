@@ -1,7 +1,6 @@
 package com.cs102.attendance.controller;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -9,7 +8,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.pdfbox.pdmodel.*;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import com.cs102.attendance.model.*;
@@ -32,89 +30,19 @@ public class ReportController {
         this.studentService = studentService;
     }
 
-    @GetMapping("/summary")
-    public List<Map<String, Object>> getAttendanceSummary(
-            @RequestParam(required = false) String className) {
+    @RequestMapping(value = "/generate", method = {RequestMethod.GET, RequestMethod.POST})
+    public void generateReport(
+        @RequestParam(defaultValue = "csv") String format,
+        @RequestParam(required = false) String className,
+        HttpServletResponse response) throws IOException {
 
         List<Session> sessions = sessionService.getAll();
+
         if (className != null && !className.isEmpty()) {
-            sessions = sessions.stream()
-                    .filter(s -> className.equalsIgnoreCase(s.getClassCode()))
-                    .toList();
-        }
-
-        List<Groups> groups = groupsService.getAll();
-        List<Student> students = studentService.getAll();
-        List<AttendanceRecord> attendanceRecords = attendanceService.getAll();
-
-        Map<String, Student> studentMap = students.stream()
-                .collect(Collectors.toMap(s -> s.getId().toString(), s -> s));
-
-        Map<String, Integer> totalClasses = new HashMap<>();
-        Map<String, Integer> presentCount = new HashMap<>();
-
-        for (Session session : sessions) {
-            Groups group = groups.stream()
-                    .filter(g -> g.getClassCode().equals(session.getClassCode())
-                            && g.getGroupNumber().equals(session.getGroupNumber()))
-                    .findFirst()
-                    .orElse(null);
-
-            if (group == null || group.getStudentList() == null) continue;
-
-            for (String studentId : group.getStudentList()) {
-                totalClasses.merge(studentId, 1, Integer::sum);
-
-                boolean isPresent = attendanceRecords.stream()
-                        .anyMatch(r -> r.getSession_id().toString().equals(session.getId().toString())
-                                && r.getStudent_id().toString().equals(studentId)
-                                && "PRESENT".equalsIgnoreCase(r.getStatus()));
-
-                if (isPresent) {
-                    presentCount.merge(studentId, 1, Integer::sum);
-                }
+        sessions = sessions.stream()
+                .filter(s -> className.equalsIgnoreCase(s.getClassCode()))
+                .toList();
             }
-        }
-
-        List<Map<String, Object>> summaryList = new ArrayList<>();
-        for (String studentId : totalClasses.keySet()) {
-            Student student = studentMap.get(studentId);
-            int total = totalClasses.getOrDefault(studentId, 0);
-            int present = presentCount.getOrDefault(studentId, 0);
-            double rate = total > 0 ? (present * 100.0 / total) : 0;
-
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("name", student != null ? student.getName() : "Unknown");
-            entry.put("totalClasses", total);
-            entry.put("present", present);
-            entry.put("attendanceRate", Math.round(rate));
-
-            summaryList.add(entry);
-        }
-
-        // Sort by attendance rate
-        summaryList.sort(Comparator.comparingDouble(e -> -((Number) e.get("attendanceRate")).doubleValue()));
-        return summaryList;
-    }
-
-
-   @RequestMapping(value = "/generate", method = {RequestMethod.GET, RequestMethod.POST})
-    public void generateReport(
-            @RequestParam(defaultValue = "csv") String format,
-            @RequestParam(required = false) String className,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            HttpServletResponse response) throws IOException {
-
-        List<Session> sessions = sessionService.getAll().stream()
-        .filter(s -> className == null || className.isEmpty() || className.equalsIgnoreCase(s.getClassCode()))
-        .filter(s -> startDate == null || (s.getDate() != null && !s.getDate().isBefore(startDate)))
-        .filter(s -> endDate == null || (s.getDate() != null && !s.getDate().isAfter(endDate)))
-        .collect(Collectors.toList());
-
-        //Sort by date
-        sessions.sort(Comparator.comparing(Session::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
-
         List<Groups> groups = groupsService.getAll();
         List<Student> students = studentService.getAll();
         List<AttendanceRecord> attendanceRecords = attendanceService.getAll();
@@ -123,24 +51,20 @@ public class ReportController {
                 .collect(Collectors.toMap(s -> s.getId().toString(), s -> s));
 
         List<String[]> rows = new ArrayList<>();
-        rows.add(new String[]{"Name", "Status", "Confidence", "Method", "Timestamp",
+        rows.add(new String[]{"Name", "Status", "Confidence", "Method", "Date/Time",
                 "Session Name", "Date", "Group"});
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         for (Session session : sessions) {
-            // Match both class code AND group number for this session
             Groups group = groups.stream()
                     .filter(g -> g.getClassCode().equals(session.getClassCode())
                             && g.getGroupNumber().equals(session.getGroupNumber()))
                     .findFirst()
                     .orElse(null);
-
             if (group == null || group.getStudentList() == null) continue;
 
-            String dateStr = session.getDate() != null
-                    ? session.getDate().format(DateTimeFormatter.ofPattern("dd/MMM/yyyy", Locale.ENGLISH))
-                    : "";
+            String dateStr = session.getDate() != null ? session.getDate().format(DateTimeFormatter.ofPattern("dd/MMM/yyyy", Locale.ENGLISH)) : "";
 
             for (String studentId : group.getStudentList()) {
                 Student student = studentMap.get(studentId);
@@ -154,8 +78,7 @@ public class ReportController {
                         .orElse(null);
 
                 String status = record != null ? record.getStatus() : "ABSENT";
-                String confidence = record != null && record.getConfidence() != null
-                        ? String.valueOf(record.getConfidence()) : "";
+                String confidence = record != null && record.getConfidence() != null ? String.valueOf(record.getConfidence()) : "";
                 String method = record != null ? record.getMethod() : "";
                 String timestamp = record != null && record.getMarked_at() != null
                         ? dtf.format(record.getMarked_at())
@@ -180,8 +103,6 @@ public class ReportController {
             exportCsv(rows, response);
         }
     }
-
-
 
     private void exportCsv(List<String[]> rows, HttpServletResponse response) throws IOException {
         response.setContentType("text/csv");
@@ -279,7 +200,7 @@ public class ReportController {
                 // ===== Row backgrounds =====
                 if (r == 0) {
                     // Header row - blue
-                    content.setNonStrokingColor(new java.awt.Color(100, 100, 250));
+                    content.setNonStrokingColor(new java.awt.Color(52, 152, 219));
                 } else if (r % 2 == 0) {
                     // Alternating light gray
                     content.setNonStrokingColor(new java.awt.Color(245, 247, 250));
@@ -311,7 +232,7 @@ public class ReportController {
                             textColor = java.awt.Color.WHITE;
                         } else if (c == 1) {
                             String txt = lines[line].trim().toUpperCase();
-                            textColor = "PRESENT".equals(txt) ? new java.awt.Color(0, 175, 0)
+                            textColor = "PRESENT".equals(txt) ? java.awt.Color.GREEN
                                     : "ABSENT".equals(txt) ? java.awt.Color.RED
                                     : java.awt.Color.BLACK;
                         } else {

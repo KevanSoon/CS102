@@ -528,6 +528,7 @@ function updateStudentStats() {
  * Opens the create class modal and sets up the class name datalist.
  */
 function openCreateClass() {
+  resetDynamicSection();
   // Populate the datalist with the fetched classes before showing the modal
   // setupClassNameDatalist();
   loadProfessorClasses();
@@ -570,6 +571,18 @@ function openAttendanceCheck() {
 function closeAttendanceCheck() {
   document.getElementById("attendanceCheckModal").classList.remove("active");
 }
+
+document.querySelectorAll('.section-content button').forEach(button => {
+  button.addEventListener('click', function() {
+    document.querySelectorAll('.section-content button').forEach(btn => {
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-secondary');
+    });
+    this.classList.remove('btn-secondary');
+    this.classList.add('btn-primary');
+  });
+});
+
 
 // function closeActiveSession() {
 //   if (confirm("Are you sure you want to close the active session?")) {
@@ -918,6 +931,140 @@ async function loadAttendanceSummary() {
     }
 }
 
+function resetDynamicSection() {
+  const section = document.getElementById("dynamicSection");
+  section.innerHTML = `
+    <div class="section-header">
+      <h3 class="section-title">Active Session</h3>
+    </div>
+    <div class="section-content" id="activeSessions">
+      <p class="welcome-subtitle">No active session at the moment</p>
+    </div>
+  `;
+}
+
+function openAnalytics() {
+  const section = document.getElementById("dynamicSection");
+
+  section.innerHTML = `
+    <div class="analytics-wrapper">
+      <div class="analytics-header">
+        <h3 class="analytics-title">Attendance Analytics</h3>
+        <p class="analytics-subtitle">Overview of attendance ratio for the selected class</p>
+      </div>
+
+      <div class="analytics-controls">
+        <label for="analyticsClassSelect" class="form-label">Select Class</label>
+        <select id="analyticsClassSelect" class="form-select">
+          <option value="">All Classes</option>
+          <option value="CS102" selected>CS102 - Programming Fundamentals II</option>
+          <option value="IS116">IS116 - Web Application Development</option>
+          <option value="COR3001">COR3001 - Big Questions</option>
+        </select>
+      </div>
+
+      <div id="analyticsStatus" class="analytics-status">
+        Select a class to load analytics...
+      </div>
+
+      <div class="analytics-chart-wrapper">
+        <h4 class="chart-title">Overall Attendance Ratio</h4>
+        <canvas id="attendancePieChart" height="450"></canvas>
+      </div>
+    </div>
+  `;
+
+  initAnalyticsCharts();
+}
+
+
+function initAnalyticsCharts() {
+  let pieChartInstance = null;
+  const select = document.getElementById("analyticsClassSelect");
+  const status = document.getElementById("analyticsStatus");
+
+  async function loadAnalytics(className) {
+    status.textContent = "Loading analytics...";
+    
+    if (pieChartInstance) pieChartInstance.destroy();
+
+    try {
+      const url = `${API_BASE_URL}/reports/summary${className ? `?className=${encodeURIComponent(className)}` : ""}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch data");
+      const summary = await res.json();
+
+      let totalPresent = 0;
+      let totalClasses = 0;
+      summary.forEach(student => {
+        totalPresent += student.present;
+        totalClasses += student.totalClasses;
+      });
+      const totalAbsent = totalClasses - totalPresent;
+
+      const chartWrapper = document.querySelector(".analytics-chart-wrapper");
+      if (totalPresent + totalAbsent === 0) {
+        chartWrapper.style.display = "none";
+        status.textContent = "No attendance data available for this class.";
+        return;
+      } else {
+        chartWrapper.style.display = "block";
+        status.textContent = "";
+    }
+
+      // Render pie chart
+      const ctx = document.getElementById("attendancePieChart").getContext("2d");
+      const canvas = document.getElementById("attendancePieChart");
+      canvas.width = 500;
+      canvas.height = 450;
+      pieChartInstance = new Chart(ctx, {
+        type: "pie",
+        data: {
+          labels: ["Present", "Absent"],
+          datasets: [{
+            data: [totalPresent, totalAbsent],
+            backgroundColor: ["#11d7d8", "#fd9ab6"],
+            borderColor: "#fff",
+            borderWidth: 2,
+            hoverOffset: 20,
+          }],
+        },
+        options: {
+          responsive: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                padding: 20,
+                font: { size: 14, weight: "600" },
+                boxWidth: 20,
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.raw || 0;
+                  const total = context.chart._metasets[context.datasetIndex].total;
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${label}: ${value} (${percentage}%)`;
+                }
+              }
+            },
+            title: { display: false },
+          }
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      status.textContent = "Failed to load analytics.";
+    }
+  }
+
+  select.addEventListener("change", () => loadAnalytics(select.value));
+  loadAnalytics(select.value);
+}
+
 document.querySelector("#classSelect").addEventListener("change", loadAttendanceSummary);
 
 startDateInput.addEventListener("change", () => {
@@ -948,6 +1095,7 @@ window.exportPDF = exportPDF;
 window.openAttendanceCheck = openAttendanceCheck;
 window.openCreateClass = openCreateClass; 
 window.openGenerateReport = openGenerateReport;
+window.openAnalytics = openAnalytics;
 window.openManualAttendance = openManualAttendance;
 window.openStudentManagement = openStudentManagement;
 window.logout = logout;

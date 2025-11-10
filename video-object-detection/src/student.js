@@ -535,6 +535,10 @@ function closeEditProfileModal() {
 }
 
 async function saveProfileChanges() {
+    const saveBtn = document.querySelector('#editProfileModal .btn-primary');
+    const cancelBtn = document.querySelector('#editProfileModal .btn-secondary');
+    const originalText = saveBtn.textContent;
+    
     try {
         // Get student ID from user data instead of separate storage
         const userJson = localStorage.getItem("user");
@@ -561,15 +565,23 @@ async function saveProfileChanges() {
         // Validate password fields if password is being changed
         if (newPassword) {
             if (newPassword !== confirmPassword) {
-                document.getElementById("editPasswordError").textContent = "Passwords do not match";
+                document.getElementById("editPasswordError").textContent = "✗ Passwords do not match";
                 document.getElementById("editPasswordError").style.display = "block";
                 return;
             }
             if (newPassword.length < 6) {
-                alert("New password must be at least 6 characters");
+                const errorDiv = document.getElementById("editPasswordError");
+                errorDiv.textContent = "✗ New password must be at least 6 characters";
+                errorDiv.style.display = "block";
                 return;
             }
         }
+        
+        // Disable buttons while saving
+        saveBtn.disabled = true;
+        cancelBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        saveBtn.style.opacity = '0.6';
 
         // Update password in Supabase Auth if provided
         if (newPassword && newPassword.length > 0) {
@@ -616,14 +628,42 @@ async function saveProfileChanges() {
         localStorage.setItem("user", JSON.stringify(updatedStudent));
         currentUserProfile = updatedStudent;
 
-        document.getElementById("editSuccessMessage").style.display = "block";
+        // Show styled success message
+        const successDiv = document.getElementById("editSuccessMessage");
+        successDiv.textContent = "✓ Profile updated successfully!";
+        successDiv.style.color = "#065f46";
+        successDiv.style.backgroundColor = "#d1fae5";
+        successDiv.style.padding = "0.75rem";
+        successDiv.style.borderRadius = "8px";
+        successDiv.style.display = "block";
 
-        setTimeout(() => closeEditProfileModal(), 1500);
+        // Wait 1.5 seconds then close modal
+        setTimeout(() => {
+            closeEditProfileModal();
+            // Reset button states
+            saveBtn.disabled = false;
+            cancelBtn.disabled = false;
+            saveBtn.textContent = originalText;
+            saveBtn.style.opacity = '1';
+        }, 1500);
 
     } catch (err) {
         console.error("Error updating profile:", err);
-        document.getElementById("editErrorMessage").textContent = err.message;
-        document.getElementById("editErrorMessage").style.display = "block";
+        
+        // Show styled error message
+        const errorDiv = document.getElementById("editErrorMessage");
+        errorDiv.textContent = "✗ " + err.message;
+        errorDiv.style.color = "#991b1b";
+        errorDiv.style.backgroundColor = "#fee2e2";
+        errorDiv.style.padding = "0.75rem";
+        errorDiv.style.borderRadius = "8px";
+        errorDiv.style.display = "block";
+        
+        // Re-enable buttons on error
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
+        saveBtn.textContent = originalText;
+        saveBtn.style.opacity = '1';
     }
 }
 

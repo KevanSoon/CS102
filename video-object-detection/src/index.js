@@ -29,6 +29,9 @@ window.showRegisterForm = function() {
     document.getElementById('registerForm').style.display = 'block';
     const loginTabs = document.querySelector('.login-tabs');
     if (loginTabs) loginTabs.style.display = 'none';
+    // Hide login error when switching to register
+    const loginError = document.getElementById('loginError');
+    if (loginError) loginError.style.display = 'none';
 }
 
 window.showLoginForm = function() {
@@ -93,7 +96,13 @@ window.resendVerificationEmail = async function() {
     const messageDiv = document.getElementById('verificationMessage');
 
     if (!email) {
-        alert('Email not found. Please try logging in again.');
+        if (messageDiv) {
+            messageDiv.textContent = 'Email not found. Please try logging in again.';
+            messageDiv.style.color = '#ef4444';
+            messageDiv.style.backgroundColor = '#fee2e2';
+            messageDiv.style.padding = '0.75rem';
+            messageDiv.style.borderRadius = '8px';
+        }
         return;
     }
 
@@ -104,6 +113,9 @@ window.resendVerificationEmail = async function() {
     if (messageDiv) {
         messageDiv.textContent = '';
         messageDiv.style.color = '';
+        messageDiv.style.backgroundColor = '';
+        messageDiv.style.padding = '';
+        messageDiv.style.borderRadius = '';
     }
 
     try {
@@ -111,10 +123,12 @@ window.resendVerificationEmail = async function() {
 
         if (result.success) {
             if (messageDiv) {
-                messageDiv.textContent = 'Verification email sent! Please check your inbox.';
-                messageDiv.style.color = '#22c55e';
+                messageDiv.textContent = '✓ Verification email sent! Please check your inbox.';
+                messageDiv.style.color = '#065f46';
+                messageDiv.style.backgroundColor = '#d1fae5';
+                messageDiv.style.padding = '0.75rem';
+                messageDiv.style.borderRadius = '8px';
             }
-            alert('Verification email sent! Please check your inbox.');
         } else {
             throw new Error(result.error);
         }
@@ -122,11 +136,12 @@ window.resendVerificationEmail = async function() {
         const errorMessage = error.message || 'Failed to send verification email. Please try again later.';
         
         if (messageDiv) {
-            messageDiv.textContent = errorMessage;
-            messageDiv.style.color = '#ef4444';
+            messageDiv.textContent = '✗ ' + errorMessage;
+            messageDiv.style.color = '#991b1b';
+            messageDiv.style.backgroundColor = '#fee2e2';
+            messageDiv.style.padding = '0.75rem';
+            messageDiv.style.borderRadius = '8px';
         }
-        
-        alert(errorMessage);
     } finally {
         btn.disabled = false;
         btn.textContent = 'Resend Verification Email';
@@ -435,6 +450,10 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     const submitBtn = this.querySelector('button[type="submit"]');
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    const loginError = document.getElementById('loginError');
+
+    // Hide error message when submitting
+    loginError.style.display = 'none';
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Signing in...';
@@ -479,10 +498,23 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Login failed: ' + error.message);
+        // Display error message in the login form instead of alert
+        loginError.textContent = 'Incorrect email or password';
+        loginError.style.display = 'block';
         submitBtn.disabled = false;
         submitBtn.textContent = 'Login';
     }
+});
+
+// Hide login error message when user starts typing
+document.getElementById('loginEmail').addEventListener('input', function() {
+    const loginError = document.getElementById('loginError');
+    if (loginError) loginError.style.display = 'none';
+});
+
+document.getElementById('loginPassword').addEventListener('input', function() {
+    const loginError = document.getElementById('loginError');
+    if (loginError) loginError.style.display = 'none';
 });
 
 document.getElementById('registerForm').addEventListener('submit', function(e) {

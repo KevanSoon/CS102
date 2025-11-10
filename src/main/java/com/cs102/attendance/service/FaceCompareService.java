@@ -61,12 +61,12 @@ public class FaceCompareService {
             if (jsonNode.has("verified") && jsonNode.has("confidence")) {
                 boolean verified = jsonNode.get("verified").asBoolean();
                 double confidencePercentage = jsonNode.get("confidence").asDouble();
-                double confidenceDecimal = confidencePercentage / 100.0;
                 
                 System.out.println("Verified: " + verified);
-                System.out.println("Confidence: " + confidencePercentage + "% -> " + confidenceDecimal + " (decimal)");
+                System.out.println("Confidence: " + confidencePercentage + "% (stored as percentage)");
                 
-                return new FaceVerificationResult(verified, confidenceDecimal);
+                // Return confidence as percentage (e.g., 90.14 instead of 0.9014)
+                return new FaceVerificationResult(verified, confidencePercentage);
             }
             
             System.err.println("Verified or Confidence field not found in response.");

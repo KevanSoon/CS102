@@ -708,7 +708,7 @@ function calculateEndTime(startTime, durationMinutes) {
 
 
 // ===== SHARED ATTENDANCE LOGIC =====
-async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANUAL') {
+async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANUAL', confidence = null) {
   try {
     const upperStatus = status.toUpperCase();
     const upperMethod = method.toUpperCase();
@@ -719,6 +719,7 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
     const markedAt = singaporeTime; // Should be "2025-11-04T18:28:49.359Z"
     
     console.log('Timestamp being sent:', markedAt); // DEBUG: Check what's actually being sent
+    console.log('Confidence score:', confidence); // DEBUG: Check confidence value
     
     // Check if record exists
     const checkResponse = await fetch(
@@ -740,6 +741,11 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
           marked_at: markedAt
         };
         
+        // Add confidence if provided (for AUTO face detection)
+        if (confidence !== null && confidence !== undefined) {
+          updateBody.confidence = confidence;
+        }
+        
         console.log('Update body:', JSON.stringify(updateBody)); // Check the full payload
         
         response = await fetch(`${API_BASE_URL}/attendance_records/${recordId}`, {
@@ -756,6 +762,11 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
           method: upperMethod,
           marked_at: markedAt
         };
+        
+        // Add confidence if provided (for AUTO face detection)
+        if (confidence !== null && confidence !== undefined) {
+          createBody.confidence = confidence;
+        }
         
         console.log('Create body:', JSON.stringify(createBody)); // Check the full payload
         
@@ -776,6 +787,11 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
         method: upperMethod,
         marked_at: markedAt
       };
+      
+      // Add confidence if provided (for AUTO face detection)
+      if (confidence !== null && confidence !== undefined) {
+        createBody.confidence = confidence;
+      }
       
       console.log('Create body:', JSON.stringify(createBody));
       

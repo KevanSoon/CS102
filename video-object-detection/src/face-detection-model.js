@@ -144,13 +144,13 @@ function renderBox([xmin, ymin, xmax, ymax, score, id], [w, h]) {
                 
                 if (isEnrolled) {
                     color = "green";
-                    text = `Verified! ${bestMatchName} (${(highestConfidence * 100).toFixed(2)}%)`;
+                    text = `Verified! ${bestMatchName} (${highestConfidence.toFixed(2)}%)`;
                     console.log("✓ Verification SUCCESS:", text);
                     
-                    // Save attendance record automatically
+                    // Save attendance record automatically with confidence score (as percentage)
                     try {
-                        console.log("Saving attendance record...");
-                        await saveAttendanceRecord(sessionId, bestMatchStudentId, 'PRESENT', 'AUTO');
+                        console.log("Saving attendance record with confidence:", highestConfidence + "%");
+                        await saveAttendanceRecord(sessionId, bestMatchStudentId, 'PRESENT', 'AUTO', highestConfidence);
                         console.log("✓ Attendance record saved successfully!");
                     } catch (error) {
                         console.error("✗ Failed to save attendance record:", error);

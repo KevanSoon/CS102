@@ -147,6 +147,7 @@ public class FaceBatchCompareController {
                 AttendanceRecordUpdateDTO updateDTO = new AttendanceRecordUpdateDTO();
                 updateDTO.setStatus("PRESENT");
                 updateDTO.setMethod("AUTO");
+                updateDTO.setConfidence(highestScore);  // Store the confidence score
 
                 try {
                     AttendanceRecord updatedRecord = attendanceRecordService.updateBySessionAndStudent(sessionId, bestStudentId, updateDTO);

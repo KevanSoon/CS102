@@ -36,10 +36,8 @@ export function displayUserInfo() {
 
 // Function to logout
 export async function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        await authService.signOut();
-        window.location.href = '/';
-    }
+    await authService.signOut();
+    window.location.href = '/';
 }
 
 // Export auth service for making API calls

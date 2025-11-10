@@ -1,8 +1,13 @@
 package com.cs102.attendance.controller;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,17 +23,11 @@ import com.cs102.attendance.dto.AttendanceRecordUpdateDTO;
 import com.cs102.attendance.dto.FaceVerificationResult;
 import com.cs102.attendance.model.FaceData;
 import com.cs102.attendance.service.AttendanceRecordService;
-import com.cs102.attendance.service.FaceDataService;
 import com.cs102.attendance.service.FaceCompareService;
+import com.cs102.attendance.service.FaceDataService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.util.Base64;
 
 @RestController
 @RequestMapping("/api/face-batch")

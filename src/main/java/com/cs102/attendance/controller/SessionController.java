@@ -75,14 +75,5 @@ public class SessionController {
         }
     }
 
-    @PatchMapping("/{id}")
-    public Session updateSession(@PathVariable String id, @RequestBody SessionUpdateDTO updateDTO) {
-        return sessionService.update(id, updateDTO);
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteSession(@PathVariable String id) {
-        sessionService.delete(id);
-    }
     
 }

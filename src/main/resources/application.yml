@@ -26,10 +26,6 @@ management:
     exposure:
       include: "*"
 
-# Externalised CV thresholds
-recognition:
-  confidence: 0.70
-  cooldownMs: 10000
 face-service:
   deepface-url: http://localhost:8000/api/face_match
 

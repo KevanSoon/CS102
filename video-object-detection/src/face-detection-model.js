@@ -1,7 +1,7 @@
 console.log("face-detection-model loaded");
 
 import { AutoModel, AutoProcessor, RawImage } from "@huggingface/transformers";
-import { getActiveSessionId } from './sessionState.js';
+import { getActiveSessionId, reloadActiveSessions } from './sessionState.js';
 import { saveAttendanceRecord, validateStudentInSession } from './professor.js';
 
 // Reference the elements that we will need
@@ -281,7 +281,7 @@ async function openFaceScanning() {
   }
 }
 
-function closeFaceScanning() {
+async function closeFaceScanning() {
   document.getElementById("faceScanModal").classList.remove("active");
   if (attendanceStream) {
     attendanceStream.getTracks().forEach(track => track.stop());
@@ -294,6 +294,7 @@ function closeFaceScanning() {
   cooldownActive = false;
   cooldownCounter = 0;
   overlay.innerHTML = "";
+  await reloadActiveSessions();
   // ... reset other elements
 }
 

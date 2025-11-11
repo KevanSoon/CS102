@@ -2,7 +2,7 @@ console.log("professor.js loaded");
 
 // ===== AUTH CHECK =====
 import { displayUserInfo, logout, authService } from './authCheck.js';
-import { setActiveSessionId, clearActiveSessionId } from './sessionState.js';
+import { setActiveSessionId, clearActiveSessionId, registerLoadActiveSessions } from './sessionState.js';
 
 // Auth check and user info
 const userInfo = displayUserInfo();
@@ -976,6 +976,7 @@ function showRegister() {
 
 function closeFaceRegister() {
   document.getElementById("faceRegisterModal").classList.remove("active");
+  loadActiveSessions();
 }
 
 function captureFace() {
@@ -1426,6 +1427,7 @@ function searchStudents() {
 
 document.addEventListener("DOMContentLoaded", () => {
   updateStudentStats();
+  registerLoadActiveSessions(loadActiveSessions);
   init(); 
 
   // Handle Create Session Form - SINGLE EVENT LISTENER

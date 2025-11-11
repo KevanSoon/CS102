@@ -13,7 +13,7 @@ The CS102 Smart Attendance Project is a full-stack application designed to moder
 - **📊 Attendance Analytics**: Comprehensive reporting and analytics dashboard
 - **🔄 Dual Attendance Methods**: Support for both automatic (face recognition) and manual attendance marking
 - **📈 Real-time Monitoring**: Live attendance tracking with confidence scoring
-- **🗄️ Database Management**: PostgreSQL database with Liquibase migration support
+- **🗄️ Database Management**: PostgreSQL database
 - **🌐 RESTful API**: Complete REST API for frontend integration and external systems
 
 ### System Architecture:
@@ -32,7 +32,6 @@ The application follows a **microservices-inspired architecture** with clear sep
 - **Spring Web**: REST API development
 - **Spring Boot Actuator**: Application monitoring and health checks
 - **Maven**: Dependency management and build tool
-- **Liquibase**: Database migration and version control
 
 ### Frontend Technologies
 - **HTML5/CSS3**: Modern web interface
@@ -284,7 +283,6 @@ curl -X GET http://localhost:8080/api/students \
 
 ### 🗄️ Database Management
 - **PostgreSQL**: Robust relational database with ACID compliance
-- **Liquibase Migrations**: Version-controlled database schema management
 - **Data Integrity**: Foreign key constraints and unique constraints
 - **Optimized Queries**: Database indexing for improved performance
 
@@ -301,7 +299,6 @@ The application includes comprehensive monitoring capabilities:
 ### Database Monitoring
 - **Connection Health**: Database connectivity monitoring
 - **Query Performance**: Database query performance tracking
-- **Migration Status**: Liquibase migration status monitoring
 
 ## 🗄️ Database Schema
 
@@ -358,8 +355,7 @@ smart-attendance-project/
 │       ├── FaceDataRepository.java
 │       └── StudentRepository.java
 ├── src/main/resources/
-│   ├── application.yml         # Application configuration
-│   └── db/changelog/          # Database migrations
+│   └── application.yml         # Application configuration
 ├── video-object-detection/    # Frontend application
 │   ├── src/
 │   │   ├── face-detection-model.js

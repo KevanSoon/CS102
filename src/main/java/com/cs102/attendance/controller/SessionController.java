@@ -71,10 +71,18 @@ public class SessionController {
             
             return ResponseEntity.ok(closedSession);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
+    @PatchMapping("/{id}")
+    public Session updateSession(@PathVariable String id, @RequestBody SessionUpdateDTO updateDTO) {
+        return sessionService.update(id, updateDTO);
+    }
 
+    @DeleteMapping("/{id}")
+    public void deleteSession(@PathVariable String id) {
+        sessionService.delete(id);
+    }
+    
 }

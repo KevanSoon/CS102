@@ -2,7 +2,7 @@ console.log("professor.js loaded");
 
 // ===== AUTH CHECK =====
 import { displayUserInfo, logout, authService } from './authCheck.js';
-import { setActiveSessionId, clearActiveSessionId } from './sessionState.js';
+import { setActiveSessionId, clearActiveSessionId, registerLoadActiveSessions } from './sessionState.js';
 
 // Auth check and user info
 const userInfo = displayUserInfo();
@@ -936,6 +936,7 @@ function closeManualAttendance() {
 
 function openGenerateReport() {
   document.getElementById("generateReportModal").classList.add("active");
+  loadClassDropdown("classSelect");
 }
 
 function closeGenerateReport() {
@@ -975,6 +976,7 @@ function showRegister() {
 
 function closeFaceRegister() {
   document.getElementById("faceRegisterModal").classList.remove("active");
+  loadActiveSessions();
 }
 
 function captureFace() {
@@ -1425,6 +1427,7 @@ function searchStudents() {
 
 document.addEventListener("DOMContentLoaded", () => {
   updateStudentStats();
+  registerLoadActiveSessions(loadActiveSessions);
   init(); 
 
   // Handle Create Session Form - SINGLE EVENT LISTENER
@@ -1621,6 +1624,30 @@ async function exportReport(format) {
     }
 }
 
+async function loadClassDropdown(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/classes`);
+    if (!response.ok) throw new Error("Failed to fetch class list");
+
+    const classes = await response.json();
+    select.innerHTML = `<option value="">All Classes</option>`;
+
+    classes.forEach(cls => {
+      const option = document.createElement("option");
+      option.value = cls.class_code;
+      option.textContent = `${cls.class_code} - ${cls.class_name}`;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error loading classes:", error);
+    select.innerHTML = `<option value="">Error loading classes</option>`;
+  }
+}
+
+
 async function loadAttendanceSummary() {
     const classSelect = document.querySelector("#classSelect");
     const selectedClass = classSelect ? classSelect.value : "";
@@ -1693,9 +1720,6 @@ function openAnalytics() {
         <label for="analyticsClassSelect" class="form-label">Select Class</label>
         <select id="analyticsClassSelect" class="form-select">
           <option value="">All Classes</option>
-          <option value="CS102" selected>CS102 - Programming Fundamentals II</option>
-          <option value="IS116">IS116 - Web Application Development</option>
-          <option value="COR3001">COR3001 - Big Questions</option>
         </select>
       </div>
 
@@ -1711,6 +1735,7 @@ function openAnalytics() {
   `;
 
   initAnalyticsCharts();
+  loadClassDropdown("analyticsClassSelect");
 }
 
 

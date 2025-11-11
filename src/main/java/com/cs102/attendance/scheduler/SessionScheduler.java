@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +18,8 @@ import com.cs102.attendance.service.SessionService;
 
 @Component
 public class SessionScheduler {
+    private static final Logger logger = LoggerFactory.getLogger(SessionScheduler.class);
+    
     private final AttendanceRecordService attendanceRecordService;
     private final SessionService sessionService;
     
@@ -26,7 +30,7 @@ public class SessionScheduler {
     
     @Scheduled(fixedRate = 60000) // Every 1 minute
     public void deactivateExpiredSessions() {
-        System.out.println("[SCHEDULER] Checking for expired sessions...");
+        logger.debug("Checking for expired sessions...");
         
         try {
             List<Session> allSessions = sessionService.getAll();
@@ -54,17 +58,15 @@ public class SessionScheduler {
                         
                         // Skip if session hasn't started yet (future session)
                         if (minutesSinceStart < 0) {
-                            System.out.println("[SCHEDULER] Session " + session.getId() + 
-                                " (" + session.getName() + ") hasn't started yet. Skipping...");
+                            logger.debug("Session {} ({}) hasn't started yet. Skipping...", 
+                                session.getId(), session.getName());
                             continue;
                         }
                         
                         // If session started 15+ minutes ago, deactivate
                         if (minutesSinceStart >= 15) {
-                            System.out.println("[SCHEDULER] Session " + session.getId() + 
-                                " (" + session.getName() + ") started at " + 
-                                sessionStartTime + ", " + minutesSinceStart + 
-                                " minutes ago. Deactivating...");
+                            logger.info("Session {} ({}) started at {}, {} minutes ago. Deactivating...", 
+                                session.getId(), session.getName(), sessionStartTime, minutesSinceStart);
                             
                             markAbsentStudents(session);
 
@@ -74,29 +76,26 @@ public class SessionScheduler {
                             sessionService.update(session.getId().toString(), updateDTO);
                             
                             deactivatedCount++;
-                            System.out.println("[SCHEDULER] Session " + session.getId() + " deactivated successfully");
+                            logger.info("Session {} deactivated successfully", session.getId());
                         } else {
                             long minutesRemaining = 15 - minutesSinceStart;
-                            System.out.println("[SCHEDULER] Session " + session.getId() + 
-                                " (" + session.getName() + ") has " + minutesRemaining + 
-                                " minutes remaining");
+                            logger.debug("Session {} ({}) has {} minutes remaining", 
+                                session.getId(), session.getName(), minutesRemaining);
                         }
                     } else {
-                        System.out.println("[SCHEDULER] Warning: Session " + session.getId() + 
-                            " is missing date or startTime");
+                        logger.warn("Session {} is missing date or startTime", session.getId());
                     }
                 }
             }
             
             if (deactivatedCount > 0) {
-                System.out.println("[SCHEDULER] Deactivated " + deactivatedCount + " expired session(s)");
+                logger.info("Deactivated {} expired session(s)", deactivatedCount);
             } else {
-                System.out.println("[SCHEDULER] No expired sessions found");
+                logger.debug("No expired sessions found");
             }
             
         } catch (Exception e) {
-            System.err.println("[SCHEDULER] Error checking sessions: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error checking sessions", e);
         }
     }
 
@@ -105,7 +104,7 @@ public class SessionScheduler {
      */
     private void markAbsentStudents(Session session) {
         try {
-            System.out.println("[SCHEDULER] Marking absent students for session " + session.getId());
+            logger.debug("Marking absent students for session {}", session.getId());
             
             // Get all attendance records for this session
             List<AttendanceRecord> existingRecords = attendanceRecordService.getBySession(session.getId().toString());
@@ -114,12 +113,12 @@ public class SessionScheduler {
             List<String> expectedStudents = sessionService.getSessionStudentIds(session.getId().toString());
             
             if (expectedStudents == null || expectedStudents.isEmpty()) {
-                System.out.println("[SCHEDULER] No student list found for session " + session.getId());
+                logger.warn("No student list found for session {}", session.getId());
                 return;
             }
             
-            System.out.println("[SCHEDULER] Expected students: " + expectedStudents.size());
-            System.out.println("[SCHEDULER] Existing attendance records: " + existingRecords.size());
+            logger.debug("Expected students: {}, Existing attendance records: {}", 
+                expectedStudents.size(), existingRecords.size());
             
             // Track which students already have attendance records
             List<String> markedStudents = existingRecords.stream()
@@ -142,18 +141,17 @@ public class SessionScheduler {
                         attendanceRecordService.create(absentRecord);
                         absentCount++;
                         
-                        System.out.println("[SCHEDULER] Marked student " + studentId + " as ABSENT");
+                        logger.debug("Marked student {} as ABSENT", studentId);
                     } catch (Exception e) {
-                        System.err.println("[SCHEDULER] Error marking student " + studentId + " as absent: " + e.getMessage());
+                        logger.error("Error marking student {} as absent", studentId, e);
                     }
                 }
             }
             
-            System.out.println("[SCHEDULER] Marked " + absentCount + " student(s) as ABSENT for session " + session.getId());
+            logger.info("Marked {} student(s) as ABSENT for session {}", absentCount, session.getId());
             
         } catch (Exception e) {
-            System.err.println("[SCHEDULER] Error marking absent students: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error marking absent students for session {}", session.getId(), e);
         }
     }
 }

@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -18,7 +20,8 @@ import com.cs102.attendance.model.Session;
 
 @Service
 public class SessionService extends SupabaseService<Session> {
-
+    private static final Logger logger = LoggerFactory.getLogger(SessionService.class);
+    
     private final AttendanceRecordService attendanceRecordService;
 
     public SessionService(WebClient webClient, AttendanceRecordService attendanceRecordService) {
@@ -48,8 +51,7 @@ public class SessionService extends SupabaseService<Session> {
         }
         
         if (activeSessions.size() > 1) {
-            System.err.println("WARNING: Professor " + professorId + 
-                " has " + activeSessions.size() + " active sessions!");
+            logger.warn("Professor {} has {} active sessions!", professorId, activeSessions.size());
         }
         
         return activeSessions.get(0);  // Return first active session
@@ -95,7 +97,7 @@ public class SessionService extends SupabaseService<Session> {
             return studentIds != null ? studentIds : List.of();
             
         } catch (Exception e) {
-            System.err.println("Error fetching student IDs: " + e.getMessage());
+            logger.error("Error fetching student IDs", e);
             return List.of();
         }
     }
@@ -112,9 +114,7 @@ public class SessionService extends SupabaseService<Session> {
             String classCode = session.getClassCode();
             String groupNumber = session.getGroupNumber();
             
-            System.out.println("Searching for group with:");
-            System.out.println("  class_code: " + classCode);
-            System.out.println("  group_number: " + groupNumber);
+            logger.debug("Searching for group with class_code: {}, group_number: {}", classCode, groupNumber);
             
             // Get the group to access student_list
             List<Map> groupsResponse = webClient.get()
@@ -129,7 +129,7 @@ public class SessionService extends SupabaseService<Session> {
                 .block();
 
             if (groupsResponse == null || groupsResponse.isEmpty()) {
-                System.out.println("No group found for this class/group combination");
+                logger.warn("No group found for class_code: {}, group_number: {}", classCode, groupNumber);
                 return new ArrayList<>();
             }
 
@@ -138,11 +138,11 @@ public class SessionService extends SupabaseService<Session> {
             List<String> studentIds = (List<String>) groupData.get("student_list");
             
             if (studentIds == null || studentIds.isEmpty()) {
-                System.out.println("No students in this group");
+                logger.warn("No students in group class_code: {}, group_number: {}", classCode, groupNumber);
                 return new ArrayList<>();
             }
             
-            System.out.println("Found " + studentIds.size() + " students in group");
+            logger.debug("Found {} students in group", studentIds.size());
 
             // Fetch student details for each student ID
             List<Map<String, Object>> result = new ArrayList<>();
@@ -200,8 +200,7 @@ public class SessionService extends SupabaseService<Session> {
             return result;
 
         } catch (Exception e) {
-            System.err.println("Error fetching session students: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error fetching session students for session {}", sessionId, e);
             throw new RuntimeException("Failed to fetch students for session", e);
         }
     }
@@ -212,7 +211,7 @@ public class SessionService extends SupabaseService<Session> {
      */
     public void markAbsentStudentsForSession(String sessionId) {
         try {
-            System.out.println("[SESSION] Marking absent students for session " + sessionId);
+            logger.debug("Marking absent students for session {}", sessionId);
             
             // Get all attendance records for this session
             List<AttendanceRecord> existingRecords = attendanceRecordService.getBySession(sessionId);
@@ -221,12 +220,12 @@ public class SessionService extends SupabaseService<Session> {
             List<String> expectedStudents = getSessionStudentIds(sessionId);
             
             if (expectedStudents == null || expectedStudents.isEmpty()) {
-                System.out.println("[SESSION] No student list found for session " + sessionId);
+                logger.warn("No student list found for session {}", sessionId);
                 return;
             }
             
-            System.out.println("[SESSION] Expected students: " + expectedStudents.size());
-            System.out.println("[SESSION] Existing attendance records: " + existingRecords.size());
+            logger.debug("Expected students: {}, Existing attendance records: {}", 
+                expectedStudents.size(), existingRecords.size());
             
             // Track which students already have attendance records
             List<String> markedStudents = existingRecords.stream()
@@ -249,18 +248,17 @@ public class SessionService extends SupabaseService<Session> {
                         attendanceRecordService.create(absentRecord);
                         absentCount++;
                         
-                        System.out.println("[SESSION] Marked student " + studentId + " as ABSENT");
+                        logger.debug("Marked student {} as ABSENT", studentId);
                     } catch (Exception e) {
-                        System.err.println("[SESSION] Error marking student " + studentId + " as absent: " + e.getMessage());
+                        logger.error("Error marking student {} as absent", studentId, e);
                     }
                 }
             }
             
-            System.out.println("[SESSION] Marked " + absentCount + " student(s) as ABSENT for session " + sessionId);
+            logger.info("Marked {} student(s) as ABSENT for session {}", absentCount, sessionId);
             
         } catch (Exception e) {
-            System.err.println("[SESSION] Error marking absent students: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error marking absent students for session {}", sessionId, e);
         }
     }
     

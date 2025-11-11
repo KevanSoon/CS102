@@ -75,14 +75,11 @@ public class SessionController {
             
             return ResponseEntity.ok(closedSession);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    // Implement update and delete as needed, example:
-  
-    @PatchMapping("/{sessionId}")
+    @PatchMapping("/{id}")
     public Session updateSession(@PathVariable String id, @RequestBody SessionUpdateDTO updateDTO) {
         return sessionService.update(id, updateDTO);
     }

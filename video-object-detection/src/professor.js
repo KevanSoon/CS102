@@ -1438,7 +1438,10 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Get form values
       const className = document.getElementById('className').value.trim();
-      const sessionDate = document.getElementById('sessionDate').value;
+      // const sessionDate = document.getElementById('sessionDate').value;
+      const sessionDate = new Date().toLocaleDateString('en-CA', { 
+        timeZone: 'Asia/Singapore' 
+      });
       const start_time = document.getElementById('startTime').value;
       const classCode = document.getElementById('classCodeSelect').value;
       const groupNumber = document.getElementById('groupNumberSelect').value;

@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,10 +37,7 @@ public class SessionController {
         return sessionService.getAll();
     }
 
-    @GetMapping("/{id}")
-    public Session getSessionById(@PathVariable String id) {
-        return sessionService.getById(id);
-    }
+ 
 
     @GetMapping("/active/{profId}")
     public Session getActiveSession(@PathVariable String profId) {
@@ -79,14 +75,5 @@ public class SessionController {
         }
     }
 
-    @PatchMapping("/{id}")
-    public Session updateSession(@PathVariable String id, @RequestBody SessionUpdateDTO updateDTO) {
-        return sessionService.update(id, updateDTO);
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteSession(@PathVariable String id) {
-        sessionService.delete(id);
-    }
     
 }

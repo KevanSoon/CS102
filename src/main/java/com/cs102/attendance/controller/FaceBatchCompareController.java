@@ -1,9 +1,14 @@
 package com.cs102.attendance.controller;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.cs102.attendance.dto.AttendanceRecordUpdateDTO;
 import com.cs102.attendance.dto.FaceVerificationResult;
-import com.cs102.attendance.model.AttendanceRecord;
 import com.cs102.attendance.model.FaceData;
 import com.cs102.attendance.service.AttendanceRecordService;
+import com.cs102.attendance.service.FaceCompareService;
 import com.cs102.attendance.service.FaceDataService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +38,9 @@ public class FaceBatchCompareController {
 
     @Autowired
     private AttendanceRecordService attendanceRecordService;
+
+    @Autowired
+    private FaceCompareService faceCompareService;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -69,28 +77,35 @@ public class FaceBatchCompareController {
         double highestScore = 0.0;
         String bestStudentId = null;
 
+        // Create temp file for uploaded image once (reuse for all comparisons)
+        File uploadedImageFile = null;
+        try {
+            uploadedImageFile = base64ToTempFile(base64Image);
+        } catch (IOException e) {
+            System.err.println("ERROR: Failed to create temp file from uploaded image: " + e.getMessage());
+            finalResponse.put("error", "Failed to process uploaded image");
+            return ResponseEntity.badRequest().body(finalResponse);
+        }
+
         for (FaceData student : students) {
+            File studentImageFile = null;
             try {
                 System.out.println("Comparing with student: " + student.getStudentId());
                 
-                // Build request body for /api/face-compare-url
-                Map<String, String> requestBody = Map.of(
-                        "imageBase64", base64Image,
-                        "imageUrl2", student.getImageUrl()
+                // Download student image to temp file
+                studentImageFile = downloadUrlToTempFile(student.getImageUrl());
+                
+                // Call FaceCompareService directly instead of making HTTP request
+                FaceVerificationResult verificationResult = faceCompareService.faceCompare(
+                        uploadedImageFile.getAbsolutePath(),
+                        studentImageFile.getAbsolutePath()
                 );
 
-                ResponseEntity<FaceVerificationResult> response = restTemplate.postForEntity(
-                        "http://localhost:8080/api/face-compare-url",
-                        requestBody,
-                        FaceVerificationResult.class
-                );
-
-                if (response.getBody() == null) {
-                    System.err.println("WARNING: Received null response body for student " + student.getStudentId());
+                if (verificationResult == null) {
+                    System.err.println("WARNING: Received null result from FaceCompareService for student " + student.getStudentId());
                     continue;
                 }
 
-                FaceVerificationResult verificationResult = response.getBody();
                 boolean verified = verificationResult.isVerified();
                 double confidence = verificationResult.getConfidence();
                 
@@ -119,7 +134,17 @@ public class FaceBatchCompareController {
                 errorNode.put("studentId", student.getStudentId());
                 errorNode.put("error", e.getMessage());
                 results.add(errorNode);
+            } finally {
+                // Clean up student image temp file
+                if (studentImageFile != null && studentImageFile.exists()) {
+                    studentImageFile.delete();
+                }
             }
+        }
+
+        // Clean up uploaded image temp file
+        if (uploadedImageFile != null && uploadedImageFile.exists()) {
+            uploadedImageFile.delete();
         }
 
         if (bestStudentId != null) {
@@ -150,7 +175,7 @@ public class FaceBatchCompareController {
                 updateDTO.setConfidence(highestScore);  // Store the confidence score
 
                 try {
-                    AttendanceRecord updatedRecord = attendanceRecordService.updateBySessionAndStudent(sessionId, bestStudentId, updateDTO);
+                    attendanceRecordService.updateBySessionAndStudent(sessionId, bestStudentId, updateDTO);
                     // Optionally add info to finalResponse
                     finalResponse.put("autoMarkerStatus", "Success");
                 } catch (Exception e) {
@@ -173,5 +198,36 @@ public class FaceBatchCompareController {
         System.out.println("Final response: " + finalResponse);
         System.out.println("=== Face Batch Compare Request Complete ===");
         return ResponseEntity.ok(finalResponse);
+    }
+
+    /**
+     * Helper method to convert Base64 string to temporary file
+     * @param base64Image Base64 encoded image string
+     * @return Temporary File object
+     * @throws IOException if file creation fails
+     */
+    private File base64ToTempFile(String base64Image) throws IOException {
+        File tempFile = File.createTempFile("uploaded_", ".jpg");
+        byte[] decodedBytes = Base64.getDecoder().decode(base64Image);
+        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+            fos.write(decodedBytes);
+        }
+        System.out.println("Created temp file from Base64: " + tempFile.getAbsolutePath() + " (" + tempFile.length() + " bytes)");
+        return tempFile;
+    }
+
+    /**
+     * Helper method to download image from URL to temporary file
+     * @param imageUrl URL of the image to download
+     * @return Temporary File object
+     * @throws IOException if download or file creation fails
+     */
+    private File downloadUrlToTempFile(String imageUrl) throws IOException {
+        File tempFile = File.createTempFile("student_", ".png");
+        try (InputStream in = URI.create(imageUrl).toURL().openStream()) {
+            long bytesCopied = Files.copy(in, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("Downloaded image from URL: " + imageUrl + " (" + bytesCopied + " bytes)");
+        }
+        return tempFile;
     }
 }

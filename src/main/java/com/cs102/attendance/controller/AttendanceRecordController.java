@@ -3,7 +3,6 @@ package com.cs102.attendance.controller;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,28 +60,6 @@ public class AttendanceRecordController {
     @PatchMapping("/{id}")
     public AttendanceRecord updateSession(@PathVariable String id, @RequestBody AttendanceRecordUpdateDTO updateDTO) {
         return attendanceRecordService.update(id, updateDTO);
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteSession(@PathVariable String id) {
-        attendanceRecordService.delete(id);
-    }
-
-
-    @PatchMapping("/auto_manual_marker")
-    public AttendanceRecord updateBySessionAndStudent(
-        @RequestParam String sessionId,
-        @RequestParam String studentId,
-        @RequestBody AttendanceRecordUpdateDTO updateDTO) {
-        try {
-            AttendanceRecord record = attendanceRecordService.updateBySessionAndStudent(sessionId, studentId, updateDTO);
-            if (record == null) {
-                throw new RuntimeException("No attendance record found for session: " + sessionId + " and student: " + studentId);
-            }
-            return record;
-        } catch (Exception e) {
-            throw new RuntimeException("Error updating attendance: " + e.getMessage(), e);
-        }
     }
 
     

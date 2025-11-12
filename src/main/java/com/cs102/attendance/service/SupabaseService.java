@@ -106,25 +106,6 @@ public abstract class SupabaseService<T> {
         return results[0];
     }
 
-    
-    //Student Update
-    // public Student update(String id, StudentUpdateDTO updateDTO) {
-    //debugging request body
-    // try {
-    //     String json = objectMapper.writeValueAsString(updateDTO);
-    //     System.out.println("Update request body: " + json);
-    // } 
-    // catch (Exception e) {
-    //     e.printStackTrace();
-    // }
-    // return webClient.patch()
-    //         .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
-    //         .bodyValue(updateDTO)
-    //         .retrieve()
-    //         .bodyToMono(Student.class)
-    //         .block();
-    // }
-
     //Student Update
     public Student update(String id, StudentUpdateDTO updateDTO) {
         try {
@@ -207,22 +188,6 @@ public abstract class SupabaseService<T> {
         return null;
     }
 
-    //Attendance Record Update
-    //   public AttendanceRecord update(String id, AttendanceRecordUpdateDTO updateDTO) {
-    //     try {
-    //         String json = objectMapper.writeValueAsString(updateDTO);
-    //         System.out.println("Update request body: " + json);
-    //     } 
-    //     catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    //     return webClient.patch()
-    //             .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
-    //             .bodyValue(updateDTO)
-    //             .retrieve()
-    //             .bodyToMono(AttendanceRecord.class)
-    //             .block();
-    // }
 
     //Attendance Record Update
     public AttendanceRecord update(String id, AttendanceRecordUpdateDTO updateDTO) {
@@ -279,23 +244,6 @@ public abstract class SupabaseService<T> {
         return null;
     }
 
-
-    //Face Data Update
-    //  public FaceData update(String id, FaceDataUpdateDTO updateDTO) {
-    //     try {
-    //         String json = objectMapper.writeValueAsString(updateDTO);
-    //         System.out.println("Update request body: " + json);
-    //     } 
-    //     catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    //     return webClient.patch()
-    //             .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
-    //             .bodyValue(updateDTO)
-    //             .retrieve()
-    //             .bodyToMono(FaceData.class)
-    //             .block();
-    // }
     
     //Face Data update
     public FaceData update(String id, FaceDataUpdateDTO updateDTO) {

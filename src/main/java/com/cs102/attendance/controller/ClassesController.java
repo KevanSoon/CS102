@@ -19,26 +19,9 @@ public class ClassesController {
         this.ClassesService = ClassesService;
     }
 
-    // @PostMapping
-    // public Classes createClasses(@RequestBody Classes Classes) {
-    //     return ClassesService.create(Classes);
-    // }
-
     @GetMapping
     public List<Classes> getAllClasses() {
         return ClassesService.getAll();
     }
-
-    // Implement update and delete as needed, example:
-  
-    // @PatchMapping("/{id}")
-    // public Classes updateClasses(@PathVariable String id, @RequestBody ClassesUpdateDTO updateDTO) {
-    //     return ClassesService.update(id, updateDTO);
-    // }
-
-    // @DeleteMapping("/{id}")
-    // public void deleteClasses(@PathVariable String id) {
-    //     ClassesService.delete(id);
-    // }
     
 }

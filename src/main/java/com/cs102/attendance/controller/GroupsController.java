@@ -24,10 +24,6 @@ public class GroupsController {
         this.GroupsService = GroupsService;
     }
 
-    // @PostMapping
-    // public Groups createGroups(@RequestBody Groups Groups) {
-    //     return GroupsService.create(Groups);
-    // }
 
     @GetMapping
     public List<Groups> getAllGroups() {
@@ -60,17 +56,4 @@ public class GroupsController {
             return ResponseEntity.badRequest().build();
         }
     }
-
-    // Implement update and delete as needed, example:
-  
-    // @PatchMapping("/{id}")
-    // public Groups updateGroups(@PathVariable String id, @RequestBody GroupsUpdateDTO updateDTO) {
-    //     return GroupsService.update(id, updateDTO);
-    // }
-
-    // @DeleteMapping("/{id}")
-    // public void deleteGroups(@PathVariable String id) {
-    //     GroupsService.delete(id);
-    // }
-    
 }

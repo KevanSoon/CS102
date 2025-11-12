@@ -1734,6 +1734,10 @@ function openAnalytics() {
         <h4 class="chart-title">Overall Attendance Ratio</h4>
         <canvas id="attendancePieChart" height="450"></canvas>
       </div>
+      <div class="analytics-chart-wrapper">
+        <h4 class="chart-title">Per-Student Attendance Rates</h4>
+        <canvas id="attendanceBarChart" height="400"></canvas>
+      </div>
     </div>
   `;
 
@@ -1744,13 +1748,17 @@ function openAnalytics() {
 
 function initAnalyticsCharts() {
   let pieChartInstance = null;
+  let barChartInstance = null;
+
   const select = document.getElementById("analyticsClassSelect");
   const status = document.getElementById("analyticsStatus");
 
   async function loadAnalytics(className) {
     status.textContent = "Loading analytics...";
-    
+
+    // Destroy old charts if exist
     if (pieChartInstance) pieChartInstance.destroy();
+    if (barChartInstance) barChartInstance.destroy();
 
     try {
       const url = `${API_BASE_URL}/reports/summary${className ? `?className=${encodeURIComponent(className)}` : ""}`;
@@ -1766,21 +1774,33 @@ function initAnalyticsCharts() {
       });
       const totalAbsent = totalClasses - totalPresent;
 
-      const chartWrapper = document.querySelector(".analytics-chart-wrapper");
-      if (totalPresent + totalAbsent === 0) {
-        chartWrapper.style.display = "none";
+      const pieWrapper = document.querySelector(".analytics-chart-wrapper");
+      const barWrapper = document.querySelector(".analytics-bar-wrapper");
+
+      // Handle "no data" case
+      if (summary.length === 0 || (totalPresent + totalAbsent) === 0) {
+        if (pieWrapper) pieWrapper.style.display = "none";
+        if (barWrapper) barWrapper.style.display = "none";
         status.textContent = "No attendance data available for this class.";
         return;
       } else {
-        chartWrapper.style.display = "block";
+        if (pieWrapper) {
+          pieWrapper.style.display = "block";
+          pieWrapper.classList.add("fade-in");
+        }
+        if (barWrapper) {
+          barWrapper.style.display = "block";
+          barWrapper.classList.add("fade-in");
+        }
         status.textContent = "";
-    }
+      }
 
-      // Render pie chart
+      // --- PIE CHART ---
       const ctx = document.getElementById("attendancePieChart").getContext("2d");
       const canvas = document.getElementById("attendancePieChart");
       canvas.width = 500;
       canvas.height = 450;
+
       pieChartInstance = new Chart(ctx, {
         type: "pie",
         data: {
@@ -1795,6 +1815,10 @@ function initAnalyticsCharts() {
         },
         options: {
           responsive: false,
+          animation: {
+            duration: 800,
+            easing: "easeOutQuart",
+          },
           plugins: {
             legend: {
               position: "bottom",
@@ -1819,6 +1843,68 @@ function initAnalyticsCharts() {
           }
         }
       });
+
+      // --- BAR CHART ---
+      const sortedSummary = [...summary].sort((a, b) => b.attendanceRate - a.attendanceRate);
+      const labels = sortedSummary.map(s => s.name);
+      const attendanceRates = sortedSummary.map(s => s.attendanceRate);
+      const barCanvas = document.getElementById("attendanceBarChart");
+      barCanvas.width = 600;
+      barCanvas.height = 400;
+
+      const barCtx = document.getElementById("attendanceBarChart").getContext("2d");
+      barChartInstance = new Chart(barCtx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Attendance Rate (%)",
+            data: attendanceRates,
+            backgroundColor: attendanceRates.map(rate => 
+              rate >= 80 ? "#25d811ff" : rate >= 50 ? "#ffcc00" : "#fd9ab6"
+            ),
+            borderRadius: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          animation: {
+            duration: 800,
+            easing: "easeOutQuart",
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.raw}% attendance`
+              }
+            },
+            title: { display: false }
+          },
+          scales: {
+            x: {
+              ticks: {
+                autoSkip: false,
+                maxRotation: 45,
+                minRotation: 45,
+                color: "#444",
+                font: { size: 12 }
+              }
+            },
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: {
+                stepSize: 20,
+                color: "#444",
+                font: { size: 12 }
+              },
+              grid: { color: "#eee" }
+            }
+          }
+        }
+      });
+
     } catch (error) {
       console.error(error);
       status.textContent = "Failed to load analytics.";
@@ -1828,6 +1914,7 @@ function initAnalyticsCharts() {
   select.addEventListener("change", () => loadAnalytics(select.value));
   loadAnalytics(select.value);
 }
+
 
 document.querySelector("#classSelect").addEventListener("change", loadAttendanceSummary);
 

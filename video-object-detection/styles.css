@@ -935,3 +935,17 @@ canvas {
   background: #fef2f2;
   border-color: #fca5a5;
 }
+
+.analytics-chart-wrapper + .analytics-chart-wrapper {
+  margin-top: 40px;
+}
+
+.fade-in {
+  animation: fadeIn 0.7s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+

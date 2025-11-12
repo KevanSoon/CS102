@@ -99,6 +99,8 @@ public class ReportController {
         List<Map<String, Object>> summaryList = new ArrayList<>();
         for (String studentId : totalClasses.keySet()) {
             Student student = studentMap.get(studentId);
+            if (student == null) continue;
+            
             int total = totalClasses.getOrDefault(studentId, 0);
             int present = presentCount.getOrDefault(studentId, 0);
             double rate = total > 0 ? (present * 100.0 / total) : 0;

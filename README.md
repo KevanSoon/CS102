@@ -44,7 +44,7 @@ The application follows a **three-tier architecture** with clear separation betw
 - **JavaScript (ES6+)**: Client-side functionality
 - **Vite**: Frontend build tool and development server
 - **Hugging Face Transformers**: Client-side face detection model (Xenova/gelan-c_all)
-- **Gradio Client**: Integration with external AI services
+
 
 ### AI & Machine Learning
 - **DeepFace**: Face verification using Facenet model

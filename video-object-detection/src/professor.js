@@ -1734,7 +1734,7 @@ function openAnalytics() {
         <h4 class="chart-title">Overall Attendance Ratio</h4>
         <canvas id="attendancePieChart" height="450"></canvas>
       </div>
-      <div class="analytics-chart-wrapper">
+      <div class="analytics-bar-wrapper">
         <h4 class="chart-title">Per-Student Attendance Rates</h4>
         <canvas id="attendanceBarChart" height="400"></canvas>
       </div>

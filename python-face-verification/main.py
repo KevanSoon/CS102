@@ -58,8 +58,6 @@ async def face_match(
         temp_file2.close()
         
         print(f"Processing face verification...")
-        print(f"Image 1: {temp_file1.name} ({len(content1)} bytes)")
-        print(f"Image 2: {temp_file2.name} ({len(content2)} bytes)")
         
         # Perform face verification using DeepFace
         result = DeepFace.verify(

@@ -27,7 +27,7 @@ public class AttendanceRecordController {
     }
 
     @PostMapping
-    public AttendanceRecord createSession(@RequestBody AttendanceRecord attendanceRecord) {
+    public AttendanceRecord createRecord(@RequestBody AttendanceRecord attendanceRecord) {
         return attendanceRecordService.create(attendanceRecord);
     }
 
@@ -58,7 +58,7 @@ public class AttendanceRecordController {
 
   
     @PatchMapping("/{id}")
-    public AttendanceRecord updateSession(@PathVariable String id, @RequestBody AttendanceRecordUpdateDTO updateDTO) {
+    public AttendanceRecord updateRecord(@PathVariable String id, @RequestBody AttendanceRecordUpdateDTO updateDTO) {
         return attendanceRecordService.update(id, updateDTO);
     }
 

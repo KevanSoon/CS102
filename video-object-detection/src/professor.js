@@ -1,4 +1,4 @@
-console.log("professor.js loaded");
+// console.log("professor.js loaded");
 
 // ===== AUTH CHECK =====
 import { displayUserInfo, logout, authService } from './authCheck.js';
@@ -6,7 +6,7 @@ import { setActiveSessionId, clearActiveSessionId, registerLoadActiveSessions } 
 
 // Auth check and user info
 const userInfo = displayUserInfo();
-console.log('Logged in as:', userInfo.name);
+// console.log('Logged in as:', userInfo.name);
 const currentUser = authService.getUser();
 
 // Update welcome text with actual user name
@@ -19,11 +19,7 @@ if (welcomeText) {
 const API_BASE_URL = 'http://localhost:8080/api';
 
 // ===== GLOBAL VARIABLES =====
-let attendanceRecords = [
-  { date: "2024-01-15", class: "CS101", status: "Present", time: "09:00 AM" },
-  { date: "2024-01-14", class: "MATH201", status: "Present", time: "11:00 AM" },
-  { date: "2024-01-13", class: "PHY301", status: "Absent", time: "-" },
-];
+
 
 const startDateInput = document.querySelector("#startDate");
 const endDateInput = document.querySelector("#endDate");
@@ -77,7 +73,7 @@ async function fetchProfessorClasses() {
         });
 
         professorClasses = flattenedClasses; // Store the flattened list globally
-        console.log('Professor classes loaded:', professorClasses);
+        // console.log('Professor classes loaded:', professorClasses);
         return flattenedClasses;
     } catch (error) {
         console.error('Error fetching professor classes:', error);
@@ -90,13 +86,13 @@ async function fetchProfessorClasses() {
 
 async function loadActiveSessions() {
   try {
-    console.log('Loading active session for professor:', currentUser.id);
+    // console.log('Loading active session for professor:', currentUser.id);
     
     const response = await fetch(`${API_BASE_URL}/sessions/active/${currentUser.id}`);
     
     if (!response.ok) {
       if (response.status === 404) {
-        console.log('No active session found');
+        // console.log('No active session found');
         displayNoActiveSession();
         return;
       }
@@ -106,14 +102,14 @@ async function loadActiveSessions() {
     // Check if response has content
     const text = await response.text();
     if (!text || text.trim() === '') {
-      console.log('Empty response - no active session');
+      // console.log('Empty response - no active session');
       displayNoActiveSession();
       return;
     }
     
     // Parse the JSON
     const activeSession = JSON.parse(text);
-    console.log('Active session loaded:', activeSession);
+    // console.log('Active session loaded:', activeSession);
     
     if (!activeSession || !activeSession.id) {
       displayNoActiveSession();
@@ -130,7 +126,7 @@ async function loadActiveSessions() {
 
 async function loadSessionStudents(sessionId) {
   try {
-    console.log('Loading students for session:', sessionId);
+    // console.log('Loading students for session:', sessionId);
     
     const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/students`);
     
@@ -139,7 +135,7 @@ async function loadSessionStudents(sessionId) {
     }
     
     const students = await response.json();
-    console.log('Students loaded:', students);
+    // console.log('Students loaded:', students);
     
     return students;
     
@@ -157,7 +153,7 @@ async function loadSessionStudents(sessionId) {
  */
 async function validateStudentInSession(sessionId, studentId) {
   try {
-    console.log(`Validating student ${studentId} in session ${sessionId}`);
+    // console.log(`Validating student ${studentId} in session ${sessionId}`);
     
     const students = await loadSessionStudents(sessionId);
     
@@ -169,7 +165,7 @@ async function validateStudentInSession(sessionId, studentId) {
     // Check if the studentId exists in the student list
     const isEnrolled = students.some(student => student.id === studentId);
     
-    console.log(`Student ${studentId} enrollment status:`, isEnrolled);
+    // console.log(`Student ${studentId} enrollment status:`, isEnrolled);
     return isEnrolled;
     
   } catch (error) {
@@ -315,7 +311,7 @@ function startSessionCountdown(sessionDate, sessionStartTime, sessionId) {
     
     // If expired, stop the timer and reload
     if (timeInfo.expired) {
-      console.log('Countdown finished!');
+      // console.log('Countdown finished!');
       clearInterval(window.sessionCountdownTimer);
       
       // Show expired message instead of reloading
@@ -370,7 +366,7 @@ function showSessionExpiredMessage() {
 }
 
 async function displayActiveSession(session) {
-  console.log('Displaying session:', session);
+  // console.log('Displaying session:', session);
 
   // Check if 15+ minutes have passed
   if (session.date && session.start_time) {
@@ -381,7 +377,7 @@ async function displayActiveSession(session) {
     
     // If expired, don't display it
     if (minutesSinceStart >= 15) {
-      console.log('Session expired, not displaying');
+      // console.log('Session expired, not displaying');
       displayNoActiveSession();
       return; // STOP HERE
     }
@@ -650,7 +646,7 @@ async function closeActiveSession(sessionId) {
   }
   
   try {
-    console.log('Closing session:', sessionId);
+    // console.log('Closing session:', sessionId);
     
     const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/close`, {
       method: 'PATCH',
@@ -665,7 +661,7 @@ async function closeActiveSession(sessionId) {
     }
     
     const closedSession = await response.json();
-    console.log('Session closed:', closedSession);
+    // console.log('Session closed:', closedSession);
     
     alert('Session closed successfully!');
     
@@ -718,8 +714,8 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
     const singaporeTime = now.toLocaleString('sv-SE', { timeZone: 'Asia/Singapore' }).replace(' ', 'T');
     const markedAt = singaporeTime; // Should be "2025-11-04T18:28:49.359Z"
     
-    console.log('Timestamp being sent:', markedAt); // DEBUG: Check what's actually being sent
-    console.log('Confidence score:', confidence); // DEBUG: Check confidence value
+    // console.log('Timestamp being sent:', markedAt); // DEBUG: Check what's actually being sent
+    // console.log('Confidence score:', confidence); // DEBUG: Check confidence value
     
     // Check if record exists
     const checkResponse = await fetch(
@@ -746,7 +742,7 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
           updateBody.confidence = confidence;
         }
         
-        console.log('Update body:', JSON.stringify(updateBody)); // Check the full payload
+        // console.log('Update body:', JSON.stringify(updateBody)); // Check the full payload
         
         response = await fetch(`${API_BASE_URL}/attendance_records/${recordId}`, {
           method: 'PATCH',
@@ -768,7 +764,7 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
           createBody.confidence = confidence;
         }
         
-        console.log('Create body:', JSON.stringify(createBody)); // Check the full payload
+        // console.log('Create body:', JSON.stringify(createBody)); // Check the full payload
         
         response = await fetch(`${API_BASE_URL}/attendance_records`, {
           method: 'POST',
@@ -793,7 +789,7 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
         createBody.confidence = confidence;
       }
       
-      console.log('Create body:', JSON.stringify(createBody));
+      // console.log('Create body:', JSON.stringify(createBody));
       
       response = await fetch(`${API_BASE_URL}/attendance_records`, {
         method: 'POST',
@@ -819,37 +815,18 @@ async function saveAttendanceRecord(sessionId, studentId, status, method = 'MANU
 // ===== PROFESSOR MARKS STUDENT (MANUAL) =====
 async function markStudentManually(sessionId, studentId, status) {
   try {
-    console.log(`Marking student ${studentId} as ${status}`);
+    // console.log(`Marking student ${studentId} as ${status}`);
     
     // Pass 'MANUAL' in uppercase
     await saveAttendanceRecord(sessionId, studentId, status, 'MANUAL');
     
-    console.log('Attendance marked successfully');
+    // console.log('Attendance marked successfully');
     
     // Reload to update UI
     await loadActiveSessions();
     
   } catch (error) {
     alert('Failed to mark attendance: ' + error.message);
-  }
-}
-
-function updateStudentStats() {
-  const totalClasses = attendanceRecords.length;
-  const presentClasses = attendanceRecords.filter((record) => record.status === "Present").length;
-  const attendanceRate = totalClasses > 0 ? Math.round((presentClasses / totalClasses) * 100) : 0;
-
-  const statNumbers = document.querySelectorAll(".stat-number");
-  if (statNumbers.length >= 3) {
-    statNumbers[0].textContent = `${attendanceRate}%`;
-    statNumbers[1].textContent = totalClasses;
-
-    // const today = new Date().toISOString().split("T")[0];
-    const today = new Date().toLocaleDateString('en-CA', { 
-      timeZone: 'Asia/Singapore' 
-    });
-    const classesToday = attendanceRecords.filter((record) => record.date === today).length;
-    statNumbers[2].textContent = classesToday;
   }
 }
 
@@ -926,14 +903,6 @@ function closeCreateClass() {
   }
 }
 
-function openManualAttendance() {
-  document.getElementById("manualAttendanceModal").classList.add("active");
-}
-
-function closeManualAttendance() {
-  document.getElementById("manualAttendanceModal").classList.remove("active");
-}
-
 function openGenerateReport() {
   document.getElementById("generateReportModal").classList.add("active");
   loadClassDropdown("classSelect");
@@ -941,22 +910,6 @@ function openGenerateReport() {
 
 function closeGenerateReport() {
   document.getElementById("generateReportModal").classList.remove("active");
-}
-
-function openStudentManagement() {
-  document.getElementById("studentManagementModal").classList.add("active");
-}
-
-function closeStudentManagement() {
-  document.getElementById("studentManagementModal").classList.remove("active");
-}
-
-function openAttendanceCheck() {
-  document.getElementById("attendanceCheckModal").classList.add("active");
-}
-
-function closeAttendanceCheck() {
-  document.getElementById("attendanceCheckModal").classList.remove("active");
 }
 
 document.querySelectorAll('.section-content button').forEach(button => {
@@ -990,7 +943,7 @@ let professorClassesData = [];
 // Load professor's classes when modal opens
 async function loadProfessorClasses() {
   try {
-    console.log('Loading classes for professor:', currentUser.id);
+    // console.log('Loading classes for professor:', currentUser.id);
     
     const response = await fetch(`${API_BASE_URL}/professors/${currentUser.id}/classes`);
     
@@ -999,7 +952,7 @@ async function loadProfessorClasses() {
     }
     
     const classesData = await response.json();
-    console.log('Classes loaded:', classesData);
+    // console.log('Classes loaded:', classesData);
     
     // Store data globally so we can access groups later
     professorClassesData = classesData;
@@ -1112,7 +1065,7 @@ async function fetchAllStudents() {
       throw new Error('Failed to fetch students');
     }
     allStudents = await response.json();
-    console.log('All students loaded:', allStudents);
+    // console.log('All students loaded:', allStudents);
     return allStudents;
   } catch (error) {
     console.error('Error fetching students:', error);
@@ -1142,7 +1095,7 @@ async function loadGroupRoster(classCode, groupNumber) {
 
   // Get student IDs in this group
   const groupStudentIds = selectedGroup.student_list || [];
-  console.log('Group student IDs:', groupStudentIds);
+  // console.log('Group student IDs:', groupStudentIds);
 
   // Fetch all students if not already loaded
   if (allStudents.length === 0) {
@@ -1156,7 +1109,7 @@ async function loadGroupRoster(classCode, groupNumber) {
     groupStudentIds.includes(student.code)
   );
 
-  console.log('Current group students:', currentGroupStudents);
+  // console.log('Current group students:', currentGroupStudents);
 
   // Only display if roster management is enabled
   if (rosterManagementEnabled) {
@@ -1426,7 +1379,6 @@ function searchStudents() {
 // ===== PAGE INITIALIZATION (UPDATED) =====
 
 document.addEventListener("DOMContentLoaded", () => {
-  updateStudentStats();
   registerLoadActiveSessions(loadActiveSessions);
   init(); 
 
@@ -1473,7 +1425,7 @@ document.addEventListener("DOMContentLoaded", () => {
         group_number: groupNumber
       };
       
-      console.log('Sending session data:', sessionData);
+      // console.log('Sending session data:', sessionData);
       
       try {
         const submitButton = e.target.querySelector('button[type="submit"]');
@@ -1492,7 +1444,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         const createdSession = await response.json();
-        console.log('Session created successfully:', createdSession);
+        // console.log('Session created successfully:', createdSession);
         
         alert('Session created successfully! It will auto-close 15 minutes after start time.');
         
@@ -1936,19 +1888,13 @@ endDateInput.addEventListener("change", () => {
 
 // ===== MAKE FUNCTIONS GLOBALLY ACCESSIBLE FOR ONCLICK HANDLERS (UNCHANGED) =====
 window.closeActiveSession = closeActiveSession;
-window.closeAttendanceCheck = closeAttendanceCheck;
 window.closeCreateClass = closeCreateClass;
 window.closeGenerateReport = closeGenerateReport;
-window.closeManualAttendance = closeManualAttendance;
-window.closeStudentManagement = closeStudentManagement;
 window.exportCSV = exportCSV;
 window.exportPDF = exportPDF;
-window.openAttendanceCheck = openAttendanceCheck;
 window.openCreateClass = openCreateClass; 
 window.openGenerateReport = openGenerateReport;
 window.openAnalytics = openAnalytics;
-window.openManualAttendance = openManualAttendance;
-window.openStudentManagement = openStudentManagement;
 window.logout = logout;
 window.addStudentToGroup = addStudentToGroup;
 window.removeStudentFromGroup = removeStudentFromGroup;

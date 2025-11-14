@@ -51,7 +51,7 @@ Compare two face images and return verification results.
   "distance": 0.303235,
   "threshold": 0.68,
   "confidence": 90.92,
-  "model": "VGG-Face",
+  "model": "Facenet",
   "detector_backend": "opencv",
   "similarity_metric": "cosine",
   "facial_areas": {
@@ -68,7 +68,7 @@ Health check endpoint.
 ## Configuration
 
 The service uses:
-- **Model**: VGG-Face
+- **Model**: Facenet
 - **Detector Backend**: OpenCV
 - **Distance Metric**: Cosine
 - **Default Port**: 8000

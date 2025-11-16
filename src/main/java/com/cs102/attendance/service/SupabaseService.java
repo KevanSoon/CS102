@@ -3,18 +3,14 @@ package com.cs102.attendance.service;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.cs102.attendance.dto.AttendanceRecordUpdateDTO;
-import com.cs102.attendance.dto.FaceDataUpdateDTO;
 import com.cs102.attendance.dto.GroupUpdateDTO;
 import com.cs102.attendance.dto.SessionUpdateDTO;
 import com.cs102.attendance.dto.StudentUpdateDTO;
 import com.cs102.attendance.model.AttendanceRecord;
-import com.cs102.attendance.model.FaceData;
 import com.cs102.attendance.model.Groups;
 import com.cs102.attendance.model.Session;
 import com.cs102.attendance.model.Student;
@@ -25,7 +21,6 @@ public abstract class SupabaseService<T> {
     protected final WebClient webClient;
     protected final String tableName;
     private final Class<T[]> arrayType;
-    private final Class<T> singleType;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
 
@@ -33,7 +28,7 @@ public abstract class SupabaseService<T> {
         this.webClient = webClient;
         this.tableName = tableName;
         this.arrayType = arrayType;
-        this.singleType = singleType;
+      
         this.objectMapper.findAndRegisterModules();
     }
 
@@ -214,67 +209,35 @@ public abstract class SupabaseService<T> {
     }
 
     //Attendance Manual / Auto Marker
-    public T updateWithFilters(Map<String, String> filters, Object updateDTO) {
-        try {
-            String json = objectMapper.writeValueAsString(updateDTO);
-            System.out.println("Update request body: " + json);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    // public T updateWithFilters(Map<String, String> filters, Object updateDTO) {
+    //     try {
+    //         String json = objectMapper.writeValueAsString(updateDTO);
+    //         System.out.println("Update request body: " + json);
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
         
-        // Build query params string for filters, e.g., session_id=eq.x&student_id=eq.y
-        String filterQuery = filters.entrySet().stream()
-            .map(entry -> entry.getKey() + "=eq." + entry.getValue())
-            .collect(Collectors.joining("&"));
+    //     // Build query params string for filters, e.g., session_id=eq.x&student_id=eq.y
+    //     String filterQuery = filters.entrySet().stream()
+    //         .map(entry -> entry.getKey() + "=eq." + entry.getValue())
+    //         .collect(Collectors.joining("&"));
         
-        // Compose URI with tableName and filter query parameters
-        String uri = tableName + "?" + filterQuery;
+    //     // Compose URI with tableName and filter query parameters
+    //     String uri = tableName + "?" + filterQuery;
         
-        T[] results = webClient.patch()
-                .uri(uri)
-                .bodyValue(updateDTO)
-                .retrieve()
-                .bodyToMono(arrayType)  // ✅ Changed to arrayType
-                .block();
+    //     T[] results = webClient.patch()
+    //             .uri(uri)
+    //             .bodyValue(updateDTO)
+    //             .retrieve()
+    //             .bodyToMono(arrayType)  // ✅ Changed to arrayType
+    //             .block();
         
-        // Return first element or null
-        if (results != null && results.length > 0) {
-            return results[0];
-        }
-        return null;
-    }
+    //     // Return first element or null
+    //     if (results != null && results.length > 0) {
+    //         return results[0];
+    //     }
+    //     return null;
+    // }
 
     
-    //Face Data update
-    public FaceData update(String id, FaceDataUpdateDTO updateDTO) {
-        try {
-            String json = objectMapper.writeValueAsString(updateDTO);
-            System.out.println("Update request body: " + json);
-        } 
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-        FaceData[] results = (FaceData[]) webClient.patch()
-                .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
-                .bodyValue(updateDTO)
-                .retrieve()
-                .bodyToMono(arrayType) 
-                .block();
-        
-        // Return first element or null
-        if (results != null && results.length > 0) {
-            return results[0];
-        }
-        return null;
-    }
-
-
-    public void delete(String id) {
-        webClient.delete()
-                .uri(uriBuilder -> uriBuilder.path(tableName).queryParam("id", "eq." + id).build())
-                .retrieve()
-                .bodyToMono(Void.class)
-                .block();
-    }
 }

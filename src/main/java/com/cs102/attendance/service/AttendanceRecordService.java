@@ -22,6 +22,15 @@ public class AttendanceRecordService extends SupabaseService<AttendanceRecord> {
         return super.update(id, updatedDto);
     }
 
+    // public AttendanceRecord updateBySessionAndStudent(String sessionId, String studentId, AttendanceRecordUpdateDTO updateDTO) {
+    //     Map<String, String> filters = Map.of(
+    //         "session_id", sessionId,
+    //         "student_id", studentId
+    //     );
+    //     return updateWithFilters(filters, updateDTO);
+    // }
+
+
     public List<AttendanceRecord> getBySession(String sessionId) {
         List<AttendanceRecord> allRecords = getAll();
         return allRecords.stream()

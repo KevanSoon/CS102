@@ -665,7 +665,7 @@ canvas {
   margin-bottom: 20px;
 }
 
-.analytics-chart-wrapper {
+.analytics-chart-wrapper, .analytics-bar-wrapper {
   width: 100%;
   max-width: 500px;
   height: 500px;
@@ -936,7 +936,7 @@ canvas {
   border-color: #fca5a5;
 }
 
-.analytics-chart-wrapper + .analytics-chart-wrapper {
+.analytics-chart-wrapper + .analytics-bar-wrapper {
   margin-top: 40px;
 }
 

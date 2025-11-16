@@ -35,6 +35,13 @@ import com.cs102.attendance.service.GroupsService;
 import com.cs102.attendance.service.SessionService;
 import com.cs102.attendance.service.StudentService;
 
+
+/**
+ * ReportController
+ * Handles all report and analytics-related endpoints.
+ * Acts as the orchestration layer — does NOT directly access persistence.
+ * Delegates data retrieval to service classes following clean layered architecture and SRP
+ */
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
@@ -52,10 +59,19 @@ public class ReportController {
         this.studentService = studentService;
     }
 
+    /**
+     * Returns a list of attendance summary records for all students.
+     * 1. Fetches sessions, groups, students, and attendance via services.
+     * 2. Computes total classes per student.
+     * 3. Computes present count per student.
+     * 4. Calculates attendance percentages.
+     * 5. Returns a sorted summary list.
+     */
     @GetMapping("/summary")
     public List<Map<String, Object>> getAttendanceSummary(
             @RequestParam(required = false) String className) {
 
+        // Fetch all sessions; apply optional class filter
         List<Session> sessions = sessionService.getAll();
         if (className != null && !className.isEmpty()) {
             sessions = sessions.stream()
@@ -63,16 +79,19 @@ public class ReportController {
                     .toList();
         }
 
+        // Load relevant data
         List<Groups> groups = groupsService.getAll();
         List<Student> students = studentService.getAll();
         List<AttendanceRecord> attendanceRecords = attendanceService.getAll();
 
+        // Map for quick student lookup by ID
         Map<String, Student> studentMap = students.stream()
                 .collect(Collectors.toMap(s -> s.getId().toString(), s -> s));
 
         Map<String, Integer> totalClasses = new HashMap<>();
         Map<String, Integer> presentCount = new HashMap<>();
 
+        // Compute total class count + present count for each student
         for (Session session : sessions) {
             Groups group = groups.stream()
                     .filter(g -> g.getClassCode().equals(session.getClassCode())
@@ -100,7 +119,7 @@ public class ReportController {
         for (String studentId : totalClasses.keySet()) {
             Student student = studentMap.get(studentId);
             if (student == null) continue;
-            
+
             int total = totalClasses.getOrDefault(studentId, 0);
             int present = presentCount.getOrDefault(studentId, 0);
             double rate = total > 0 ? (present * 100.0 / total) : 0;
@@ -114,12 +133,19 @@ public class ReportController {
             summaryList.add(entry);
         }
 
-        // Sort by attendance rate
+        // Sort by attendance rate (descending)
         summaryList.sort(Comparator.comparingDouble(e -> -((Number) e.get("attendanceRate")).doubleValue()));
         return summaryList;
     }
 
-
+    /**
+     * Generate an attendance report (CSV or PDF).
+     * 1. Fetch + filter sessions by class + date range.
+     * 2. Resolve group membership for each session.
+     * 3. Resolve attendance record per student per session.
+     * 4. Format the dataset into rows.
+     * 5. Export using chosen format (CSV or PDF).
+     */
    @RequestMapping(value = "/generate", method = {RequestMethod.GET, RequestMethod.POST})
     public void generateReport(
             @RequestParam(defaultValue = "csv") String format,
@@ -128,6 +154,7 @@ public class ReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             HttpServletResponse response) throws IOException {
 
+        // Fetch all sessions, apply optional class/date filters
         List<Session> sessions = sessionService.getAll().stream()
         .filter(s -> className == null || className.isEmpty() || className.equalsIgnoreCase(s.getClassCode()))
         .filter(s -> startDate == null || (s.getDate() != null && !s.getDate().isBefore(startDate)))
@@ -141,6 +168,7 @@ public class ReportController {
         List<Student> students = studentService.getAll();
         List<AttendanceRecord> attendanceRecords = attendanceService.getAll();
 
+        // Map for O(1) student lookup
         Map<String, Student> studentMap = students.stream()
                 .collect(Collectors.toMap(s -> s.getId().toString(), s -> s));
 
@@ -151,7 +179,7 @@ public class ReportController {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         for (Session session : sessions) {
-            // Match both class code AND group number for this session
+            // Identify group for student mapping
             Groups group = groups.stream()
                     .filter(g -> g.getClassCode().equals(session.getClassCode())
                             && g.getGroupNumber().equals(session.getGroupNumber()))
@@ -168,7 +196,7 @@ public class ReportController {
                 Student student = studentMap.get(studentId);
                 if (student == null) continue;
 
-                // Find record if student attended this session
+                // Find attendance record for specific student+session
                 AttendanceRecord record = attendanceRecords.stream()
                         .filter(r -> r.getSession_id().toString().equals(session.getId().toString())
                                 && r.getStudent_id().toString().equals(studentId))
@@ -204,7 +232,13 @@ public class ReportController {
     }
 
 
-
+    /**
+     * CSV Export
+     * Handles:
+     * - Proper quoting
+     * - Special character escaping
+     * - UTF-8 output
+     */
     private void exportCsv(List<String[]> rows, HttpServletResponse response) throws IOException {
         response.setContentType("text/csv");
         response.setHeader("Content-Disposition", "attachment; filename=\"attendance_report.csv\"");
@@ -217,6 +251,15 @@ public class ReportController {
         }
     }
 
+    /**
+     * PDF Export
+     * Handles:
+     * - Paginated table layout.
+     * - Proper column sizing, text wrapping and truncation.
+     * - Alternating row colors and status-based color coding.
+     * - Center title and timestamp.
+     * - Pagination when table exceeds page height.
+     */
     private void exportPdf(List<String[]> rows, HttpServletResponse response, String classCode) throws IOException {
         response.setContentType("application/pdf");
         response.setHeader("Content-Disposition", "inline; filename=\"attendance_report.pdf\"");
@@ -226,7 +269,7 @@ public class ReportController {
             document.addPage(page);
 
             PDDocumentInformation info = new PDDocumentInformation();
-            info.setTitle("Attendance Report");
+            info.setTitle("Attendance Report"); // Set PDF metadata title
             document.setDocumentInformation(info);
 
             ClassPathResource fontResource = new ClassPathResource("fonts/NotoSans-Regular.ttf");
@@ -271,7 +314,8 @@ public class ReportController {
                 }
                 colWidths[c] = Math.min(maxWidth + 10, 100);
             }
-
+            
+            // Compute total table width for centering
             float totalWidth = 0;
             for (float w : colWidths) totalWidth += w;
             float startX = (PDRectangle.A4.getWidth() - totalWidth) / 2;
@@ -312,7 +356,7 @@ public class ReportController {
                 content.addRect(startX, y - rowHeight + 4, totalWidth, rowHeight);
                 content.fill();
 
-                // ===== Borders =====
+                // ===== Table borders =====
                 content.setStrokingColor(new java.awt.Color(189, 195, 199));
                 float x = startX;
                 for (int c = 0; c < cols; c++) {

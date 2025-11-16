@@ -42,7 +42,7 @@ public class FaceDataController {
     }
 
     @PostMapping
-    public FaceData createSession(@RequestBody FaceData faceData) {
+    public FaceData createFaceData(@RequestBody FaceData faceData) {
         return faceDataService.create(faceData);
     }
     

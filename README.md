@@ -21,7 +21,7 @@ A modern, AI-powered attendance tracking system combining **facial recognition**
 
 **Backend:** Java 17, Spring Boot 3, **Supabase Auth (JWT Validation)**
 **Frontend:** HTML/CSS, JavaScript (ES6+), Vite  
-**AI/ML:** DeepFace (Facenet), Hugging Face Transformers  
+**AI/ML:** DeepFace (Facenet), Hugging Face Transformers (Xenova/gelan-c_all for frontend face detection)  
 **Database:** Supabase PostgreSQL + Supabase Storage  
 **Face Service:** Python FastAPI + Uvicorn  
 **Build Tools:** Maven, npm  
@@ -85,13 +85,19 @@ The Python FastAPI service provides face verification capabilities:
 # Navigate to Python service directory
 cd python-face-verification
 
-# Activate virtual environment (if using one)
+# Create a virtual environment (first time only)
+# On Unix/Linux/macOS:
+python3 -m venv venv
+# On Windows:
+python -m venv venv
+
+# Activate virtual environment
 # On Unix/Linux/macOS:
 source venv/bin/activate
 # On Windows:
 venv\Scripts\activate
 
-# Install dependencies (if not already installed)
+# Install dependencies
 pip install -r requirements.txt
 
 # Start the FastAPI server
